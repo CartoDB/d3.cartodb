@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Maps JavaScript API v3 Example: Map Coordinates</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <style>
+        @import url(vendor/leaflet.css);
+        html, body {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            overflow:hidden;
+        }
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+        #time_slider {
+            position: absolute;
+            bottom: 20px;
+            left: 40px;
+            width: 800px;
+            height: 45px;
+        }
+
+    </style>
+
+<script id="choropleth" type="text/cartocss">
+#ne_50m_admin_1_states {
+  polygon-fill: #FFFFB2;
+  polygon-opacity: 0.8;
+  line-color: black;
+  line-width: 0.2;
+  line-opacity: 1;
+  transition-time: 300;
+}
+
+#ne_50m_admin_1_states::hover {
+  polygon-fill: #555;
+  polygon-opacity: 0.8;
+  line-color: black;
+  line-width: 1;
+  line-opacity: 1;
+}
+
+#ne_50m_admin_1_states [ area <= 149721093.997431] {
+   polygon-fill: #B10026;
+}
+#ne_50m_admin_1_states [ area <= 27022656.6122659] {
+   polygon-fill: #E31A1C;
+}
+#ne_50m_admin_1_states [ area <= 20035661.7671357] {
+   polygon-fill: #FC4E2A;
+}
+#ne_50m_admin_1_states [ area <= 15136184.4896708] {
+   polygon-fill: #FD8D3C;
+}
+#ne_50m_admin_1_states [ area <= 12659261.8740652] {
+   polygon-fill: #FEB24C;
+}
+#ne_50m_admin_1_states [ area <= 10281457.7708892] {
+   polygon-fill: #FED976;
+}
+#ne_50m_admin_1_states [ area <= 2419741.20427765] {
+   polygon-fill: #FFFFB2;
+}
+
+#ne_50m_admin_1_states [ area < global.area] {
+   polygon-fill: #888;
+   polygon-opacity: 0.2;
+}
+</script>
+
+</head>
+<body>
+<div id="map">
+</div>
+  <input id="time_slider" value = 0 type="range" max="149721094" min="2419742" step="1000" />
+  <script src="vendor/d3.v3.js" charset="utf-8"></script>
+  <script src="vendor/leaflet.js"></script>
+  <script src="vendor/underscore-min.js"></script>
+  <script src="vendor/carto.uncompressed.js"></script>
+  <script src="d3.jsonp.js"></script>
+  <script src="d3_cartodb_layer.js"></script>
+  <script>
+
+
+
+  var layers;
+  var selectedLayer = 0;
+  var c = [40.71512685201709, -74.00201797485352]
+  var map = new L.Map("map", {center: c, zoom: 3})
+
+  L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+  }).addTo(map);
+
+  var layer = new cartodb.d3.Layer({
+      user: 'rambo-test'
+  })
+
+  layer.addTo(map);
+  layer.setGlobal('area', 0);
+  layer.setSQL('SELECT *, ST_area(the_geom::geography)/10000 as area FROM ne_50m_admin_1_states');
+  layer.setCartoCSS(document.getElementById('choropleth').innerHTML);
+
+
+  document.getElementById('time_slider').oninput = function(v) {
+    layer.setGlobal('area', +v.currentTarget.value);
+  }
+
+  </script>
+</body>
+</html>
