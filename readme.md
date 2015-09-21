@@ -1,14 +1,19 @@
 
-d3.cartodb is an experiment to render cartodb visualizations using d3. 
+d3.cartodb is an experiment to render cartodb visualizations using d3.
+
+see an [example](http://cartodb.github.io/d3.cartodb/test.html) or go to the [viz.json
+viewer](http://cartodb.github.io/d3.cartodb/vizjson_viewer.html#https://osm2.cartodb.com/api/v2/viz/c217e650-c57f-11e4-848a-0e0c41326911/viz.json)  (just
+change the viz.json url in the url)
 
 
 # how to use it
 
 Just create a leaflet map
 
-```
+```javascript
 var map = new L.Map("map", { center: [0, 0], zoom: 3 })
 d3.cartodb.viz(viz_json_url, function(err, layers) {
+    // work with layer
 });
 ```
 
@@ -16,7 +21,7 @@ d3.cartodb.viz(viz_json_url, function(err, layers) {
 
 This creates a leaflet layer
 
-```
+```javascript
 var map = new L.Map("map", { center: [0, 0], zoom: 3 })
 var layer = new d3.cartodb.Layer({
     user: 'rambo',
