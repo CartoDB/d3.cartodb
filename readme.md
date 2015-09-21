@@ -2,7 +2,7 @@
 d3.cartodb is an experiment to render cartodb visualizations using d3.
 
 see an [example](http://cartodb.github.io/d3.cartodb/test.html) or go to the [viz.json
-viewer](http://cartodb.github.io/d3.cartodb/vizjson_viewer.html#https://osm2.cartodb.com/api/v2/viz/c217e650-c57f-11e4-848a-0e0c41326911/viz.json)  (just
+viewer](http://cartodb.github.io/d3.cartodb/vizjson_visor.html#https://osm2.cartodb.com/api/v2/viz/c217e650-c57f-11e4-848a-0e0c41326911/viz.json)  (just
 change the viz.json url in the url)
 
 
