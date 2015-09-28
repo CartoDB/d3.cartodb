@@ -3,6 +3,13 @@ var cartodb = cartodb || {};
 (function() {
 cartodb.d3 = {}
 
+d3.selection.prototype.moveToFront = function() {
+  return this.each(function(){
+    this.parentNode.appendChild(this);
+  });
+};
+
+
 // fetchs a viz.json, create the layers and add them to the map
 function viz(url, map, done) {
   d3.jsonp(url + "?callback=vizjson", function(data) {
@@ -300,6 +307,7 @@ D3CartoDBLayer = L.Class.extend({
   onMouseover: function(sym, path) {
       return function(d) {
         var t = d3.select(this)
+        t.moveToFront();
         var trans_time = d.shader_hover['transition-time']
         if (trans_time)
           t = t.transition().duration(trans_time);
