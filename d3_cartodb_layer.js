@@ -152,6 +152,7 @@ D3CartoDBLayer = L.Class.extend({
     this.path = d3.geo.path().projection(transform);
 
     map.on('viewreset', this._reset, this);
+    map.on('zoomstart', function() { this.geometryDirty = true }, this);
     map.on('zoomend', function() { this.geometryDirty = true }, this);
     this._reset();
   },
