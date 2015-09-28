@@ -405,11 +405,12 @@ D3CartoDBLayer = L.Class.extend({
       feature.exit().remove();
 
       // calculate shader for each geometry
-      feature.each(function(d) { 
+      feature.each(function(d) {
         d.properties.global = self.globalVariables;
-        d.shader = layer.getStyle(d.properties, { zoom: map.getZoom(), time: self.time}) 
+        d.shader = layer.getStyle(d.properties, { zoom: map.getZoom(), time: self.time})
         if (layer.hover) {
-          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: map.getZoom(), time: self.time }) 
+          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: map.getZoom(), time: self.time })
+          _.defaults(d.shader_hover, d.shader);
         }
       })
 
