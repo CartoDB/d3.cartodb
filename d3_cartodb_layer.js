@@ -451,17 +451,11 @@ D3CartoDBLayer = L.Class.extend({
               )
             )
             return p.y;
-         }) 
+         })
 
       } else {
         f.attr('d', path);
       }
-
-      // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-      var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: self._map.getZoom() })['transition-time']
-      if (trans_time)
-          f = f.transition().duration(trans_time);
-      f.style(styleForSymbolizer(sym, 'shader'))
 
       if (layer.hover) {
         f.on('mouseover', self.onMouseover(sym, path))
@@ -477,6 +471,11 @@ D3CartoDBLayer = L.Class.extend({
         });
         */
       }
+      // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
+      var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: self._map.getZoom() })['transition-time']
+      if (trans_time)
+          f = f.transition().duration(trans_time);
+      f.style(styleForSymbolizer(sym, 'shader'))
     })
   }
 });
