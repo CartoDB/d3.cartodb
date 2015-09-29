@@ -205,6 +205,22 @@ D3CartoDBLayer = L.Class.extend({
         }
       );
     });
+
+    
+    this.renderer.addFunction('torque', function (args, done) {
+      var column = args[0].value[0].value;
+      var step = args[1].value[0].value;
+      var color = args[2].value[0].value;
+      var off_color = args[3].value[0].value;
+      done(function(v) {
+       return {
+          is: 'custom',
+          toString: function() {
+            return "(function() { if  ('" + v.value + "' in data){ if (data['" + v.value + "'][data['global']['"+step+"']]>0) return '"+color+"'; return '"+off_color+"'} return '"+off_color+"';})();";
+          }
+       }
+     });
+    });
   },
 
   setCartoCSS: function(cartocss) {

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Maps JavaScript API v3 Example: Map Coordinates</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <style>
+        @import url(vendor/leaflet.css);
+        html, body {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            overflow:hidden;
+        }
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+        #time_slider {
+            position: absolute;
+            bottom: 20px;
+            left: 40px;
+            width: 800px;
+            height: 45px;
+        }
+
+    </style>
+
+<script id="choropleth" type="text/cartocss">
+#google_flash {
+  polygon-fill: torque('torque',step,'#FF0000','#000');
+  polygon-opacity: 0.8;
+  line-color: black;
+  line-width: 0.2;
+  line-opacity: 1;
+  transition-time: 300;
+}
+
+#google_flash::hover {
+  polygon-fill: #555;
+  polygon-opacity: 0.8;
+  line-color: black;
+  line-width: 1;
+  line-opacity: 1;
+}
+
+</script>
+
+</head>
+<body>
+<div id="map">
+</div>
+  <input id="time_slider" value = 0 type="range" max="149721094" min="2419742" step="1000" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  <script src="vendor/d3.v3.js" charset="utf-8"></script>
+  <script src="vendor/leaflet.js"></script>
+  <script src="vendor/underscore-min.js"></script>
+  <script src="vendor/carto.uncompressed.js"></script>
+  <script src="d3.jsonp.js"></script>
+  <script src="d3_cartodb_layer.js"></script>
+  <script>
+
+  var user = 'andrew'
+  var table = 'dma_boundary_copy'
+  var intensity = 'i';
+  var time = 'timest';
+  var type = 'dma';
+
+  function vis(step, min) {
+    var layers;
+    var selectedLayer = 0;
+    var layer = new cartodb.d3.Layer({
+        user: user
+    })
+
+    layer.addTo(map);
+    layer.setGlobal('step', 0);
+
+    layer.setSQL("WITH a AS (SELECT (max(date_part('epoch', timest))-min(date_part('epoch', timest)))/256 as step, min(date_part('epoch', timest)) as min_d  FROM andrew.dma_boundary_copy), b AS (SELECT dma0, array_agg(((date_part('epoch', timest) - min_d)/256)::int) as hits FROM andrew.dma_boundary_copy, a GROUP BY dma0), c AS (SELECT dma0, array_agg(CASE WHEN cur_step = ANY(hits) THEN 1 ELSE 0 END) as torque FROM b, generate_series(1, 256) AS cur_step GROUP BY dma0) select c.torque, c.dma0, g.the_geom, g.the_geom_webmercator, 50 as area from c, andrew.dma_boundary g WHERE g.dma0 = c.dma0 ");
+
+    layer.setCartoCSS(document.getElementById('choropleth').innerHTML);
+
+
+    document.getElementById('time_slider').oninput = function(v) {
+      layer.setGlobal('step', +parseInt(v.currentTarget.value));
+      // console.log(parseInt(v.currentTarget.value))
+    }
+  }
+  var map;
+  function start() {
+
+    var c = [13.624633438236152, -2.63671875]
+    map = new L.Map("map", {center: c, zoom: 4})
+
+    var url = 'https://{0}.cartodb.com/api/v2/sql'.format(user)
+    $.ajax({
+        url: url+'?q='+encodeURIComponent("select min(date_part('epoch', {0})) min, max(date_part('epoch', {0})) max from {1}".format(time, table)),
+        jsonp: "callback",
+        dataType: "jsonp",
+        success: function( res ) { 
+          console.log(res.rows[0]);
+          var step = (res.rows[0]['max'] - res.rows[0]['min'])/256;
+          $('#time_slider').attr('max', 256);
+          $('#time_slider').attr('min', 0);
+          $('#time_slider').attr('step', 1);
+          var min = res.rows[0]['min'];
+          vis(step, min);
+        }
+      });
+  }
+
+  window.onload = start; 
+
+
+      String.prototype.format = (function (i, safe, arg) {
+            function format() {
+                var str = this,
+                    len = arguments.length + 1;
+
+                for (i = 0; i < len; arg = arguments[i++]) {
+                    safe = typeof arg === 'object' ? JSON.stringify(arg) : arg;
+                    str = str.replace(RegExp('\\{' + (i - 1) + '\\}', 'g'), safe);
+                }
+                return str;
+            }
+
+            //format.native = String.prototype.format;
+            return format;
+        })();
+  </script>
+</body>
+</html>
