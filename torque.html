@@ -82,7 +82,27 @@
     layer.addTo(map);
     layer.setGlobal('step', 0);
 
-    layer.setSQL("WITH a AS (SELECT (max(date_part('epoch', timest))-min(date_part('epoch', timest)))/256 as step, min(date_part('epoch', timest)) as min_d  FROM andrew.dma_boundary_copy), b AS (SELECT dma0, array_agg(((date_part('epoch', timest) - min_d)/256)::int) as hits FROM andrew.dma_boundary_copy, a GROUP BY dma0), c AS (SELECT dma0, array_agg(CASE WHEN cur_step = ANY(hits) THEN 1 ELSE 0 END) as torque FROM b, generate_series(1, 256) AS cur_step GROUP BY dma0) select c.torque, c.dma0, g.the_geom, g.the_geom_webmercator, 50 as area from c, andrew.dma_boundary g WHERE g.dma0 = c.dma0 ");
+    layer.setSQL(
+    ''.join(["            WITH par AS (",
+"                  select min(date_part('epoch',date)) as start from _sheet1",
+"                ),",
+"            	deco AS (",
+"            	  SELECT row_number() OVER() cat, most_searched FROM _sheet1 GROUP BY most_searched",
+"            	)",
+"                SELECT g.the_geom, g.the_geom_webmercator, g.state_name,",
+"                       array_agg(c) vals__uint8,",
+"                       array_agg(d) dates__uint16",
+"                FROM (",
+"                    SELECT",
+"                        c.cat c,",
+"                        c.most_searched most_searched,",
+"                        floor((date_part('epoch',date) - start)/256) d",
+"                    FROM (SELECT * FROM _sheet1) i, deco c, par p",
+"                    GROUP BY i.date, p.start, c.cat, c.most_searched",
+"                ) cte, (SELECT the_geom, the_geom_webmercator, state_name FROM us_states_detailed) g",
+"                WHERE cte.most_searched = cte.most_searched",
+"                GROUP BY g.the_geom, g.the_geom_webmercator, g.state_name;"])    
+    );
 
     layer.setCartoCSS(document.getElementById('choropleth').innerHTML);
 
