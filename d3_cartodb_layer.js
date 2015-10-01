@@ -24,7 +24,7 @@ function viz(url, map, done) {
     } else if (baseLayer.options.color) {
       document.getElementById('map').style['background-color']= baseLayer.options.color;
     }
-    
+
     // assume first layer is the one with cartodb data
     var cartodbLayer = data.layers[1];
     if (cartodbLayer.type === 'layergroup') {
@@ -108,13 +108,13 @@ D3CartoDBLayer = L.Class.extend({
     this.globalVariables = {}
     this.user = options.user;
     this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
-  }, 
+  },
 
   /**
    * changes a global variable in cartocss
    * it can be used in carotcss in this way:
    * [prop < global.variableName] {...}
-   * 
+   *
    * this function can be used passing an object with all the variables or just key value:
    * layer.setGlobal('test', 1)
    * layer.setGlobal({test: 1, bar: 3})
@@ -143,7 +143,7 @@ D3CartoDBLayer = L.Class.extend({
       .append("svg"),
     this.g = this.svg.append("g").attr("class", "leaflet-zoom-hide");
 
-    var transform = d3.geo.transform({ 
+    var transform = d3.geo.transform({
       point: function(x, y) {
           // don't use leaflet projection since it's pretty slow
           var earthRadius = 6378137 * 2 * Math.PI;
@@ -183,7 +183,7 @@ D3CartoDBLayer = L.Class.extend({
           column: args[0].value[0].value,
           functionName: 'CDB_QuantileBins',
           simplify_fn: 'distinct'
-        }), 
+        }),
         function(data) {
           var buckets = _(data.rows).pluck('buckets');
           // generate javascript code that returns the value for each slot
@@ -206,17 +206,16 @@ D3CartoDBLayer = L.Class.extend({
       );
     });
 
-    
+
     this.renderer.addFunction('torque', function (args, done) {
-      var column = args[0].value[0].value;
-      var step = args[1].value[0].value;
-      var color = args[2].value[0].value;
-      var off_color = args[3].value[0].value;
+      var domain    = args[0].value[0].value
+      var range     = args[1].value[0].value
+
       done(function(v) {
        return {
           is: 'custom',
           toString: function() {
-            return "(function() { if  ('" + v.value + "' in data){ if (data['" + v.value + "'][data['global']['"+step+"']]>0) return '"+color+"'; return '"+off_color+"'} return '"+off_color+"';})();";
+            return "(function() { if(!data.dates__uint16){return 'transparent';} var index; var prevDates = data.dates__uint16.map(function(d){return data['global']['step'] >= d }); var index = prevDates.indexOf(false) - 1; var val= data.vals__uint8[index]; var col =  d3.scale.linear().domain(["+domain+"]).range(["+range+"])(val);  return col;  })();";
           }
        }
      });
@@ -272,7 +271,7 @@ D3CartoDBLayer = L.Class.extend({
     var full_resolution = earth_circumference/tile_size;
     return full_resolution / Math.pow(2,zoom);
   },
-  
+
   _requestGeometry: function(sql) {
     var self = this;
     this._query(sql, function(collection) {
@@ -282,6 +281,7 @@ D3CartoDBLayer = L.Class.extend({
         return d.geometry && d.geometry.coordinates.length > 0
       })
       console.log("feature count: " + self.collection.features.length);
+      console.log("features", self.collection.features)
       self._reset();
     }, 'geojson');
   },
@@ -290,13 +290,13 @@ D3CartoDBLayer = L.Class.extend({
   // search for them and attach to the original layer, so if you have
   // #test {}
   // #test::hover {}
-  // this function will return an array with a single layer. That layer will contain a 
+  // this function will return an array with a single layer. That layer will contain a
   // hover as an attribute
   processLayersRules: function(layers) {
     var specialAttachments = ['hover'];
     var realLayers = []
     var attachments = []
-    // map layer names 
+    // map layer names
     var layerByName = {}
     layers.forEach(function(layer) {
       if (specialAttachments.indexOf(layer.attachment()) != -1) {
@@ -356,7 +356,7 @@ D3CartoDBLayer = L.Class.extend({
     var g = this.g;
     var path = this.path;
     var svg = this.svg;
-    
+
     if (!shader) return;
     if (!collection) return;
 
@@ -381,10 +381,10 @@ D3CartoDBLayer = L.Class.extend({
 
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
-    
+
     var styleLayers = g.selectAll("g.layer")
         .data(layers)
-      
+
     styleLayers.enter()
       .append("g")
       .attr('class', 'layer')
@@ -404,7 +404,7 @@ D3CartoDBLayer = L.Class.extend({
 
       // merge line and polygon symbolizers
       symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d }));
-      
+
       if (symbolizers.length > 1) throw new Error("one symbolizer is allowed per layer");
 
       var sym = symbolizers[0];
@@ -420,7 +420,7 @@ D3CartoDBLayer = L.Class.extend({
       var feature = d3.select(this)
           .selectAll("." + sym)
           .data(geometry)
-          
+
       if (sym === 'text') {
         feature.enter().append("svg:text").attr('class', sym);
       } else {
@@ -450,7 +450,7 @@ D3CartoDBLayer = L.Class.extend({
         });
         f.attr("dy", ".35em")
         f.attr('text-anchor', "middle")
-        f.attr("x", function(d) { 
+        f.attr("x", function(d) {
             var p = map.latLngToLayerPoint(
               new L.LatLng(
                 d.geometry.coordinates[1],
@@ -459,7 +459,7 @@ D3CartoDBLayer = L.Class.extend({
             )
             return p.x
           });
-        f.attr("y", function(d) { 
+        f.attr("y", function(d) {
             var p = map.latLngToLayerPoint(
               new L.LatLng(
                 d.geometry.coordinates[1],
@@ -500,4 +500,3 @@ cartodb.d3.viz = viz;
 cartodb.d3.Layer = D3CartoDBLayer;
 
 })();
-

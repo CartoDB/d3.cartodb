@@ -29,12 +29,19 @@
             width: 800px;
             height: 45px;
         }
+        #play {
+            position: absolute;
+            bottom: 20px;
+            right: 40px;
+            width: 50px;
+            height: 45px;
+        }
 
     </style>
 
 <script id="choropleth" type="text/cartocss">
 #google_flash {
-  polygon-fill: torque('torque',step,'#FF0000','#000');
+  polygon-fill: torque([1,2], ['#FF0000','blue']);
   polygon-opacity: 0.8;
   line-color: black;
   line-width: 0.2;
@@ -57,6 +64,7 @@
 <div id="map">
 </div>
   <input id="time_slider" value = 0 type="range" max="149721094" min="2419742" step="1000" />
+  <button type='button' id='play'>Play</button>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
   <script src="vendor/d3.v3.js" charset="utf-8"></script>
   <script src="vendor/leaflet.js"></script>
@@ -67,10 +75,21 @@
   <script>
 
   var user = 'andrew'
-  var table = 'dma_boundary_copy'
+  var table = 'my_sheet1'
   var intensity = 'i';
-  var time = 'timest';
-  var type = 'dma';
+  var time = 'date';
+  var type = 'most_searched';
+  var geom_type = "states"
+  var steps = 256;
+
+  var geom_tables ={
+    states:{
+      table: "us_states_detailed",
+      join_col: "state_name"
+    }
+  }
+
+  var geom = geom_tables[geom_type];
 
   function vis(step, min) {
     var layers;
@@ -80,34 +99,57 @@
     })
 
     layer.addTo(map);
-    layer.setGlobal('step', 0);
+    layer.setGlobal('step', min);
 
-["            WITH par AS (",
-"                  select min(date_part('epoch',date)) as start from andrew.my_sheet1",
+query = ["            WITH par AS (",
+"                  select min(date_part('epoch',{time_col})) as start_d, max(date_part('epoch',{time_col})) as end_d, ",
+"                     (max(date_part('epoch',{time_col})) - min(date_part('epoch',{time_col})))/{steps} as step_size from {user}.{table}",
 "                ),",
 "                deco AS (",
-"                  SELECT row_number() OVER() cat, most_searched FROM andrew.my_sheet1 GROUP BY most_searched",
+"                  SELECT row_number() OVER() cat, {type_col} FROM {user}.{table} GROUP BY {type_col}",
 "                )",
-"                SELECT g.the_geom, g.the_geom_webmercator, g.state_name,",
+"                SELECT g.the_geom, g.the_geom_webmercator, g.{join_col},",
 "                       array_agg(deco.cat ORDER BY d) vals__uint8,",
-"                       array_agg(d ORDER BY d) dates__uint16",
+"                       array_agg(d*step_size + start_d ORDER BY d) dates__uint16",
 "                FROM (",
 "                    SELECT",
-"                        i.most_searched most_searched,",
-"                        floor((date_part('epoch',date) - start)/256) d,",
+"                        i.{type_col} {type_col},",
+"                        floor((date_part('epoch',{time_col}) - start_d)/step_size) d,",
 "                        i.st",
 "                    FROM (SELECT * FROM andrew.my_sheet1) i, par p",
-"                    GROUP BY i.date, d, p.start, i.most_searched, i.st",
-"                ) cte, (SELECT the_geom, the_geom_webmercator, state_name FROM andrew.us_states_detailed) g, deco",
-"                WHERE cte.most_searched = deco.most_searched AND g.state_name = cte.st",
-"                GROUP BY g.the_geom, g.the_geom_webmercator, g.state_name"].join('');
+"                    GROUP BY i.{time_col}, d, p.start_d, i.{type_col}, i.st",
+"                ) cte, par, (SELECT the_geom, the_geom_webmercator, {join_col} FROM {user}.{join_table}) g, deco",
+"                WHERE cte.{type_col} = deco.{type_col} AND g.{join_col} = cte.st",
+"                GROUP BY g.the_geom, g.the_geom_webmercator, g.{join_col}"].join('');
+
+    query = query.formatWithObj({user: user, table: table, time_col:time, type_col: type, steps:steps, join_table: geom.table, join_col: geom.join_col})
+    console.log("query", query)
+    layer.setSQL(query)
 
     layer.setCartoCSS(document.getElementById('choropleth').innerHTML);
 
+    var updateStep = function(stepNo,min){
+      var d  = stepNo*step + min
+      console.log("step no ", d)
+      layer.setGlobal('step', d);
+      // console.log(parseInt(v.curr
+    }
+
+    $("#play").on('click',function(){
+      setInterval(function(){
+         var slider = $('#time_slider')
+         var val = parseInt(slider.val()) +1
+         if(val >= $('#time_slider').attr('max')){
+           val =0
+         }
+         slider.val(val)
+         updateStep(val,min)
+      },100)
+    })
 
     document.getElementById('time_slider').oninput = function(v) {
-      layer.setGlobal('step', +parseInt(v.currentTarget.value));
-      // console.log(parseInt(v.currentTarget.value))
+      var stepNo = parseInt(v.currentTarget.value);
+      updateStep(stepNo,min)
     }
   }
   var map;
@@ -121,36 +163,53 @@
         url: url+'?q='+encodeURIComponent("select min(date_part('epoch', {0})) min, max(date_part('epoch', {0})) max from {1}".format(time, table)),
         jsonp: "callback",
         dataType: "jsonp",
-        success: function( res ) { 
-          console.log(res.rows[0]);
-          var step = (res.rows[0]['max'] - res.rows[0]['min'])/256;
-          $('#time_slider').attr('max', 256);
+        success: function( res ) {
+          var step = (res.rows[0]['max'] - res.rows[0]['min'])/steps;
+
+          $('#time_slider').attr('max', steps);
           $('#time_slider').attr('min', 0);
           $('#time_slider').attr('step', 1);
+
           var min = res.rows[0]['min'];
+
           vis(step, min);
         }
       });
   }
 
-  window.onload = start; 
+  window.onload = start;
 
 
-      String.prototype.format = (function (i, safe, arg) {
-            function format() {
-                var str = this,
-                    len = arguments.length + 1;
+  String.prototype.formatWithObj = (function () {
+        function format() {
 
-                for (i = 0; i < len; arg = arguments[i++]) {
-                    safe = typeof arg === 'object' ? JSON.stringify(arg) : arg;
-                    str = str.replace(RegExp('\\{' + (i - 1) + '\\}', 'g'), safe);
-                }
-                return str;
-            }
+            var str = this,
+                args = arguments[0]
 
-            //format.native = String.prototype.format;
-            return format;
-        })();
+            Object.keys(args).forEach(function(key){
+              safe = typeof args[key]== 'object' ? JSON.stringify(args[key]) : args[key];
+              str = str.replace(RegExp('\\{' + key + '\\}', 'g'), safe);
+            })
+            return str;
+        }
+      return format;
+    })();
+
+    String.prototype.format = (function (i, safe, arg) {
+          function format() {
+              var str = this,
+                  len = arguments.length + 1;
+
+              for (i = 0; i < len; arg = arguments[i++]) {
+                  safe = typeof arg === 'object' ? JSON.stringify(arg) : arg;
+                  str = str.replace(RegExp('\\{' + (i - 1) + '\\}', 'g'), safe);
+              }
+              return str;
+          }
+
+          //format.native = String.prototype.format;
+          return format;
+      })();
   </script>
 </body>
 </html>
