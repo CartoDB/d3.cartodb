@@ -82,27 +82,25 @@
     layer.addTo(map);
     layer.setGlobal('step', 0);
 
-    layer.setSQL(
-    ''.join(["            WITH par AS (",
-"                  select min(date_part('epoch',date)) as start from _sheet1",
+["            WITH par AS (",
+"                  select min(date_part('epoch',date)) as start from andrew.my_sheet1",
 "                ),",
-"            	deco AS (",
-"            	  SELECT row_number() OVER() cat, most_searched FROM _sheet1 GROUP BY most_searched",
-"            	)",
+"                deco AS (",
+"                  SELECT row_number() OVER() cat, most_searched FROM andrew.my_sheet1 GROUP BY most_searched",
+"                )",
 "                SELECT g.the_geom, g.the_geom_webmercator, g.state_name,",
-"                       array_agg(c) vals__uint8,",
-"                       array_agg(d) dates__uint16",
+"                       array_agg(deco.cat ORDER BY d) vals__uint8,",
+"                       array_agg(d ORDER BY d) dates__uint16",
 "                FROM (",
 "                    SELECT",
-"                        c.cat c,",
-"                        c.most_searched most_searched,",
-"                        floor((date_part('epoch',date) - start)/256) d",
-"                    FROM (SELECT * FROM _sheet1) i, deco c, par p",
-"                    GROUP BY i.date, p.start, c.cat, c.most_searched",
-"                ) cte, (SELECT the_geom, the_geom_webmercator, state_name FROM us_states_detailed) g",
-"                WHERE cte.most_searched = cte.most_searched",
-"                GROUP BY g.the_geom, g.the_geom_webmercator, g.state_name;"])    
-    );
+"                        i.most_searched most_searched,",
+"                        floor((date_part('epoch',date) - start)/256) d,",
+"                        i.st",
+"                    FROM (SELECT * FROM andrew.my_sheet1) i, par p",
+"                    GROUP BY i.date, d, p.start, i.most_searched, i.st",
+"                ) cte, (SELECT the_geom, the_geom_webmercator, state_name FROM andrew.us_states_detailed) g, deco",
+"                WHERE cte.most_searched = deco.most_searched AND g.state_name = cte.st",
+"                GROUP BY g.the_geom, g.the_geom_webmercator, g.state_name"].join('');
 
     layer.setCartoCSS(document.getElementById('choropleth').innerHTML);
 
