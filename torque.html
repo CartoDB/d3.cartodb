@@ -74,29 +74,31 @@
   <script src="d3_cartodb_layer.js"></script>
   <script>
 
-  var user = 'andrew'
-  var table = 'my_sheet1'
-  var intensity = 'i';
-  var time = 'date';
-  var type = 'most_searched';
-  var geom_type = "states"
-  var steps = 256;
 
-  var geom_tables ={
-    states:{
-      table: "us_states_detailed",
-      join_col: "state_name"
-    }
-  }
-
-  var geom = geom_tables[geom_type];
-
-  function vis(step, min) {
+  function vis(step, min,torque_settings) {
     var layers;
     var selectedLayer = 0;
     var layer = new cartodb.d3.Layer({
-        user: user
+        user: torque_settings.user
     })
+
+    var geom_tables ={
+      states:{
+        table: "us_states_detailed",
+        join_col: "state_name"
+      },
+      dma:{
+        table: "dma_boundary",
+        join_col: "dma_1"
+      },
+      county:{
+        table : "cb_2014_us_county_500k",
+        join_col: "countyfp"
+      }
+    }
+
+    var geom = geom_tables[torque_settings.geom_type];
+
 
     layer.addTo(map);
     layer.setGlobal('step', min);
@@ -115,14 +117,20 @@ query = ["            WITH par AS (",
 "                    SELECT",
 "                        i.{type_col} {type_col},",
 "                        floor((date_part('epoch',{time_col}) - start_d)/step_size) d,",
-"                        i.st",
-"                    FROM (SELECT * FROM andrew.my_sheet1) i, par p",
-"                    GROUP BY i.{time_col}, d, p.start_d, i.{type_col}, i.st",
+"                        i.{join_col}",
+"                    FROM (SELECT * FROM {user}.{table}) i, par p",
+"                    GROUP BY i.{time_col}, d, p.start_d, i.{type_col}, i.{join_col}",
 "                ) cte, par, (SELECT the_geom, the_geom_webmercator, {join_col} FROM {user}.{join_table}) g, deco",
-"                WHERE cte.{type_col} = deco.{type_col} AND g.{join_col} = cte.st",
+"                WHERE cte.{type_col} = deco.{type_col} AND g.{join_col} = cte.{join_col}",
 "                GROUP BY g.the_geom, g.the_geom_webmercator, g.{join_col}"].join('');
 
-    query = query.formatWithObj({user: user, table: table, time_col:time, type_col: type, steps:steps, join_table: geom.table, join_col: geom.join_col})
+    query = query.formatWithObj({user: torque_settings.user,
+                                table: torque_settings.table,
+                                time_col:torque_settings.time,
+                                type_col: torque_settings.type,
+                                steps: torque_settings.steps,
+                                join_table: geom.table,
+                                join_col: geom.join_col})
     console.log("query", query)
     layer.setSQL(query)
 
@@ -130,7 +138,6 @@ query = ["            WITH par AS (",
 
     var updateStep = function(stepNo,min){
       var d  = stepNo*step + min
-      console.log("step no ", d)
       layer.setGlobal('step', d);
       // console.log(parseInt(v.curr
     }
@@ -155,24 +162,52 @@ query = ["            WITH par AS (",
   var map;
   function start() {
 
+
+
+    var torque_settings = {
+      user : 'andrew',
+      table : 'cb_results',
+      intensity : 'i',
+      time : 'date',
+      type : 'most_searched',
+      // geom_type : "states",
+      geom_type : "county",
+      steps : 256
+    }
+
+    var search = location.search.substring(1);
+    if (search){
+      var url_settings  = JSON.parse('{"' + decodeURI(search).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"') + '"}')
+
+      Object.keys(url_settings).forEach(function(key){
+        torque_settings[key] = url_settings[key]
+      })
+    }
+
+
     var c = [13.624633438236152, -2.63671875]
     map = new L.Map("map", {center: c, zoom: 4})
 
-    var url = 'https://{0}.cartodb.com/api/v2/sql'.format(user)
+    var url = 'https://{0}.cartodb.com/api/v2/sql'.format(torque_settings.user)
     $.ajax({
-        url: url+'?q='+encodeURIComponent("select min(date_part('epoch', {0})) min, max(date_part('epoch', {0})) max from {1}".format(time, table)),
+        url: url+'?q='+encodeURIComponent("select min(date_part('epoch', {0})) min, max(date_part('epoch', {0})) max, count(distinct({0})) as distinct from {1}".format(torque_settings.time, torque_settings.table)),
         jsonp: "callback",
         dataType: "jsonp",
         success: function( res ) {
-          var step = (res.rows[0]['max'] - res.rows[0]['min'])/steps;
 
-          $('#time_slider').attr('max', steps);
+          if(torque_settings.steps=='auto'){
+            torque_settings.steps = Math.min(res.rows[0].distinct,256)
+          }
+
+          var step = (res.rows[0]['max'] - res.rows[0]['min'])/torque_settings.steps;
+
+          $('#time_slider').attr('max', torque_settings.steps);
           $('#time_slider').attr('min', 0);
           $('#time_slider').attr('step', 1);
 
           var min = res.rows[0]['min'];
 
-          vis(step, min);
+          vis(step, min, torque_settings);
         }
       });
   }

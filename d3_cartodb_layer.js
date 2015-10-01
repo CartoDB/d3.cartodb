@@ -249,7 +249,7 @@ D3CartoDBLayer = L.Class.extend({
       var geometryZoom = zoom !== undefined ? zoom: self._map.getZoom();
       // pixel size with some factor to avoid remove geometries
       var px = self.pixelSizeForZoom(geometryZoom);
-      var the_geom = 'st_transform(st_simplify(st_snaptogrid(the_geom_webmercator, {px}, {px}), {px}/2), 3857) as the_geom'.replace(/{px}/g, px);
+      var the_geom = 'st_transform(st_simplifypreservetopology(st_snaptogrid(the_geom_webmercator, {px}/5, {px}/5), {px}/2), 3857) as the_geom'.replace(/{px}/g, px);
       // generate the sql with all the columns + the geometry simplified
       var finalSQL = "select " + columns.join(',') + "," + the_geom + " FROM (" + sql + ") __cdb";
       self._requestGeometry(finalSQL);
