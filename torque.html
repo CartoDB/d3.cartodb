@@ -145,13 +145,13 @@ query = ["            WITH par AS (",
     $("#play").on('click',function(){
       setInterval(function(){
          var slider = $('#time_slider')
-         var val = parseInt(slider.val()) +1
+         var val = parseInt(slider.val()) + 1
          if(val >= $('#time_slider').attr('max')){
-           val =0
+           val = 0
          }
          slider.val(val)
          updateStep(val,min)
-      },100)
+      },torque_settings.duration*1000.0/torque_settings.steps)
     })
 
     document.getElementById('time_slider').oninput = function(v) {
@@ -168,6 +168,7 @@ query = ["            WITH par AS (",
       user : 'andrew',
       table : 'cb_results',
       intensity : 'i',
+      duration: 30,
       time : 'date',
       type : 'most_searched',
       // geom_type : "states",
