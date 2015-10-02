@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Carto Animation Map Editor</title>
+
+    <!-- Bootstrap -->
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <style>
+      html, body, #container{
+        width:   100%;
+        height:  100%;
+        margin:  0px;
+        padding: 0px
+      }
+      #container{
+        display: flex;
+        flex-direction: row;
+        flex:1;
+        align-items: stretch;
+      }
+      #container p{
+        padding:0px;
+        margin:0px;
+      }
+      #container  input,select{
+        margin-bottom: 10px;
+      }
+      #config{
+        display:flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        padding: 20px;
+        width: 300px;
+      }
+      #map{
+        flex: 2;
+        position:relative;
+      }
+      #map iframe{
+
+        width: 100%;
+        height:100%;
+      }
+
+      #urls p{
+        overflow-x: scroll;
+        width: 100%;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id='container'>
+      <div id='config'>
+        <div id='controls'>
+            <p>Title</p>
+
+
+
+            <input id='mapname' name='title' type='title' placeholder='mapname'></input>
+            <p>Table name</p>
+            <input id='mapname' name='table' type='text' placeholder='tablename'></input>
+
+            <p>User name</p>
+            <input id='username' name='user' type='text' placeholder='tablename'></input>
+
+            <p>Geometry column</p>
+            <input id='join_col_input' name='join_col_input' type='text' placeholder='state_name, state, dma, county etc'></input>
+
+            <p>Category column</p>
+            <input id='type' name='type' type='text' placeholder='most_searched, candiates etc'></input>
+
+            <p>Time column</p>
+            <input id='time' name='time' type='text' placeholder='date'></input>
+
+            <p>Geometry Type</p>
+            <select id='gemtype' name='geom_type' type='text' placeholder='tablename'>
+              <option value='states'>states</option>
+              <option value='dma'>dma</option>
+              <option value='county'>county</option>
+            </select>
+
+            <div id='CatagoryColors'>
+            </div>
+
+            <p> Number of steps</p>
+            <input id='steps' name='steps' type='text' placeholder="auto or number"></input>
+            <p>Duration</p>
+            <input id='duration' name='duration' type='text' placeholder="auto or number"></input>
+        </div>
+
+        <div id='urls'>
+          <p>Link url</p>
+          <p id='link_url'></p>
+          <p>Embed </p>
+          <text-area id='embed'></text-area>
+        </div>
+      </div>
+      <div id='map'>
+        <iframe height="100%" src='/torque.html'  width="100%" height="100%" style="border:none;overflow:hidden;height:100%;width:100%;position: absolute; " height="100%" width="100%" id='preview'></iframe>
+      </div>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script>
+
+    var QueryStringToHash = function QueryStringToHash  (query) {
+      var query_string = {};
+      var vars = query.split("&");
+      for (var i=0;i<vars.length;i++) {
+        var pair = vars[i].split("=");
+        pair[0] = decodeURIComponent(pair[0]);
+        pair[1] = decodeURIComponent(pair[1]);
+    	   // If first entry with this name
+         if (typeof query_string[pair[0]] === "undefined") {
+           query_string[pair[0]] = pair[1];
+    	      // If second entry with this name
+          } else if (typeof query_string[pair[0]] === "string") {
+            var arr = [ query_string[pair[0]], pair[1] ];
+            query_string[pair[0]] = arr;
+    	       // If third or later entry with this name
+           } else {
+             query_string[pair[0]].push(pair[1]);
+           }
+         }
+         return query_string;
+       };
+
+      function getSettingsFromUI(){
+        var settings =  {}
+        $("#controls input,select").each(function(){
+          settings[$(this).attr("name")] = ($(this).val() ? $(this).val() : 0 )
+        })
+        settings.categories = settings.categories ? settings.categories.split("\n") : []
+        settings.colors =  settings.colors ? settings.colors.split("\n") : []
+        return settings;
+      }
+      function getSettingsFromHash(){
+        var settings = QueryStringToHash(window.location.hash.replace("#",""))
+        settings.colors = settings['colors[]']
+        delete settings['colors[]']
+        settings.catagories = settings['categories[]']
+        delete settings['categories[]']
+        return settings;
+      }
+
+      function setCatagoryColors(settings,catagories){
+        var defaultColors = ["#e47060", "#6091bd", "red", "green", "blue"]
+        $("#CatagoryColors").html("")
+        console.log("settings in catagory colors are ", settings)
+        catagories.forEach(function(catagory,index){
+          var cat_div  = $("<div></div>")
+          cat_div.append($("<p></p>").html("Color for "+catagory[settings["type"]]))
+          var col = settings["cat"+index] ? settings["cat"+index] : defaultColors[index];
+          cat_div.append($("<input type='text' name='cat"+catagory.cat+"' value='"+col+"'></input>"))
+
+          $("#CatagoryColors").append(cat_div)
+        })
+
+      }
+
+      function update(){
+        settings = getSettingsFromUI()
+        var urlparams = $.param(settings)
+        window.location.hash = $.param(settings)
+        var fullurl = window.location.origin + "/torque.html?"+urlparams;
+
+        getColumns(settings, function(cols){
+          setCatagoryColors(settings,cols.rows)
+        })
+
+        $("#link_url").html(fullurl)
+        $("#embed").val('<iframe width="100%" height="520" frameborder="0" src="'+fullurl+'" allowfullscreen webkitallowfullscreen mozallowfullscreen oallowfullscreen msallowfullscreen></iframe>');
+        $("#preview").attr("src", fullurl)
+      }
+
+      function setupUI(settings){
+        Object.keys(settings).forEach(function(key){
+          $("input[name="+key+"]").val(settings[key]);
+          $("select[name="+key+"]").val(settings[key]);
+        })
+      }
+
+      function tableNameOfUserChange(){
+
+      }
+      function getColumns(settings,callback){
+        var url = 'https://{user}.cartodb.com/api/v2/sql'.formatWithObj({user: settings.user})
+        var query = "SELECT row_number() OVER() cat, {type} FROM {user}.{table} GROUP BY {type}".formatWithObj({user: settings.user,table: settings.table, type: settings.type})
+        console.log("COL query is ", query)
+        $.ajax({
+            url: url+'?q='+encodeURIComponent("SELECT row_number() OVER() cat, {type} FROM {user}.{table} GROUP BY {type}".formatWithObj({user: settings.user,table: settings.table, type: settings.type})),
+            jsonp: "callback",
+            dataType: "jsonp",
+            success: function( result ) {
+              console.log("cat results are ",result.rows)
+              callback(result)
+            }
+          });
+      }
+
+      String.prototype.formatWithObj = (function () {
+            function format() {
+
+                var str = this,
+                    args = arguments[0]
+
+                Object.keys(args).forEach(function(key){
+                  safe = typeof args[key]== 'object' ? JSON.stringify(args[key]) : args[key];
+                  str = str.replace(RegExp('\\{' + key + '\\}', 'g'), safe);
+                })
+                return str;
+            }
+          return format;
+        })();
+
+      $(function(){
+        var data = getSettingsFromHash()
+        setupUI(data)
+        update()
+        $("#controls input").on("keyup",function(){
+          update()
+        })
+        $("#controls select").on("change",function(){
+          update()
+        })
+      })
+    </script>
+  </body>
+</html>

@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <style>
         @import url(vendor/leaflet.css);
-        html, body {
+        html, body 	{
             width: 100%;
             height: 100%;
             border: 0;
@@ -49,6 +49,11 @@
   line-opacity: 1;
   transition-time: 300;
 }
+#title{
+  position:absolute;
+  top: 20px;
+  left: 50px;
+}
 
 #google_flash::hover {
   polygon-fill: #555;
@@ -62,6 +67,7 @@
 
 </head>
 <body>
+<h1 id='title'></h1>
 <div id="map">
 </div>
   <input id="time_slider" value = 0 type="range" max="149721094" min="2419742" step="1000" />
@@ -99,7 +105,7 @@
     }
 
     var geom = geom_tables[torque_settings.geom_type];
-
+    console.log("STETINGS " ,torque_settings)
 
     layer.addTo(map);
     layer.setGlobal('step', min);
@@ -118,11 +124,11 @@ query = ["            WITH par AS (",
 "                    SELECT",
 "                        i.{type_col} {type_col},",
 "                        floor((date_part('epoch',{time_col}) - start_d)/step_size) d,",
-"                        i.{join_col}",
+"                        i.{join_col_input}",
 "                    FROM (SELECT * FROM {user}.{table}) i, par p",
-"                    GROUP BY i.{time_col}, d, p.start_d, i.{type_col}, i.{join_col}",
+"                    GROUP BY i.{time_col}, d, p.start_d, i.{type_col}, i.{join_col_input}",
 "                ) cte, par, (SELECT the_geom, the_geom_webmercator, {join_col} FROM {user}.{join_table}) g, deco",
-"                WHERE cte.{type_col} = deco.{type_col} AND g.{join_col} = cte.{join_col}",
+"                WHERE cte.{type_col} = deco.{type_col} AND g.{join_col} = cte.{join_col_input}",
 "                GROUP BY g.the_geom, g.the_geom_webmercator, g.{join_col}"].join('');
 
     query = query.formatWithObj({user: torque_settings.user,
@@ -131,7 +137,8 @@ query = ["            WITH par AS (",
                                 type_col: torque_settings.type,
                                 steps: torque_settings.steps,
                                 join_table: geom.table,
-                                join_col: geom.join_col})
+                                join_col: geom.join_col,
+                                join_col_input: torque_settings.join_col_input})
     console.log("query", query)
     layer.setSQL(query)
 
@@ -172,6 +179,7 @@ query = ["            WITH par AS (",
       duration: 30,
       time : 'date',
       type : 'most_searched',
+      title: '',
       // geom_type : "states",
       geom_type : "county",
       steps : 256
@@ -185,6 +193,8 @@ query = ["            WITH par AS (",
         torque_settings[key] = url_settings[key]
       })
     }
+
+    $("#title").html(torque_settings.title)
 
 
     var c = [13.624633438236152, -2.63671875]

@@ -206,6 +206,9 @@ D3CartoDBLayer = L.Class.extend({
       );
     });
 
+    this.renderer.addFunction('lin_scale',function(args,done){
+
+    }),
 
     this.renderer.addFunction('torque', function (args, done) {
       var domain    = args[0].value[0].value
@@ -432,6 +435,7 @@ D3CartoDBLayer = L.Class.extend({
       feature.each(function(d) {
         d.properties.global = self.globalVariables;
         d.shader = layer.getStyle(d.properties, { zoom: map.getZoom(), time: self.time})
+        console.log("shader ", d.shader)
         if (layer.hover) {
           d.shader_hover = layer.hover.getStyle(d.properties, { zoom: map.getZoom(), time: self.time })
           _.defaults(d.shader_hover, d.shader);
