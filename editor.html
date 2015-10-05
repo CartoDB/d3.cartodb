@@ -204,7 +204,7 @@
         var query = "SELECT row_number() OVER() cat, {type} FROM {user}.{table} GROUP BY {type}".formatWithObj({user: settings.user,table: settings.table, type: settings.type})
         console.log("COL query is ", query)
         $.ajax({
-            url: url+'?q='+encodeURIComponent("SELECT row_number() OVER() cat, {type} FROM {user}.{table} GROUP BY {type}".formatWithObj({user: settings.user,table: settings.table, type: settings.type})),
+            url: url+'?q='+encodeURIComponent(query),
             jsonp: "callback",
             dataType: "jsonp",
             success: function( result ) {
