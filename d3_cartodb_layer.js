@@ -1,4 +1,3 @@
-
 var cartodb = cartodb || {};
 (function() {
 cartodb.d3 = {}
@@ -218,7 +217,7 @@ D3CartoDBLayer = L.Class.extend({
        return {
           is: 'custom',
           toString: function() {
-            return "(function() { if(!data.dates__uint16){return 'transparent';} var index; var prevDates = data.dates__uint16.map(function(d){return data['global']['step'] >= d }); var index = prevDates.indexOf(false) - 1; var val= data.vals__uint8[index]; var col =  d3.scale.linear().domain(["+domain+"]).range(["+range+"])(val); console.log(col); return col;  })();";
+            return "(function() { if(!data.dates__uint16){return 'transparent';} var index; var prevDates = data.dates__uint16.map(function(d){return data['global']['step'] >= d }); var index = prevDates.indexOf(false) - 1; var val= data.vals__uint8[index]; var col =  d3.scale.linear().domain(["+domain+"]).range(["+range+"])(val); return col;  })();";
           }
        }
      });
