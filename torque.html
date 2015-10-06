@@ -150,14 +150,11 @@ query = ["            WITH par AS (",
                                 join_table: geom.table,
                                 join_col: geom.join_col,
                                 join_col_input: torque_settings.join_col_input})
-    console.log("query", query)
 
     layer.setSQL(query)
     var cartocss  = document.getElementById('choropleth').innerHTML
 
     cartocss =cartocss.formatWithObj({colors: torque_settings.colors.slice(1,torque_settings.colors.length), categories:Object.keys(categories) })
-
-    console.log(cartocss)
     layer.setCartoCSS(cartocss);
 
 
@@ -214,7 +211,6 @@ query = ["            WITH par AS (",
                                  delete url_settings[key]
                                })
 
-      console.log(url_settings)
       Object.keys(url_settings).forEach(function(key){
         torque_settings[key] = url_settings[key]
       })
@@ -241,7 +237,6 @@ query = ["            WITH par AS (",
         return {name: cat, value: torque_settings.colors[index]}
       })
 
-      console.log(data)
       var categoryLegend = new cartodb.geo.ui.Legend.Category({
           title: decodeURIComponent(torque_settings.title),
           data:  data.slice(1,data.length)
