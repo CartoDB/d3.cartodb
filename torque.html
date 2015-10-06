@@ -80,22 +80,48 @@
 
   <script>
 
+  delserialize = function(str) {
+    var comp = str.split("&")
+    var result = {}
+    for(var i in comp){
+      var key = comp[i].split("=")[0]
+      var val = comp[i].split("=")[1]
+      key = decodeURIComponent(key)
+      val = decodeURIComponent(val)
+
+      result[key] =val
+    }
+    return result;
+  }
+
   var geom_tables ={
     states:{
       table: "us_states_detailed",
-      join_col: "state_name"
+      join_col: "state_name",
+      user: "andrew",
+      basemap: 'https://basemaps01.cartodb.com/api/v2/viz/1453eb5e-6b7e-11e5-888a-0ea31932ec1d/viz.json',
+      labels: 'https://basemaps01.cartodb.com/api/v2/viz/383b3aae-6b88-11e5-8720-0e787de82d45/viz.json'
     },
     dma:{
       table: "dma_boundary",
-      join_col: "dma_1"
+      join_col: "dma_1",
+      user: "andrew",
+      basemap: 'https://basemaps01.cartodb.com/api/v2/viz/1453eb5e-6b7e-11e5-888a-0ea31932ec1d/viz.json',
+      labels: 'https://basemaps01.cartodb.com/api/v2/viz/383b3aae-6b88-11e5-8720-0e787de82d45/viz.json'
     },
     county:{
       table : "cb_2014_us_county_20m",
-      join_col: "countyfp"
+      join_col: "countyfp",
+      user: "andrew",
+      basemap: 'https://basemaps01.cartodb.com/api/v2/viz/1453eb5e-6b7e-11e5-888a-0ea31932ec1d/viz.json',
+      labels: 'https://basemaps01.cartodb.com/api/v2/viz/383b3aae-6b88-11e5-8720-0e787de82d45/viz.json'
     },
     hexstates:{
-      table : "us_states_hexgrid",
-      join_col : "google_name"
+      table : "ushexstates",
+      join_col : "google_name",
+      user: "stuartlynn",
+      basemap: 'https://team.cartodb.com/u/stuartlynn/api/v2/viz/b0472a54-6c45-11e5-9038-0ef24382571b/viz.json',
+      labels: ''
     }
   }
 
@@ -111,7 +137,7 @@
     map.fitBounds([bounds.map(function(coord){return coord.reverse()})])
 
     var geom = geom_tables[torque_settings.geom_type];
-    var base = cartodb.createLayer(map, 'https://basemaps01.cartodb.com/api/v2/viz/1453eb5e-6b7e-11e5-888a-0ea31932ec1d/viz.json').addTo(map)
+    var base = cartodb.createLayer(map, geom.basemap).addTo(map)
     layer.addTo(map);
     var labels = cartodb.createLayer(map, 'https://basemaps01.cartodb.com/api/v2/viz/383b3aae-6b88-11e5-8720-0e787de82d45/viz.json').addTo(map)
 
@@ -138,7 +164,7 @@ query = ["            WITH par AS (",
 "                        i.{join_col_input}",
 "                    FROM (SELECT * FROM {user}.{table}) i, par p",
 "                    GROUP BY i.{time_col}, d, p.start_d, i.{type_col}, i.{join_col_input}",
-"                ) cte, par, (SELECT the_geom, the_geom_webmercator, {join_col} FROM {user}.{join_table}) g, deco",
+"                ) cte, par, (SELECT the_geom, the_geom_webmercator, {join_col} FROM {join_user}.{join_table}) g, deco",
 "                WHERE cte.{type_col} = deco.{type_col} AND g.{join_col} = cte.{join_col_input}",
 "                GROUP BY g.the_geom, g.the_geom_webmercator, g.{join_col}"].join('');
 
@@ -147,6 +173,7 @@ query = ["            WITH par AS (",
                                 time_col:torque_settings.time,
                                 type_col: torque_settings.type,
                                 steps: torque_settings.steps,
+                                join_user: geom.user,
                                 join_table: geom.table,
                                 join_col: geom.join_col,
                                 join_col_input: torque_settings.join_col_input})
@@ -200,7 +227,7 @@ query = ["            WITH par AS (",
 
     var search = location.search.substring(1);
     if (search){
-      var url_settings  = JSON.parse('{"' + decodeURI(search).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"') + '"}')
+      var url_settings  = delserialize(search)
 
 
       url_settings.colors = []
@@ -265,14 +292,17 @@ query = ["            WITH par AS (",
       })
     }
 
-    function getBounds(geom_table,callback){
-      var url = 'https://{0}.cartodb.com/api/v2/sql'.format(torque_settings.user)
-      var bounds_query = "SELECT ST_asgeojson(ST_Extent(the_geom)) from   {geom_table}".formatWithObj({geom_table:geom_table})
+    function getBounds(geom,callback){
+      var url = 'https://{0}.cartodb.com/api/v2/sql'.format(geom.user)
+      var bounds_query = "SELECT ST_asgeojson(ST_Extent(the_geom)) from  {user}.{table}"
+      .formatWithObj(geom)
+      console.log("get bounds ", geom, bounds_query )
       $.ajax({
           url: url+'?q='+encodeURIComponent(bounds_query),
           jsonp: "callback",
           dataType: "jsonp",
           success: function( res ) {
+            console.log("result ", res)
             var bounds = JSON.parse(res.rows[0].st_asgeojson).coordinates[0]
             callback(bounds)
           }
@@ -286,7 +316,8 @@ query = ["            WITH par AS (",
         dataType: "jsonp",
         success: function( res ) {
           getCategories(torque_settings,function(categories){
-            getBounds(geom_tables[torque_settings.geom_type].table,function(bounds){
+            var geom =geom_tables[torque_settings.geom_type]
+            getBounds(geom_tables[torque_settings.geom_type] ,function(bounds){
 
 
               if(torque_settings.steps=='auto'){

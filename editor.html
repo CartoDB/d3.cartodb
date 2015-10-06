@@ -54,10 +54,7 @@
         height:100%;
       }
 
-      #urls p{
-        overflow-x: scroll;
-        width: 100%;
-      }
+
 
     </style>
   </head>
@@ -86,8 +83,9 @@
             <input id='time' name='time' type='text' placeholder='date'></input>
 
             <p>Geometry Type</p>
-            <select id='gemtype' name='geom_type' type='text' placeholder='tablename'>
+            <select id='geomtype' name='geom_type' type='text' placeholder='tablename'>
               <option value='states'>states</option>
+              <option value='hexstates'>hex states</option>
               <option value='dma'>dma</option>
               <option value='county'>county</option>
             </select>
@@ -103,9 +101,9 @@
 
         <div id='urls'>
           <p>Link url</p>
-          <p id='link_url'></p>
+          <textarea id='link_url'></textarea>
           <p>Embed </p>
-          <text-area id='embed'></text-area>
+          <textarea id='embed'></textarea>
         </div>
       </div>
       <div id='map'>
@@ -118,6 +116,30 @@
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
     <script>
+
+
+    serialize = function(obj) {
+      var str = [];
+      for(var p in obj)
+        if (obj.hasOwnProperty(p)) {
+          str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+        }
+      return str.join("&");
+    }
+
+    delserialize = function(str) {
+      var comp = str.split("&")
+      var result = {}
+      for(var i in comp){
+        var key = comp[i].split("=")[0]
+        var val = comp[i].split("=")[1]
+        key = decodeURIComponent(key)
+        val = decodeURIComponent(val)
+        result[key] =val
+      }
+      return result;
+    }
+
 
     var QueryStringToHash = function QueryStringToHash  (query) {
       var query_string = {};
@@ -146,16 +168,11 @@
         $("#controls input,select").each(function(){
           settings[$(this).attr("name")] = ($(this).val() ? $(this).val() : 0 )
         })
-        settings.categories = settings.categories ? settings.categories.split("\n") : []
-        settings.colors =  settings.colors ? settings.colors.split("\n") : []
+
         return settings;
       }
       function getSettingsFromHash(){
-        var settings = QueryStringToHash(window.location.hash.replace("#",""))
-        settings.colors = settings['colors[]']
-        delete settings['colors[]']
-        settings.catagories = settings['categories[]']
-        delete settings['categories[]']
+        var settings = delserialize(window.location.hash.replace("#",""))
         return settings;
       }
 
@@ -166,8 +183,8 @@
         catagories.forEach(function(catagory,index){
           var cat_div  = $("<div></div>")
           cat_div.append($("<p></p>").html("Color for "+catagory[settings["type"]]))
-          var col = settings["cat"+index] ? settings["cat"+index] : defaultColors[index];
-          cat_div.append($("<input type='text' name='cat"+catagory.cat+"' value='"+col+"'></input>"))
+          var col = settings["cat_"+index] ? settings["cat"+index] : defaultColors[index];
+          cat_div.append($("<input type='text' name='col_"+catagory.cat+"' value='"+col+"'></input>"))
 
           $("#CatagoryColors").append(cat_div)
         })
@@ -176,15 +193,14 @@
 
       function update(){
         settings = getSettingsFromUI()
-        var urlparams = $.param(settings)
-        window.location.hash = $.param(settings)
+
+        console.log("setings are ", settings)
+        var urlparams = serialize(settings)
+        window.location.hash = urlparams
         var fullurl = window.location.origin + "/torque.html?"+urlparams;
 
-        getColumns(settings, function(cols){
-          setCatagoryColors(settings,cols.rows)
-        })
 
-        $("#link_url").html(fullurl)
+        $("#link_url").val(fullurl)
         $("#embed").val('<iframe width="100%" height="520" frameborder="0" src="'+fullurl+'" allowfullscreen webkitallowfullscreen mozallowfullscreen oallowfullscreen msallowfullscreen></iframe>');
         $("#preview").attr("src", fullurl)
       }
@@ -196,9 +212,13 @@
         })
       }
 
-      function tableNameOfUserChange(){
-
+      function tableNameOrUserChange(settings,callback){
+        getColumns(settings, function(cols){
+          setCatagoryColors(settings,cols.rows)
+          callback()
+        })
       }
+
       function getColumns(settings,callback){
         var url = 'https://{user}.cartodb.com/api/v2/sql'.formatWithObj({user: settings.user})
         var query = "SELECT row_number() OVER() cat, {type} FROM {user}.{table} GROUP BY {type}".formatWithObj({user: settings.user,table: settings.table, type: settings.type})
@@ -232,13 +252,31 @@
       $(function(){
         var data = getSettingsFromHash()
         setupUI(data)
-        update()
-        $("#controls input").on("keyup",function(){
+        tableNameOrUserChange(data,function(){
           update()
+          $("#controls input").on("keyup",function(e){
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if(keycode == '13'){
+              update()
+            }
+          })
+          $("#controls select").on("change",function(e){
+            update()
+          })
+          $("#controls #mapname").on("keyup",function(e){
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if(keycode == '13'){
+              tableNameOrUserChange()
+            }
+          })
+          $("#controls #username").on("keyup",function(e){
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if(keycode == '13'){
+              tableNameOrUserChange()
+            }
+          })
         })
-        $("#controls select").on("change",function(){
-          update()
-        })
+
       })
     </script>
   </body>
