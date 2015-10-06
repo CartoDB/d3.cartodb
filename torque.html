@@ -265,6 +265,20 @@ query = ["            WITH par AS (",
       })
     }
 
+    function getBounds(geom_table,callback){
+      var url = 'https://{0}.cartodb.com/api/v2/sql'.format(torque_settings.user)
+      var bounds_query = "SELECT ST_asgeojson(ST_Extent(the_geom)) from   {geom_table}".formatWithObj({geom_table:geom_table})
+      $.ajax({
+          url: url+'?q='+encodeURIComponent(bounds_query),
+          jsonp: "callback",
+          dataType: "jsonp",
+          success: function( res ) {
+            var bounds = JSON.parse(res.rows[0].st_asgeojson).coordinates[0]
+            callback(bounds)
+          }
+      })
+    }
+
     var url = 'https://{0}.cartodb.com/api/v2/sql'.format(torque_settings.user)
     $.ajax({
         url: url+'?q='+encodeURIComponent("select min(date_part('epoch', {0})) min, max(date_part('epoch', {0})) max, count(distinct({0})) as distinct from {1}".format(torque_settings.time, torque_settings.table)),
@@ -272,19 +286,22 @@ query = ["            WITH par AS (",
         dataType: "jsonp",
         success: function( res ) {
           getCategories(torque_settings,function(categories){
+            getBounds(geom_tables[torque_settings.geom_type].table,function(bounds){
 
 
-            if(torque_settings.steps=='auto'){
-              torque_settings.steps = Math.min(res.rows[0].distinct,256)
-            }
+              if(torque_settings.steps=='auto'){
+                torque_settings.steps = Math.min(res.rows[0].distinct,256)
+              }
 
-            createLegend(torque_settings,categories)
-            // createLegend(torque_settings,categories);
+              createLegend(torque_settings,categories)
+              // createLegend(torque_settings,categories);
 
-            var step = (res.rows[0]['max'] - res.rows[0]['min'])/torque_settings.steps;
-            var min = res.rows[0]['min'];
+              var step = (res.rows[0]['max'] - res.rows[0]['min'])/torque_settings.steps;
+              var min = res.rows[0]['min'];
 
-            vis(step, min, torque_settings, categories);
+              vis(step, min, torque_settings, categories,bounds);
+
+            })
           })
         }
       });
