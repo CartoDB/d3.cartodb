@@ -100,6 +100,10 @@
       county:{
         table : "cb_2014_us_county_20m",
         join_col: "countyfp"
+      },
+      hexstates:{
+        table : "us_states_hexgrid",
+        join_col : "google_name"
       }
     }
 
@@ -150,7 +154,7 @@ query = ["            WITH par AS (",
     layer.setSQL(query)
     var cartocss  = document.getElementById('choropleth').innerHTML
 
-    cartocss =cartocss.formatWithObj({colors: torque_settings.colors, categories:Object.keys(categories) })
+    cartocss =cartocss.formatWithObj({colors: torque_settings.colors.slice(1,torque_settings.colors.length), categories:Object.keys(categories) })
 
     console.log(cartocss)
     layer.setCartoCSS(cartocss);
@@ -209,7 +213,7 @@ query = ["            WITH par AS (",
                                  delete url_settings[key]
                                })
 
-
+      console.log(url_settings)
       Object.keys(url_settings).forEach(function(key){
         torque_settings[key] = url_settings[key]
       })
@@ -233,12 +237,13 @@ query = ["            WITH par AS (",
     function createLegend(torque_settings,categories){
 
       var data = categories.map(function(cat,index){
-        return {name: cat, value: torque_settings.colors[index-1]}
+        return {name: cat, value: torque_settings.colors[index]}
       })
 
+      console.log(data)
       var categoryLegend = new cartodb.geo.ui.Legend.Category({
           title: decodeURIComponent(torque_settings.title),
-          data:data.slice(1,data.length)
+          data:  data.slice(1,data.length)
       });
 
       $("#legend").append(categoryLegend.render().$el);
