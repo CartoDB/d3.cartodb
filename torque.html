@@ -80,36 +80,37 @@
 
   <script>
 
+  var geom_tables ={
+    states:{
+      table: "us_states_detailed",
+      join_col: "state_name"
+    },
+    dma:{
+      table: "dma_boundary",
+      join_col: "dma_1"
+    },
+    county:{
+      table : "cb_2014_us_county_20m",
+      join_col: "countyfp"
+    },
+    hexstates:{
+      table : "us_states_hexgrid",
+      join_col : "google_name"
+    }
+  }
 
-  function vis(step, min, torque_settings, categories) {
+
+  function vis(step, min, torque_settings, categories, bounds) {
     var layers;
     var selectedLayer = 0;
     var layer = new cartodb.d3.Layer({
         user: torque_settings.user
     })
     var steps = torque_settings.steps
-    var geom_tables ={
-      states:{
-        table: "us_states_detailed",
-        join_col: "state_name"
-      },
-      dma:{
-        table: "dma_boundary",
-        join_col: "dma_1"
-      },
-      county:{
-        table : "cb_2014_us_county_20m",
-        join_col: "countyfp"
-      },
-      hexstates:{
-        table : "us_states_hexgrid",
-        join_col : "google_name"
-      }
-    }
+
+    map.fitBounds([bounds.map(function(coord){return coord.reverse()})])
 
     var geom = geom_tables[torque_settings.geom_type];
-    console.log("STETINGS " ,torque_settings)
-
     var base = cartodb.createLayer(map, 'https://basemaps01.cartodb.com/api/v2/viz/1453eb5e-6b7e-11e5-888a-0ea31932ec1d/viz.json').addTo(map)
     layer.addTo(map);
     var labels = cartodb.createLayer(map, 'https://basemaps01.cartodb.com/api/v2/viz/383b3aae-6b88-11e5-8720-0e787de82d45/viz.json').addTo(map)
