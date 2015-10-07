@@ -88,7 +88,7 @@
   <script src="vendor/underscore-min.js"></script>
   <script src="vendor/carto.uncompressed.js"></script>
   <script src="src/d3.jsonp.js"></script>
-  <script src="src/d3_cartodb_layer.js"></script>
+  <script src="src/renderer.js"></script>
   <script src="src/leaflet_d3.js"></script>
   <script>
   var layers;
@@ -104,14 +104,7 @@
     user: 'rambo-test',
     table: 'ne_50m_admin_1_states'
   }).addTo(map);
-
-  var layer = new cartodb.d3.Layer({
-    user: 'rambo-test'
-  });
-
-  layer.addTo(map);
-  layer.setGlobal('area', 0);
-  layer.setSQL('SELECT * FROM ne_50m_admin_1_states WHERE the_geom && ST_MakeEnvelope(-74.00390625,40.730608477796636,-73.98193359375,40.7472569628042, 4326)');
+  
   layer.setCartoCSS(document.getElementById('choropleth').innerHTML);
 
   document.getElementById('time_slider').oninput = function(v) {
