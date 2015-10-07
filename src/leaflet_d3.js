@@ -25,6 +25,7 @@ L.CartoDBd3Layer = L.Class.extend({
 
 	onAdd: function (map) {
 		this._map = map;
+		this.renderer = new cartodb.d3.Renderer(this.options);
 		var tilePane = this._map._panes.tilePane;
 		var _container = L.DomUtil.create('div', 'leaflet-layer');
 		tilePane.appendChild(_container);

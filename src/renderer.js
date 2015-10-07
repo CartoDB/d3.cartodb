@@ -38,7 +38,7 @@ function viz(url, map, done) {
 
       // for each layer generate a d3 layer
       layers.forEach(function(layer) {
-       var lyr = new D3CartoDBLayer({
+       var lyr = new Renderer({
          user: cartodbLayer.options.user_name,
          sql_api_template: cartodbLayer.options.sql_api_template
        }).addTo(map);
@@ -100,9 +100,10 @@ function transformForSymbolizer(symbolizer) {
   return null;
 }
 
-D3CartoDBLayer = L.Class.extend({
+Renderer = L.Class.extend({
 
   initialize: function(options) {
+    this.options = options;
     this.collection = null;
     this.shader = null;
     this.globalVariables = {}
@@ -481,7 +482,7 @@ D3CartoDBLayer = L.Class.extend({
 });
 
 cartodb.d3.viz = viz;
-cartodb.d3.Layer = D3CartoDBLayer;
+cartodb.d3.Renderer = Renderer;
 
 })();
 
