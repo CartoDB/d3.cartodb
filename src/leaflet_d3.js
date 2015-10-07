@@ -38,21 +38,11 @@ L.CartoDBd3Layer = L.Class.extend({
 		return this;
 	},
 	loadTile: function (tilePoint) {
-		function tile2lon(x,z) {
-		  return (x/Math.pow(2,z)*360-180);
-		};
-		function tile2lat(y,z) {
-		  var n=Math.PI-2*Math.PI*y/Math.pow(2,z);
-		  return (180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))));
-		};
-		var tileBB = {
-			n: tile2lat(tilePoint.y, tilePoint.zoom),
-			s: tile2lat(tilePoint.y + 1, tilePoint.zoom),
-			e: tile2lon(tilePoint.x, tilePoint.zoom),
-			w: tile2lon(tilePoint.x + 1, tilePoint.zoom),
-		}
+		var tile = L.DomUtil.create('svg', 'leaflet-tile');
+
+		this.renderer.drawTile(tile, tilePoint);
+
 		var tilePos = this._getTilePos(tilePoint);
-		var tile = L.DomUtil.create('svg', 'leaflet-tile', this._container);
 		tile.style.width = tile.style.height = this._getTileSize() + 'px';
 		L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome);
 	},
