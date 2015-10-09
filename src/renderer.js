@@ -1,6 +1,6 @@
-
+var d3 = require('d3');
 var cartodb = cartodb || {};
-(function() {
+
 cartodb.d3 = {}
 
 d3.selection.prototype.moveToFront = function() {
@@ -502,8 +502,7 @@ Renderer = L.Class.extend({
   }
 });
 
+module.exports.renderer = Renderer;
 cartodb.d3.viz = viz;
 cartodb.d3.Renderer = Renderer;
-
-})();
 
