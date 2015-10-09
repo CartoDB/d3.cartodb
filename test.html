@@ -102,10 +102,9 @@
 
   var cartoDBd3Layer = new L.CartoDBd3Layer({
     user: 'rambo-test',
-    table: 'ne_50m_admin_1_states'
+    table: 'ne_50m_admin_1_states',
+    cartocss: document.getElementById('choropleth').innerHTML
   }).addTo(map);
-  
-  layer.setCartoCSS(document.getElementById('choropleth').innerHTML);
 
   document.getElementById('time_slider').oninput = function(v) {
     layer.setGlobal('area', +v.currentTarget.value);
