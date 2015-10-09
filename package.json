@@ -11,18 +11,24 @@
     "url": "https://github.com/CartoDB/d3.cartodb.git"
   },
   "author": {
-      "name": "CartoDB",
-      "url": "http://cartodb.com/"
+    "name": "CartoDB",
+    "url": "http://cartodb.com/"
   },
   "contributors": [
-      "Javier Santana <jsantana@vizzuality.com>",
-      "Francisco Dans <francisco@cartodb.com>"
+    "Javier Santana <jsantana@vizzuality.com>",
+    "Francisco Dans <francisco@cartodb.com>"
   ],
-  "licenses": [{
-    "type": "BSD"
-  }],
+  "licenses": [
+    {
+      "type": "BSD"
+    }
+  ],
   "bugs": {
     "url": "https://github.com/CartoDB/d3.cartodb/issues"
   },
-  "homepage": "https://github.com/CartoDB/d3.cartodb"
+  "homepage": "https://github.com/CartoDB/d3.cartodb",
+  "dependencies": {
+    "d3": "^3.5.6",
+    "topojson": "^1.6.19"
+  }
 }
