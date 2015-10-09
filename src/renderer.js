@@ -253,7 +253,13 @@ Renderer = L.Class.extend({
       var the_geom = 'st_transform(st_simplify(st_snaptogrid(the_geom_webmercator, {px}, {px}), {px}/2), 3857) as the_geom'.replace(/{px}/g, px);
       // generate the sql with all the columns + the geometry simplified
       var finalSQL = "select " + columns.join(',') + "," + the_geom + " FROM (" + sql + ") __cdb";
-      self._requestGeometry(finalSQL);
+
+      self._query(finalSQL, function(collection) {
+        collection.features = collection.features.filter(function(d) {
+          return d.geometry && d.geometry.coordinates.length > 0
+        })
+        callback(collection)
+      }, 'geojson');
     });
   },
 
@@ -271,19 +277,6 @@ Renderer = L.Class.extend({
     var tile_size = 256;
     var full_resolution = earth_circumference/tile_size;
     return full_resolution / Math.pow(2,zoom);
-  },
-  
-  _requestGeometry: function(sql) {
-    var self = this;
-    this._query(sql, function(collection) {
-      self.collection = collection;
-      // remove empty geometries because of the simplification
-      self.collection.features = self.collection.features.filter(function(d) {
-        return d.geometry && d.geometry.coordinates.length > 0
-      })
-      console.log("feature count: " + self.collection.features.length);
-      self._reset();
-    }, 'geojson');
   },
 
   // there are special rules for layers, for example "::hover", this function
