@@ -1,0 +1,28 @@
+{
+  "name": "d3.cartodb",
+  "version": "0.1.1",
+  "description": "d3.cartodb is an experiment to render cartodb visualizations using d3.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CartoDB/d3.cartodb.git"
+  },
+  "author": {
+      "name": "CartoDB",
+      "url": "http://cartodb.com/"
+  },
+  "contributors": [
+      "Javier Santana <jsantana@vizzuality.com>",
+      "Francisco Dans <francisco@cartodb.com>"
+  ],
+  "licenses": [{
+    "type": "BSD"
+  }],
+  "bugs": {
+    "url": "https://github.com/CartoDB/d3.cartodb/issues"
+  },
+  "homepage": "https://github.com/CartoDB/d3.cartodb"
+}
