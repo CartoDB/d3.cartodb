@@ -26,6 +26,7 @@ L.CartoDBd3Layer = L.Class.extend({
 	onAdd: function (map) {
 		this._map = map;
 		this.renderer = new cartodb.d3.Renderer(this.options);
+		this.renderer.onAdd(map);
 		var tilePane = this._map._panes.tilePane;
 		var _container = L.DomUtil.create('div', 'leaflet-layer');
 		tilePane.appendChild(_container);
@@ -38,7 +39,7 @@ L.CartoDBd3Layer = L.Class.extend({
 		return this;
 	},
 	loadTile: function (tilePoint) {
-		var tile = L.DomUtil.create('svg', 'leaflet-tile');
+		var tile = L.DomUtil.create('svg', 'leaflet-tile', this._container);
 
 		this.renderer.drawTile(tile, tilePoint);
 
@@ -59,7 +60,7 @@ L.CartoDBd3Layer = L.Class.extend({
 
 	_removeTileLoader: function() {
 		this._map.off({
-			'moveend': this._updateTiles
+			'moveend': this._updateTilesd
 		}, this);
 		this._removeTiles();
 	},

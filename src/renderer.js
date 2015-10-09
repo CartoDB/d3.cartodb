@@ -104,8 +104,10 @@ Renderer = L.Class.extend({
 
   initialize: function(options) {
     this.options = options;
+    if (options.cartocss){
+      this.setCartoCSS(options.cartocss);
+    }
     this.collection = null;
-    this.shader = null;
     this.globalVariables = {}
     this.user = options.user;
     this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
@@ -139,25 +141,6 @@ Renderer = L.Class.extend({
 
   onAdd: function (map) {
     this._map = map;
-
-    this.svg = d3.select(map.getPanes().overlayPane)
-      .append("svg"),
-    this.g = this.svg.append("g").attr("class", "leaflet-zoom-hide");
-
-    var transform = d3.geo.transform({ 
-      point: function(x, y) {
-          // don't use leaflet projection since it's pretty slow
-          var earthRadius = 6378137 * 2 * Math.PI;
-          var earthRadius2 = earthRadius/2;
-          var invEarth = 1.0/earthRadius;
-          var pixelScale = 256 * (1 << map.getZoom());
-          x = pixelScale * (x + earthRadius2) * invEarth;
-          y = pixelScale * (-y + earthRadius2) * invEarth;
-          var topleft = map.getPixelOrigin();
-          this.stream.point(x - topleft.x, y - topleft.y);
-      }
-    });
-    this.path = d3.geo.path().projection(transform);
 
     map.on('viewreset', this._reset, this);
     map.on('zoomstart', function() { this.geometryDirty = true }, this);
@@ -217,8 +200,12 @@ Renderer = L.Class.extend({
     }.bind(this));
   },
 
+  _reset: function(){
+
+  },
 
   drawTile: function(tile, tilePoint){
+    var self = this;
     function tile2lon(x,z) {
       return (x/Math.pow(2,z)*360-180);
     };
@@ -240,10 +227,12 @@ Renderer = L.Class.extend({
       .replace("{e}", tileBB.e)
       .replace("{n}", tileBB.n);
 
-    this.setSQL(query, tilePoint.zoom);
+    this.getGeometry(query, tilePoint.zoom, function(geometry){
+      self.render(tile, geometry);
+    });
   },
 
-  setSQL: function(sql, zoom) {
+  getGeometry: function(sql, zoom, callback) {
     var self = this;
     this.sql = sql;
     this.geometryDirty = true;
@@ -360,13 +349,26 @@ Renderer = L.Class.extend({
     }
   },
 
-  _reset: function() {
+  render: function(svg, collection) {
     var self = this;
-    var collection = this.collection;
     var shader = this.shader;
-    var g = this.g;
-    var path = this.path;
-    var svg = this.svg;
+    svg = d3.select(svg);
+    var g = svg.append("g").attr("class", "leaflet-zoom-hide");
+
+    var transform = d3.geo.transform({ 
+      point: function(x, y) {
+          // don't use leaflet projection since it's pretty slow
+          var earthRadius = 6378137 * 2 * Math.PI;
+          var earthRadius2 = earthRadius/2;
+          var invEarth = 1.0/earthRadius;
+          var pixelScale = 256 * (1 << map.getZoom());
+          x = pixelScale * (x + earthRadius2) * invEarth;
+          y = pixelScale * (-y + earthRadius2) * invEarth;
+          var topleft = {x: parseInt(svg.style("left").replace("px", "")), y: parseInt(svg.style("top").replace("px", ""))};
+          this.stream.point(x - topleft.x, y - topleft.y);
+      }
+    });
+    path = d3.geo.path().projection(transform);
     
     if (!shader) return;
     if (!collection) return;
@@ -388,7 +390,7 @@ Renderer = L.Class.extend({
       this.geometryDirty = false;
     }
 
-    var layers = shader.getLayers()
+    var layers = shader.getLayers();
 
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
