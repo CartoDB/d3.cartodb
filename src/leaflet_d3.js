@@ -25,11 +25,13 @@ L.CartoDBd3Layer = L.Class.extend({
 
 	onAdd: function (map) {
 		this._map = map;
-		this.renderer = new cartodb.d3.Renderer(this.options);
+		this.renderer = new Renderer(this.options);
 		this.renderer.onAdd(map);
 		var tilePane = this._map._panes.tilePane;
-		var _container = L.DomUtil.create('div', 'leaflet-layer');
-		tilePane.appendChild(_container);
+		var layer = L.DomUtil.create('div', 'leaflet-layer');
+		var _container = layer.appendChild(L.DomUtil.create('div',"leaflet-tile-container leaflet-zoom-animated"));
+		layer.appendChild(_container);
+		tilePane.appendChild(layer);
 
 		this._container = _container;
 	    this._initTileLoader();
@@ -39,7 +41,9 @@ L.CartoDBd3Layer = L.Class.extend({
 		return this;
 	},
 	loadTile: function (tilePoint) {
-		var tile = L.DomUtil.create('svg', 'leaflet-tile', this._container);
+		var tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		tile.setAttribute("class", "leaflet-tile");
+		this._container.appendChild(tile);
 
 		this.renderer.drawTile(tile, tilePoint);
 

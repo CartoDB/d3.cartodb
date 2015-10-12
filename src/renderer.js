@@ -371,19 +371,12 @@ Renderer = L.Class.extend({
     if (!collection) return;
 
     if (this.geometryDirty) {
-      var bounds = path.bounds(this.collection),
+      var bounds = path.bounds(collection),
           buffer = 100;
           topLeft = bounds[0],
           bottomRight = bounds[1];
           topLeft[0] -= buffer;
           topLeft[1] -= buffer;
-
-      svg.attr("width", bottomRight[0] - topLeft[0] + buffer)
-          .attr("height", bottomRight[1] - topLeft[1] + buffer)
-          .style("left", topLeft[0] + "px")
-          .style("top", topLeft[1] + "px");
-
-      g.attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
       this.geometryDirty = false;
     }
 
@@ -392,13 +385,7 @@ Renderer = L.Class.extend({
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
     
-    var styleLayers = g.selectAll("g.layer")
-        .data(layers)
-      
-    styleLayers.enter()
-      .append("g")
-      .attr('class', 'layer')
-    styleLayers.exit().remove()
+    var styleLayers = g.data(layers)
 
     //            polygon line point
     // polygon       X     X     T
