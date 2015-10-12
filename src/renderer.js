@@ -350,15 +350,19 @@ Renderer = L.Class.extend({
 
     var transform = d3.geo.transform({ 
       point: function(x, y) {
+        var coord = webmercator2LL(x,y);
+        function long2px(lon,zoom) { return ((lon+180)/360*Math.pow(2,zoom)) - Math.floor((lon+180)/360*Math.pow(2,zoom)); }
+        function lat2px(lat,zoom)  { return ((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom)) - Math.floor((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom)); }
+        var pixelPos = {x: long2px(coord.lon, map.getZoom()), y: lat2px(coord.lat, map.getZoom())}
           // don't use leaflet projection since it's pretty slow
-          var earthRadius = 6378137 * 2 * Math.PI;
-          var earthRadius2 = earthRadius/2;
-          var invEarth = 1.0/earthRadius;
-          var pixelScale = 256 * (1 << map.getZoom());
-          x = pixelScale * (x + earthRadius2) * invEarth;
-          y = pixelScale * (-y + earthRadius2) * invEarth;
-          var topleft = {x: parseInt(svg.style("left").replace("px", "")), y: parseInt(svg.style("top").replace("px", ""))};
-          this.stream.point(x - topleft.x, y - topleft.y);
+          // var earthRadius = 6378137 * 2 * Math.PI;
+          // var earthRadius2 = earthRadius/2;
+          // var invEarth = 1.0/earthRadius;
+          // var pixelScale = 256 * (1 << map.getZoom());
+          // x = pixelScale * (x + earthRadius2) * invEarth;
+          // y = pixelScale * (-y + earthRadius2) * invEarth;
+          // var topleft = {x: parseInt(svg.style("left").replace("px", "")), y: parseInt(svg.style("top").replace("px", ""))};
+        this.stream.point(256*pixelPos.x, 256*pixelPos.y);
       }
     });
     path = d3.geo.path().projection(transform);
@@ -499,8 +503,23 @@ Renderer = L.Class.extend({
           f = f.transition().duration(trans_time);
       f.style(styleForSymbolizer(sym, 'shader'))
     })
+    svg.attr("class", svg.attr("class") + " leaflet-tile-loaded");
   }
 });
+
+function webmercator2LL(x,y) {
+    if (Math.abs(x) < 180 && Math.abs(y) < 90)
+        return;
+
+    if ((Math.abs(x) > 20037508.3427892) || (Math.abs(y) > 20037508.3427892))
+        return;
+    var num3 = x / 6378137.0;
+    var num4 = num3 * 57.295779513082323;
+    var num5 = Math.floor(((num4 + 180.0) / 360.0));
+    var num6 = num4 - (num5 * 360.0);
+    var num7 = 1.5707963267948966 - (2.0 * Math.atan(Math.exp((-1.0 * y) / 6378137.0)));
+    return {lon: num6, lat: num7 * 57.295779513082323}
+}
 
 module.exports.renderer = Renderer;
 cartodb.d3.viz = viz;
