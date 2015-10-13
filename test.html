@@ -22,13 +22,6 @@
             padding: 0;
             margin: 0;
         }
-        #time_slider {
-            position: absolute;
-            bottom: 20px;
-            left: 40px;
-            width: 800px;
-            height: 45px;
-        }
 
     </style>
 
@@ -82,17 +75,11 @@
 <body>
 <div id="map">
 </div>
-  <input id="time_slider" value = 0 type="range" max="149721094" min="2419742" step="1000" />
-  <script src="vendor/d3.v3.js" charset="utf-8"></script>
   <script src="vendor/leaflet.js"></script>
   <script src="vendor/underscore-min.js"></script>
   <script src="vendor/carto.uncompressed.js"></script>
-  <script src="src/d3.jsonp.js"></script>
-  <script src="src/renderer.js"></script>
-  <script src="src/leaflet_d3.js"></script>
+  <script src="dist/d3.cartodb.js"></script>
   <script>
-  var layers;
-  var selectedLayer = 0;
   var c = [40.71512685201709, -74.00201797485352]
   var map = new L.Map("map", {center: c, zoom: 3})
 
@@ -105,10 +92,6 @@
     table: 'ne_50m_admin_1_states',
     cartocss: document.getElementById('choropleth').innerHTML
   }).addTo(map);
-
-  document.getElementById('time_slider').oninput = function(v) {
-    layer.setGlobal('area', +v.currentTarget.value);
-  }
 
   </script>
 </body>
