@@ -228,7 +228,7 @@ Renderer = L.Class.extend({
       .replace("{n}", tileBB.n);
 
     this.getGeometry(query, tilePoint.zoom, function(geometry){
-      self.render(tile, geometry);
+      self.render(tile, geometry, tilePoint);
     });
   },
 
