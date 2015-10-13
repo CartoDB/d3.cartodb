@@ -38,7 +38,7 @@ function viz(url, map, done) {
 
       // for each layer generate a d3 layer
       layers.forEach(function(layer) {
-       var lyr = new Renderer({
+       var lyr = new L.CartoDBd3Layer({
          user: cartodbLayer.options.user_name,
          sql_api_template: cartodbLayer.options.sql_api_template
        }).addTo(map);
@@ -100,18 +100,22 @@ function transformForSymbolizer(symbolizer) {
   return null;
 }
 
-Renderer = L.Class.extend({
+Renderer = function(options) {
+  this.options = options;
+  if (options.cartocss){
+    this.setCartoCSS(options.cartocss);
+  }
+  this.collection = null;
+  this.globalVariables = {}
+  this.user = options.user;
+  this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
+  this._map = options.map;
+  map.on('viewreset', this._reset, this);
+  map.on('zoomstart', function() { this.geometryDirty = true }, this);
+  map.on('zoomend', function() { this.geometryDirty = true }, this);
+}
 
-  initialize: function(options) {
-    this.options = options;
-    if (options.cartocss){
-      this.setCartoCSS(options.cartocss);
-    }
-    this.collection = null;
-    this.globalVariables = {}
-    this.user = options.user;
-    this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
-  }, 
+Renderer.prototype = {
 
   /**
    * changes a global variable in cartocss
@@ -134,66 +138,13 @@ Renderer = L.Class.extend({
     this._reset();
   },
 
-  addTo: function (map) {
-    map.addLayer(this);
-    return this;
-  },
-
-  onAdd: function (map) {
-    this._map = map;
-
-    map.on('viewreset', this._reset, this);
-    map.on('zoomstart', function() { this.geometryDirty = true }, this);
-    map.on('zoomend', function() { this.geometryDirty = true }, this);
-    this._reset();
-  },
-
   onRemove: function (map) {
     map.getPanes().overlayPane.removeChild(this.svg);
     map.off('viewreset', this._reset, this);
   },
 
-  _addFunctions: function() {
-    var self = this;
-    var tmpl = _.template('select unnest(<%= functionName %>(array_agg(<%= simplify_fn %>((<%= column %>::numeric))), <%= slots %>)) as buckets from (<%= sql %>) _table_sql where <%= column %> is not null');
-
-    this.renderer.addFunction('quantile', function (args, done) {
-      var max = args[2].value[0].value;
-      var min = args[1].value[0].value;
-      self._query(
-        tmpl({
-          slots: 5,
-          sql: self.sql,
-          column: args[0].value[0].value,
-          functionName: 'CDB_QuantileBins',
-          simplify_fn: 'distinct'
-        }), 
-        function(data) {
-          var buckets = _(data.rows).pluck('buckets');
-          // generate javascript code that returns the value for each slot
-          var code = 'var v = {v};';
-          for (var i = 0; i < buckets.length; ++i) {
-            code += 'if (v < ' + buckets[i] + ') return ' +  (min + (max - min)*i/(buckets.length - 1)) + ";"
-          }
-          code += "return " + max;
-
-          done(function(v) {
-             return {
-                is: 'custom',
-                toString: function() {
-                  var c = code.replace(/{v}/, "data['" + v.value + "']");
-                  return "(function() { " + c + " })();";
-                }
-             }
-          });
-        }
-      );
-    });
-  },
-
   setCartoCSS: function(cartocss) {
     this.renderer = new carto.RendererJS();
-    this._addFunctions();
     this.renderer.render(cartocss, function(err, shader) {
       this.shader = shader;
       this._reset()
@@ -489,7 +440,7 @@ Renderer = L.Class.extend({
     })
     svg.attr("class", svg.attr("class") + " leaflet-tile-loaded");
   }
-});
+};
 
 module.exports.renderer = Renderer;
 cartodb.d3.viz = viz;
