@@ -327,20 +327,6 @@ Renderer.prototype = {
         f.attr('d', path);
       }
 
-      // if (layer.hover) {
-      //   f.on('mouseover', self.onMouseover(sym, path))
-      //   f.on('mouseout', self.onMouseout(sym, path));
-      //   // this is the other way to do the hover, chaging the style for all the layers
-      //   // (which btw is more closer to the concept of layer that cartocss defines)
-      //   /*
-      //   f.on('mouseover', function() {
-      //     f.style(styleForSymbolizer(sym, 'shader_hover'));
-      //   });
-      //   f.on('mouseout', function() {
-      //     f.style(styleForSymbolizer(sym, 'shader'));
-      //   });
-      //   */
-      // }
       // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
       var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: self._map.getZoom() })['transition-time']
       if (trans_time)
