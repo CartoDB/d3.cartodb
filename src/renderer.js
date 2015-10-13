@@ -490,20 +490,6 @@ Renderer = L.Class.extend({
   }
 });
 
-function webmercator2LL(x,y) {
-    if (Math.abs(x) < 180 && Math.abs(y) < 90)
-        return;
-
-    if ((Math.abs(x) > 20037508.3427892) || (Math.abs(y) > 20037508.3427892))
-        return;
-    var num3 = x / 6378137.0;
-    var num4 = num3 * 57.295779513082323;
-    var num5 = Math.floor(((num4 + 180.0) / 360.0));
-    var num6 = num4 - (num5 * 360.0);
-    var num7 = 1.5707963267948966 - (2.0 * Math.atan(Math.exp((-1.0 * y) / 6378137.0)));
-    return {lon: num6, lat: num7 * 57.295779513082323}
-}
-
 module.exports.renderer = Renderer;
 cartodb.d3.viz = viz;
 cartodb.d3.Renderer = Renderer;
