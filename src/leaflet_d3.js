@@ -45,7 +45,7 @@ L.CartoDBd3Layer = L.Class.extend({
 		tile.setAttribute("class", "leaflet-tile");
 		this._container.appendChild(tile);
 
-		this.renderer.drawTile(tile, tilePoint);
+		this.renderer.drawTile(tile, tilePoint, this._tileLoaded.bind(this));
 
 		var tilePos = this._getTilePos(tilePoint);
 		tile.style.width = tile.style.height = this._getTileSize() + 'px';
@@ -126,6 +126,7 @@ L.CartoDBd3Layer = L.Class.extend({
   },
 
   _removeTile: function (key) {
+  	this._tiles[key].innerHTML = "";
   	this.fire('tileRemoved', this._tiles[key]);
   	delete this._tiles[key];
   	delete this._tilesLoading[key];
