@@ -9,7 +9,7 @@ d3.selection.prototype.moveToFront = function() {
   });
 };
 
-Renderer = function(options) {
+var Renderer = function(options) {
   this.options = options;
   if (options.cartocss){
     this.setCartoCSS(options.cartocss);
@@ -380,8 +380,7 @@ function transformForSymbolizer(symbolizer) {
     };
   }
   return null;
-}
+};
 
-module.exports.renderer = Renderer;
-cartodb.d3.Renderer = Renderer;
+module.exports = Renderer;
 
