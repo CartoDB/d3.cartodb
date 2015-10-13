@@ -204,7 +204,7 @@ Renderer = L.Class.extend({
 
   },
 
-  drawTile: function(tile, tilePoint){
+  drawTile: function(tile, tilePoint, callback){
     var self = this;
     function tile2lon(x,z) {
       return (x/Math.pow(2,z)*360-180);
@@ -229,6 +229,7 @@ Renderer = L.Class.extend({
 
     this.getGeometry(query, tilePoint.zoom, function(geometry){
       self.render(tile, geometry, tilePoint);
+      callback(tilePoint, tile);
     });
   },
 
@@ -466,20 +467,20 @@ Renderer = L.Class.extend({
         f.attr('d', path);
       }
 
-      if (layer.hover) {
-        f.on('mouseover', self.onMouseover(sym, path))
-        f.on('mouseout', self.onMouseout(sym, path));
-        // this is the other way to do the hover, chaging the style for all the layers
-        // (which btw is more closer to the concept of layer that cartocss defines)
-        /*
-        f.on('mouseover', function() {
-          f.style(styleForSymbolizer(sym, 'shader_hover'));
-        });
-        f.on('mouseout', function() {
-          f.style(styleForSymbolizer(sym, 'shader'));
-        });
-        */
-      }
+      // if (layer.hover) {
+      //   f.on('mouseover', self.onMouseover(sym, path))
+      //   f.on('mouseout', self.onMouseout(sym, path));
+      //   // this is the other way to do the hover, chaging the style for all the layers
+      //   // (which btw is more closer to the concept of layer that cartocss defines)
+      //   /*
+      //   f.on('mouseover', function() {
+      //     f.style(styleForSymbolizer(sym, 'shader_hover'));
+      //   });
+      //   f.on('mouseout', function() {
+      //     f.style(styleForSymbolizer(sym, 'shader'));
+      //   });
+      //   */
+      // }
       // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
       var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: self._map.getZoom() })['transition-time']
       if (trans_time)
