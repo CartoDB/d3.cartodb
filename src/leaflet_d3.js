@@ -25,8 +25,8 @@ L.CartoDBd3Layer = L.Class.extend({
 
 	onAdd: function (map) {
 		this._map = map;
+		this.options.map = map;
 		this.renderer = new Renderer(this.options);
-		this.renderer.onAdd(map);
 		var tilePane = this._map._panes.tilePane;
 		var layer = L.DomUtil.create('div', 'leaflet-layer');
 		var _container = layer.appendChild(L.DomUtil.create('div',"leaflet-tile-container leaflet-zoom-animated"));
