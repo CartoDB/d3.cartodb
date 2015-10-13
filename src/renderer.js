@@ -342,27 +342,23 @@ Renderer = L.Class.extend({
     }
   },
 
-  render: function(svg, collection) {
+  render: function(svg, collection, tilePoint) {
     var self = this;
+    this.currentPoint = tilePoint;
     var shader = this.shader;
-    svg = d3.select(svg);
+    var svg = d3.select(svg);
     var g = svg.append("g").attr("class", "leaflet-zoom-hide");
 
     var transform = d3.geo.transform({ 
       point: function(x, y) {
-        var coord = webmercator2LL(x,y);
-        function long2px(lon,zoom) { return ((lon+180)/360*Math.pow(2,zoom)) - Math.floor((lon+180)/360*Math.pow(2,zoom)); }
-        function lat2px(lat,zoom)  { return ((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom)) - Math.floor((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom)); }
-        var pixelPos = {x: long2px(coord.lon, map.getZoom()), y: lat2px(coord.lat, map.getZoom())}
           // don't use leaflet projection since it's pretty slow
-          // var earthRadius = 6378137 * 2 * Math.PI;
-          // var earthRadius2 = earthRadius/2;
-          // var invEarth = 1.0/earthRadius;
-          // var pixelScale = 256 * (1 << map.getZoom());
-          // x = pixelScale * (x + earthRadius2) * invEarth;
-          // y = pixelScale * (-y + earthRadius2) * invEarth;
-          // var topleft = {x: parseInt(svg.style("left").replace("px", "")), y: parseInt(svg.style("top").replace("px", ""))};
-        this.stream.point(256*pixelPos.x, 256*pixelPos.y);
+          var earthRadius = 6378137 * 2 * Math.PI;
+          var earthRadius2 = earthRadius/2;
+          var invEarth = 1.0/earthRadius;
+          var pixelScale = 256 * (1 << map.getZoom());
+          x = pixelScale * (x + earthRadius2) * invEarth;
+          y = pixelScale * (-y + earthRadius2) * invEarth;
+          this.stream.point(x - self.currentPoint.x*256, y - self.currentPoint.y*256);
       }
     });
     path = d3.geo.path().projection(transform);
