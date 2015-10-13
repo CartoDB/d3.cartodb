@@ -9,97 +9,6 @@ d3.selection.prototype.moveToFront = function() {
   });
 };
 
-
-// fetchs a viz.json, create the layers and add them to the map
-function viz(url, map, done) {
-  d3.jsonp(url + "?callback=vizjson", function(data) {
-
-    map.setView(JSON.parse(data.center), data.zoom);
-    // get base layer, not render anything in case of non ZXY layers
-    var baseLayer = data.layers[0];
-    if (baseLayer.options.urlTemplate) {
-      map.addLayer(new L.TileLayer(baseLayer.options.urlTemplate, {
-        subdomains: baseLayer.options.subdomains || 'abcd'
-      }));
-    } else if (baseLayer.options.color) {
-      document.getElementById('map').style['background-color']= baseLayer.options.color;
-    }
-    
-    // assume first layer is the one with cartodb data
-    var cartodbLayer = data.layers[1];
-    if (cartodbLayer.type === 'layergroup') {
-      var layers = cartodbLayer.options.layer_definition.layers.map(function(layer) {
-        return {
-          // fix the \n in sql
-          sql: layer.options.sql.replace(/\n/g, ' '),
-          cartocss: layer.options.cartocss
-        }
-      });
-
-      // for each layer generate a d3 layer
-      layers.forEach(function(layer) {
-       var lyr = new L.CartoDBd3Layer({
-         user: cartodbLayer.options.user_name,
-         sql_api_template: cartodbLayer.options.sql_api_template
-       }).addTo(map);
-       lyr.setSQL(layer.sql);
-       lyr.setCartoCSS(layer.cartocss);
-       layer.mapLayer = lyr;
-      });
-
-      done(null, layers);
-
-    } else {
-      // viz.json not a layergroup
-      done(new Error("named maps not supported"));
-    }
-  });
-}
-function styleForSymbolizer(symbolyzer, shaderName) {
-  if (symbolyzer === 'polygon' || symbolyzer === 'line') {
-    return {
-      'fill': function(d) { return d[shaderName]['polygon-fill'] || 'none'; },
-      'fill-opacity': function(d) { return d[shaderName]['polygon-opacity'] },
-      'stroke': function(d) { return d[shaderName]['line-color'] },
-      'stroke-width': function(d) { return d[shaderName]['line-width'] },
-      'stroke-opacity': function(d) { return d[shaderName]['line-opacity'] }
-    }
-  } else if (symbolyzer === 'markers') {
-    return {
-      'fill': function(d) { return d[shaderName]['marker-fill'] || 'none'; },
-      'fill-opacity': function(d) { return d[shaderName]['marker-fill-opacity'] },
-      'stroke': function(d) { return d[shaderName]['marker-line-color'] },
-      'stroke-width': function(d) { return d[shaderName]['marker-line-width'] }
-    }
-  } else if (symbolyzer === 'text') {
-    return {
-      'fill': function(d) { return d[shaderName]['text-fill'] || 'none'; },
-    }
-
-     /*.attr("x", function(d) { return d.cx; })
-4                 .attr("y", function(d) { return d.cy; })
-5                 .text( function (d) { return "( " + d.cx + ", " + d.cy +" )"; })
-6                 .attr("font-family", "sans-serif")
-7                 .attr("font-size", "20px")
-8                 .attr("fill", "red");
-*/
-  }
-}
-
-function transformForSymbolizer(symbolizer) {
-  if (symbolizer === 'markers' || symbolizer === 'labels') {
-    var pathC = d3.geo.path().projection(function(d) { return d; });
-    return function(d) {
-      return d._centroid || (d._centroid = {
-        type: 'Point',
-        properties: d.properties,
-        coordinates: pathC.centroid(d)
-      })
-    };
-  }
-  return null;
-}
-
 Renderer = function(options) {
   this.options = options;
   if (options.cartocss){
@@ -442,7 +351,51 @@ Renderer.prototype = {
   }
 };
 
+function styleForSymbolizer(symbolyzer, shaderName) {
+  if (symbolyzer === 'polygon' || symbolyzer === 'line') {
+    return {
+      'fill': function(d) { return d[shaderName]['polygon-fill'] || 'none'; },
+      'fill-opacity': function(d) { return d[shaderName]['polygon-opacity'] },
+      'stroke': function(d) { return d[shaderName]['line-color'] },
+      'stroke-width': function(d) { return d[shaderName]['line-width'] },
+      'stroke-opacity': function(d) { return d[shaderName]['line-opacity'] }
+    }
+  } else if (symbolyzer === 'markers') {
+    return {
+      'fill': function(d) { return d[shaderName]['marker-fill'] || 'none'; },
+      'fill-opacity': function(d) { return d[shaderName]['marker-fill-opacity'] },
+      'stroke': function(d) { return d[shaderName]['marker-line-color'] },
+      'stroke-width': function(d) { return d[shaderName]['marker-line-width'] }
+    }
+  } else if (symbolyzer === 'text') {
+    return {
+      'fill': function(d) { return d[shaderName]['text-fill'] || 'none'; },
+    }
+
+     /*.attr("x", function(d) { return d.cx; })
+4                 .attr("y", function(d) { return d.cy; })
+5                 .text( function (d) { return "( " + d.cx + ", " + d.cy +" )"; })
+6                 .attr("font-family", "sans-serif")
+7                 .attr("font-size", "20px")
+8                 .attr("fill", "red");
+*/
+  }
+}
+
+function transformForSymbolizer(symbolizer) {
+  if (symbolizer === 'markers' || symbolizer === 'labels') {
+    var pathC = d3.geo.path().projection(function(d) { return d; });
+    return function(d) {
+      return d._centroid || (d._centroid = {
+        type: 'Point',
+        properties: d.properties,
+        coordinates: pathC.centroid(d)
+      })
+    };
+  }
+  return null;
+}
+
 module.exports.renderer = Renderer;
-cartodb.d3.viz = viz;
 cartodb.d3.Renderer = Renderer;
 
