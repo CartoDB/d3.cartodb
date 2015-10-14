@@ -155,8 +155,8 @@ L.CartoDBd3Layer = L.Class.extend({
 
   _getTilePos: function (tilePoint) {
   	tilePoint = new L.Point(tilePoint.x, tilePoint.y);
-  	var origin = this._map._getNewTopLeftPoint(this._map.getCenter()),
-  	tileSize = this.options.tileSize;
+  	var origin = this._map.getPixelOrigin(),
+		    tileSize = this._getTileSize();
 
   	return tilePoint.multiplyBy(tileSize).subtract(origin);
   },
@@ -209,6 +209,5 @@ L.CartoDBd3Layer = L.Class.extend({
       	this.fire('tileAdded', t);
       }
       this.fire("tilesLoading");
-
   }
 })
