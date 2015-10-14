@@ -19,9 +19,6 @@ var Renderer = function(options) {
   this.user = options.user;
   this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
   this._map = options.map;
-  map.on('viewreset', this._reset, this);
-  map.on('zoomstart', function() { this.geometryDirty = true }, this);
-  map.on('zoomend', function() { this.geometryDirty = true }, this);
 }
 
 Renderer.prototype = {
@@ -45,11 +42,6 @@ Renderer.prototype = {
       this.globalVariables = args[0]
     }
     this._reset();
-  },
-
-  onRemove: function (map) {
-    map.getPanes().overlayPane.removeChild(this.svg);
-    map.off('viewreset', this._reset, this);
   },
 
   setCartoCSS: function(cartocss) {
