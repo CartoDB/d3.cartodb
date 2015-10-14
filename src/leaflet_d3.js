@@ -172,6 +172,10 @@ L.CartoDBd3Layer = L.Class.extend({
 
 		return tileSize;
 	},
+	setCartoCSS: function(cartocss){
+		this.renderer.setCartoCSS(cartocss);
+		this._reloadTiles();
+	},
 
   _addTilesFromCenterOut: function (bounds) {
   	var queue = [],
