@@ -19,6 +19,7 @@ var Renderer = function(options) {
   this.user = options.user;
   this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
   this._map = options.map;
+  this.tileCache = {};
 }
 
 Renderer.prototype = {
@@ -58,31 +59,39 @@ Renderer.prototype = {
 
   drawTile: function(tile, tilePoint, callback){
     var self = this;
-    function tile2lon(x,z) {
-      return (x/Math.pow(2,z)*360-180);
-    };
-    function tile2lat(y,z) {
-      var n=Math.PI-2*Math.PI*y/Math.pow(2,z);
-      return (180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))));
-    };
-    var tileBB = {
-      n: tile2lat(tilePoint.y, tilePoint.zoom),
-      s: tile2lat(tilePoint.y + 1, tilePoint.zoom),
-      e: tile2lon(tilePoint.x, tilePoint.zoom),
-      w: tile2lon(tilePoint.x + 1, tilePoint.zoom),
-    }
-    var query = "SELECT * FROM " + this.options.table;
-    query += " WHERE the_geom && ST_MakeEnvelope({w},{s},{e},{n}, 4326)";
-    query = query
-      .replace("{w}", tileBB.w)
-      .replace("{s}", tileBB.s)
-      .replace("{e}", tileBB.e)
-      .replace("{n}", tileBB.n);
-
-    this.getGeometry(query, tilePoint.zoom, function(geometry){
-      self.render(tile, geometry, tilePoint);
+    var tileData = this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
+    if (tileData) {
+      self.render(tile, tileData, tilePoint);
       callback(tilePoint, tile);
-    });
+    }
+    else{
+      function tile2lon(x,z) {
+        return (x/Math.pow(2,z)*360-180);
+      };
+      function tile2lat(y,z) {
+        var n=Math.PI-2*Math.PI*y/Math.pow(2,z);
+        return (180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))));
+      };
+      var tileBB = {
+        n: tile2lat(tilePoint.y, tilePoint.zoom),
+        s: tile2lat(tilePoint.y + 1, tilePoint.zoom),
+        e: tile2lon(tilePoint.x, tilePoint.zoom),
+        w: tile2lon(tilePoint.x + 1, tilePoint.zoom),
+      }
+      var query = "SELECT * FROM " + this.options.table;
+      query += " WHERE the_geom && ST_MakeEnvelope({w},{s},{e},{n}, 4326)";
+      query = query
+        .replace("{w}", tileBB.w)
+        .replace("{s}", tileBB.s)
+        .replace("{e}", tileBB.e)
+        .replace("{n}", tileBB.n);
+
+      this.getGeometry(query, tilePoint.zoom, function(geometry){
+        self.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
+        self.render(tile, geometry, tilePoint);
+        callback(tilePoint, tile);
+      });
+    }
   },
 
   getGeometry: function(sql, zoom, callback) {
