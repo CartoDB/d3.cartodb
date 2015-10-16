@@ -28,6 +28,7 @@ L.CartoDBd3Layer = L.Class.extend({
 	onAdd: function (map) {
 		this._map = map;
 		this.options.map = map;
+		this.options.layer = this;
 		this.renderer = new Renderer(this.options);
 		var tilePane = this._map._panes.tilePane;
 		var layer = L.DomUtil.create('div', 'leaflet-layer');
@@ -70,6 +71,10 @@ L.CartoDBd3Layer = L.Class.extend({
 		}, this);
 		this._removeTiles();
 	},
+
+	latLngToLayerPoint: function(lat, lng){
+      return map.latLngToLayerPoint(new L.LatLng(lat,lng));
+  },
 
 	_updateTiles: function () {
 

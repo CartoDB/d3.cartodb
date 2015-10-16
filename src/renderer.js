@@ -20,6 +20,7 @@ var Renderer = function(options) {
   this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
   this._map = options.map;
   this.tileCache = {};
+  this.layer = options.layer;
 }
 
 Renderer.prototype = {
@@ -203,15 +204,7 @@ Renderer.prototype = {
         .style(styleForSymbolizer(sym, 'shader'))
     }
   },
-  latLngToLayerPoint: function(lat, lng){
-    if(this._map._leaflet_id) {
-      return map.latLngToLayerPoint(new L.LatLng(lat,lng));
-    }
-    else {
-      // To be implemented for Google Maps
-      return null;
-    }
-  },
+  
 
   render: function(svg, collection, tilePoint) {
     var self = this;
@@ -315,11 +308,11 @@ Renderer.prototype = {
         f.attr("dy", ".35em")
         f.attr('text-anchor', "middle")
         f.attr("x", function(d) { 
-            var p = this.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
+            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
             return p.x
           });
         f.attr("y", function(d) { 
-            var p = this.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
+            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
             return p.y;
          })
 
