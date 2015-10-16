@@ -18,7 +18,6 @@ var Renderer = function(options) {
   this.globalVariables = {}
   this.user = options.user;
   this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
-  this._map = options.map;
   this.tileCache = {};
   this.layer = options.layer;
 }
@@ -110,9 +109,8 @@ Renderer.prototype = {
         return f !== 'the_geom' && f !== 'the_geom_webmercator';
       });
 
-      var geometryZoom = zoom !== undefined ? zoom: self._map.getZoom();
       // pixel size with some factor to avoid remove geometries
-      var px = self.pixelSizeForZoom(geometryZoom);
+      var px = self.pixelSizeForZoom(zoom);
       var the_geom = 'st_transform(st_simplify(st_snaptogrid(the_geom_webmercator, {px}, {px}), {px}/2), 3857) as the_geom'.replace(/{px}/g, px);
       // generate the sql with all the columns + the geometry simplified
       var finalSQL = "select " + columns.join(',') + "," + the_geom + " FROM (" + sql + ") __cdb";
@@ -288,9 +286,9 @@ Renderer.prototype = {
       // calculate shader for each geometry
       feature.each(function(d) {
         d.properties.global = self.globalVariables;
-        d.shader = layer.getStyle(d.properties, { zoom: map.getZoom(), time: self.time})
+        d.shader = layer.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time})
         if (layer.hover) {
-          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: map.getZoom(), time: self.time })
+          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
           _.defaults(d.shader_hover, d.shader);
         }
       })
@@ -321,7 +319,7 @@ Renderer.prototype = {
       }
 
       // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-      var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: self._map.getZoom() })['transition-time']
+      var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: tilePoint.zoom })['transition-time']
       if (trans_time)
           f = f.transition().duration(trans_time);
       f.style(styleForSymbolizer(sym, 'shader'))
