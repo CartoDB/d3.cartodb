@@ -66,13 +66,6 @@ L.CartoDBd3Layer = L.Class.extend({
 		this._updateTiles();
 	},
 
-	_removeTileLoader: function() {
-		this._map.off({
-			'moveend': this._updateTilesd
-		}, this);
-		this._removeTiles();
-	},
-
 	latLngToLayerPoint: function(lat, lng){
       return map.latLngToLayerPoint(new L.LatLng(lat,lng));
   },
