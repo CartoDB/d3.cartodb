@@ -14,7 +14,6 @@ var Renderer = function(options) {
   if (options.cartocss){
     this.setCartoCSS(options.cartocss);
   }
-  this.collection = null;
   this.globalVariables = {}
   this.user = options.user;
   this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
