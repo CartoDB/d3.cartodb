@@ -1,3 +1,5 @@
+var d3 = require("d3");
+
 module.exports = {
 
   viz: function(url, map, done) {
