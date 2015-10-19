@@ -12,4 +12,7 @@ dist_folder:
 clean: 
 	rm -rf dist
 
+testDebug:
+	./node_modules/karma/bin/karma start
+
 .PHONY: clean dist_folder
