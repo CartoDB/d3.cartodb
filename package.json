@@ -4,7 +4,7 @@
   "description": "d3.cartodb is an experiment to render cartodb visualizations using d3.",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/karma/bin/karma start"
+    "test": "./node_modules/.bin/karma start --single-run --browsers Firefox"
   },
   "repository": {
     "type": "git",
@@ -40,6 +40,7 @@
     "karma": "^0.13.11",
     "karma-browserify": "^4.4.0",
     "karma-chrome-launcher": "^0.2.1",
+    "karma-firefox-launcher": "*",
     "karma-coverage": "^0.5.2",
     "karma-jasmine": "^0.3.6",
     "karma-requirejs": "^0.2.2",
