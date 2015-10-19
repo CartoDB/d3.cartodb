@@ -30,7 +30,8 @@
   "homepage": "https://github.com/CartoDB/d3.cartodb",
   "dependencies": {
     "browserify": "^11.2.0",
-    "d3": "^3.5.6"
+    "d3": "^3.5.6",
+    "uglifyjs": "^2.4.10"
   },
   "devDependencies": {
     "jasmine-core": "^2.3.4",
