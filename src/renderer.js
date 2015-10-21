@@ -1,7 +1,7 @@
-var d3 = window.d3 || require('d3');
-var cartodb = window.cartodb || {};
-var carto = window.carto || require('carto');
-var _ = window._ || require('underscore');
+var d3 = global.d3 || require('d3');
+var cartodb = global.cartodb || {};
+var carto = global.carto || require('carto');
+var _ = global._ || require('underscore');
 
 cartodb.d3 = {}
 
