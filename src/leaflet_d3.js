@@ -39,6 +39,9 @@ L.CartoDBd3Layer = L.Class.extend({
 		this._container = _container;
 	    this._initTileLoader();
 	},
+	onRemove: function (map) {
+    this._container.parentNode.removeChild(this._container);
+  },
 	addTo: function (map) {
 		map.addLayer(this);
 		return this;
