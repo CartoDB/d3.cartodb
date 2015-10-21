@@ -13,7 +13,6 @@ describe("The renderer", function() {
 		spyOn(this.layer, "loadTile");
 	  this.layer.addTo(this.map);
 	  this.renderer = this.layer.renderer;
-	  spyOn(this.renderer, "listenPoints");
 	});
 
 	afterAll(function(){
