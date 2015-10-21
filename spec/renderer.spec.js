@@ -15,6 +15,11 @@ describe("The renderer", function() {
 	  this.renderer = this.layer.renderer;
 	  spyOn(this.renderer, "listenPoints");
 	});
+
+	afterAll(function(){
+		document.body.removeChild(document.getElementById('map'));
+	});
+
 	it("should have its dependencies loaded", function() {
 		expect(d3).not.toEqual(undefined);
 		expect(L).not.toEqual(undefined);
@@ -89,7 +94,6 @@ describe("The renderer", function() {
 	});
 
 	it("webmercator coordinates should be transformed to tile pixels", function(){
-		dump(this.renderer.listenPoints)
 
 	});
 
