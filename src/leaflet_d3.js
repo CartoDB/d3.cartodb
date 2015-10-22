@@ -23,13 +23,20 @@ L.CartoDBd3Layer = L.Class.extend({
 		var self = this;
 		options = options || {};
 		L.Util.setOptions(this, options);
+		this.providers = {
+			"windshaft": require('./providers/windshaft'),
+			"sql": require('./providers/sql')
+		}
 	},
 
 	onAdd: function (map) {
 		this._map = map;
 		this.options.map = map;
 		this.options.layer = this;
+
 		this.renderer = new Renderer(this.options);
+		this.provider = new this.providers.sql(this.options);
+
 		var tilePane = this._map._panes.tilePane;
 		var layer = L.DomUtil.create('div', 'leaflet-layer');
 		var _container = layer.appendChild(L.DomUtil.create('div',"leaflet-tile-container leaflet-zoom-animated"));
