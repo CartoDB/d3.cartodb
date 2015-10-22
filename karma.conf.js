@@ -17,9 +17,11 @@ module.exports = function(config) {
     files: [
       {pattern: 'spec/**/*spec.js', included: true},
       {pattern: 'spec/*spec.js', included: true},
+      'spec/mocks/tile.js',
       'vendor/underscore-min.js',
       'vendor/leaflet.js',
       'vendor/carto.uncompressed.js',
+      'vendor/d3.v3.js',
       'dist/d3.cartodb.js'
     ],
 
@@ -38,7 +40,7 @@ module.exports = function(config) {
     // test results reporter to use
     // possible values: 'dots', 'progress'
     // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-    reporters: ['progress'],
+    reporters: ['progress', 'dots'],
 
 
     // web server port

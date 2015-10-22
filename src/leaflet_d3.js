@@ -29,7 +29,7 @@ L.CartoDBd3Layer = L.Class.extend({
 		this._map = map;
 		this.options.map = map;
 		this.options.layer = this;
-		this.renderer = new Renderer(this.options);
+		this.renderer = this.options.renderer || new Renderer(this.options);
 		var tilePane = this._map._panes.tilePane;
 		var layer = L.DomUtil.create('div', 'leaflet-layer');
 		var _container = layer.appendChild(L.DomUtil.create('div',"leaflet-tile-container leaflet-zoom-animated"));
@@ -39,6 +39,9 @@ L.CartoDBd3Layer = L.Class.extend({
 		this._container = _container;
 	    this._initTileLoader();
 	},
+	onRemove: function (map) {
+    this._container.parentNode.removeChild(this._container);
+  },
 	addTo: function (map) {
 		map.addLayer(this);
 		return this;

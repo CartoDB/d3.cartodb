@@ -1,6 +1,8 @@
 ### 0.1.1
 * Added updated documentation.
 * Improved readme.
+* Added test framework, using Karma.
+* Added unit tests for layer and renderer.
 
 ### 0.1.0
 

@@ -1,5 +1,5 @@
-var d3 = require('d3');
-var cartodb = cartodb || {};
+var d3 = global.d3 || require('d3');
+var cartodb = global.cartodb || {};
 var carto = global.carto || require('carto');
 var _ = global._ || require('underscore');
 
@@ -215,7 +215,7 @@ Renderer.prototype = {
           var earthRadius = 6378137 * 2 * Math.PI;
           var earthRadius2 = earthRadius/2;
           var invEarth = 1.0/earthRadius;
-          var pixelScale = 256 * (1 << map.getZoom());
+          var pixelScale = 256 * (1 << tilePoint.zoom);
           x = pixelScale * (x + earthRadius2) * invEarth;
           y = pixelScale * (-y + earthRadius2) * invEarth;
           this.stream.point(x - self.currentPoint.x*256, y - self.currentPoint.y*256);
@@ -257,8 +257,6 @@ Renderer.prototype = {
 
       // merge line and polygon symbolizers
       symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d }));
-      
-      //if (symbolizers.length > 1) throw new Error("one symbolizer is allowed per layer");
 
       var sym = symbolizers[0];
       geometry = collection.features;
