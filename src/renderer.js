@@ -48,7 +48,6 @@ Renderer.prototype = {
     this.renderer = new carto.RendererJS();
     this.renderer.render(cartocss, function(err, shader) {
       this.shader = shader;
-      this._reset()
     }.bind(this));
   },
 
@@ -57,7 +56,6 @@ Renderer.prototype = {
   },
 
   drawTile: function(tile, tilePoint, callback){
-    var self = this;
     var tileData = this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
     if (tileData) {
       self.render(tile, tileData, tilePoint);
@@ -86,10 +84,10 @@ Renderer.prototype = {
         .replace("{n}", tileBB.n);
 
       this.getGeometry(query, tilePoint.zoom, function(geometry){
-        self.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
-        self.render(tile, geometry, tilePoint);
+        this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
+        this.render(tile, geometry, tilePoint);
         callback(tilePoint, tile);
-      });
+      }.bind(this));
     }
   },
 
