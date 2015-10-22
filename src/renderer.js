@@ -1,5 +1,7 @@
 var d3 = require('d3');
 var cartodb = cartodb || {};
+var carto = global.carto || require('carto');
+var _ = global._ || require('underscore');
 
 cartodb.d3 = {}
 
@@ -43,9 +45,7 @@ Renderer.prototype = {
 
   setCartoCSS: function(cartocss) {
     this.renderer = new carto.RendererJS();
-    this.renderer.render(cartocss, function(err, shader) {
-      this.shader = shader;
-    }.bind(this));
+    this.shader = this.renderer.render(cartocss);
   },
   
 
@@ -165,7 +165,7 @@ Renderer.prototype = {
       // merge line and polygon symbolizers
       symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d }));
       
-      if (symbolizers.length > 1) throw new Error("one symbolizer is allowed per layer");
+      //if (symbolizers.length > 1) throw new Error("one symbolizer is allowed per layer");
 
       var sym = symbolizers[0];
       geometry = collection.features;
