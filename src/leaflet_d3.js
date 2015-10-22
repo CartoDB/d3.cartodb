@@ -35,14 +35,15 @@ L.CartoDBd3Layer = L.Class.extend({
 		var _container = layer.appendChild(L.DomUtil.create('div',"leaflet-tile-container leaflet-zoom-animated"));
 		layer.appendChild(_container);
 		tilePane.appendChild(layer);
-
 		this._container = _container;
-	    this._initTileLoader();
+	  this._initTileLoader();
 	},
+
 	addTo: function (map) {
 		map.addLayer(this);
 		return this;
 	},
+
 	loadTile: function (tilePoint) {
 		var tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		tile.setAttribute("class", "leaflet-tile");
@@ -67,9 +68,8 @@ L.CartoDBd3Layer = L.Class.extend({
 	},
 
 	latLngToLayerPoint: function(lat, lng){
-      return map.latLngToLayerPoint(new L.LatLng(lat,lng));
-  },
-
+    return map.latLngToLayerPoint(new L.LatLng(lat,lng));
+	},
 
   _removeTile: function (key) {
   	this._container.removeChild(this._tiles[key]);
@@ -77,6 +77,7 @@ L.CartoDBd3Layer = L.Class.extend({
   	delete this._tiles[key];
   	delete this._tilesLoading[key];
   },
+
   _getTileSize: function () {
 		var map = this._map,
 		    zoom = map.getZoom() + this.options.zoomOffset,
@@ -89,6 +90,7 @@ L.CartoDBd3Layer = L.Class.extend({
 
 		return tileSize;
 	},
+	
 	setCartoCSS: function(cartocss){
 		this.renderer.setCartoCSS(cartocss);
 		this._reloadTiles();
