@@ -52,11 +52,15 @@ L.CartoDBd3Layer = L.Class.extend({
 	},
 
 	loadTile: function (tilePoint) {
+		var self = this;
 		var tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		tile.setAttribute("class", "leaflet-tile");
 		this._container.appendChild(tile);
 
-		this.renderer.drawTile(tile, tilePoint, this._tileLoaded.bind(this));
+		this.provider.getTile(tilePoint, function(tilePoint, geometry){
+			self.renderer.render(tile, geometry, tilePoint);
+			self._tileLoaded(tilePoint, tile);
+		});
 
 		var tilePos = this._getTilePos(tilePoint);
 		tile.style.width = tile.style.height = this._getTileSize() + 'px';
@@ -97,7 +101,7 @@ L.CartoDBd3Layer = L.Class.extend({
 
 		return tileSize;
 	},
-	
+
 	setCartoCSS: function(cartocss){
 		this.renderer.setCartoCSS(cartocss);
 		this._reloadTiles();
