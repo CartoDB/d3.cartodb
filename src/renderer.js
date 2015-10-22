@@ -92,8 +92,6 @@ Renderer.prototype = {
   },
 
   getGeometry: function(sql, zoom, callback) {
-    this.sql = sql;
-    this.geometryDirty = true;
     // request the schema fist to extract columns and generate the final
     // sql query with the right the_geom simplification for the zoom level.
     // The current zoom level may not the best but good enough for a test
@@ -223,16 +221,12 @@ Renderer.prototype = {
     
     if (!shader) return;
     if (!collection) return;
-
-    if (this.geometryDirty) {
-      var bounds = path.bounds(collection),
-          buffer = 100;
-          topLeft = bounds[0],
-          bottomRight = bounds[1];
-          topLeft[0] -= buffer;
-          topLeft[1] -= buffer;
-      this.geometryDirty = false;
-    }
+    var bounds = path.bounds(collection),
+        buffer = 100;
+        topLeft = bounds[0],
+        bottomRight = bounds[1];
+        topLeft[0] -= buffer;
+        topLeft[1] -= buffer;
 
     var layers = shader.getLayers();
 
