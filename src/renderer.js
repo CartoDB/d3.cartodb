@@ -257,8 +257,6 @@ Renderer.prototype = {
 
       // merge line and polygon symbolizers
       symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d }));
-      
-      //if (symbolizers.length > 1) throw new Error("one symbolizer is allowed per layer");
 
       var sym = symbolizers[0];
       geometry = collection.features;
