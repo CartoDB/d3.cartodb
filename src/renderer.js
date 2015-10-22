@@ -58,7 +58,7 @@ Renderer.prototype = {
   drawTile: function(tile, tilePoint, callback){
     var tileData = this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
     if (tileData) {
-      self.render(tile, tileData, tilePoint);
+      this.render(tile, tileData, tilePoint);
       callback(tilePoint, tile);
     }
     else{
@@ -92,7 +92,6 @@ Renderer.prototype = {
   },
 
   getGeometry: function(sql, zoom, callback) {
-    var self = this;
     this.sql = sql;
     this.geometryDirty = true;
     // request the schema fist to extract columns and generate the final
@@ -107,18 +106,18 @@ Renderer.prototype = {
       });
 
       // pixel size with some factor to avoid remove geometries
-      var px = self.pixelSizeForZoom(zoom);
+      var px = this.pixelSizeForZoom(zoom);
       var the_geom = 'st_transform(st_simplify(st_snaptogrid(the_geom_webmercator, {px}, {px}), {px}/2), 3857) as the_geom'.replace(/{px}/g, px);
       // generate the sql with all the columns + the geometry simplified
       var finalSQL = "select " + columns.join(',') + "," + the_geom + " FROM (" + sql + ") __cdb";
 
-      self._query(finalSQL, function(collection) {
+      this._query(finalSQL, function(collection) {
         collection.features = collection.features.filter(function(d) {
           return d.geometry && d.geometry.coordinates.length > 0
         })
         callback(collection)
       }, 'geojson');
-    });
+    }.bind(this));
   },
 
   _query: function(sql, callback, format) {
