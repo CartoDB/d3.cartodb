@@ -15,18 +15,12 @@ SQLProvider.prototype = {
       callback(tilePoint, tileData);
     }
     else{
-      function tile2lon(x,z) {
-        return (x/Math.pow(2,z)*360-180);
-      };
-      function tile2lat(y,z) {
-        var n=Math.PI-2*Math.PI*y/Math.pow(2,z);
-        return (180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))));
-      };
+      
       var tileBB = {
-        n: tile2lat(tilePoint.y, tilePoint.zoom),
-        s: tile2lat(tilePoint.y + 1, tilePoint.zoom),
-        e: tile2lon(tilePoint.x, tilePoint.zoom),
-        w: tile2lon(tilePoint.x + 1, tilePoint.zoom),
+        n: cartodb.d3.geo.tile2lat(tilePoint.y, tilePoint.zoom),
+        s: cartodb.d3.geo.tile2lat(tilePoint.y + 1, tilePoint.zoom),
+        e: cartodb.d3.geo.tile2lon(tilePoint.x, tilePoint.zoom),
+        w: cartodb.d3.geo.tile2lon(tilePoint.x + 1, tilePoint.zoom),
       }
       var query = "SELECT * FROM " + this.table;
       query += " WHERE the_geom && ST_MakeEnvelope({w},{s},{e},{n}, 4326)";
