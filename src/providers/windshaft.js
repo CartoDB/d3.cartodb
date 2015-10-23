@@ -10,4 +10,4 @@ function WindshaftProvider(options) {
 
 WindshaftProvider.prototype = {
 
-}
+};

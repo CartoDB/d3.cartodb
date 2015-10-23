@@ -70,7 +70,7 @@ L.CartoDBd3Layer = L.Class.extend({
   },
 
   _initTileLoader: function() {
-    this._tiles = {}
+    this._tiles = {};
     this._tilesLoading = {};
     this._tilesToLoad = 0;
     this._map.on({
@@ -108,4 +108,4 @@ L.CartoDBd3Layer = L.Class.extend({
     this.renderer.setCartoCSS(cartocss);
     this._reloadTiles();
   }
-})
+});
