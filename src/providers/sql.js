@@ -21,7 +21,7 @@ SQLProvider.prototype = {
         s: cartodb.d3.geo.tile2lat(tilePoint.y + 1, tilePoint.zoom),
         e: cartodb.d3.geo.tile2lon(tilePoint.x, tilePoint.zoom),
         w: cartodb.d3.geo.tile2lon(tilePoint.x + 1, tilePoint.zoom),
-      }
+      };
       var query = "SELECT * FROM " + this.table;
       query += " WHERE the_geom && ST_MakeEnvelope({w},{s},{e},{n}, 4326)";
       query = query
@@ -66,9 +66,9 @@ SQLProvider.prototype = {
 
       this._query(finalSQL, function(collection) {
         collection.features = collection.features.filter(function(d) {
-          return d.geometry && d.geometry.coordinates.length > 0
-        })
-        callback(collection)
+          return d.geometry && d.geometry.coordinates.length > 0;
+        });
+        callback(collection);
       }, 'geojson');
     }.bind(this));
   },
@@ -79,6 +79,6 @@ SQLProvider.prototype = {
     var full_resolution = earth_circumference/tile_size;
     return full_resolution / Math.pow(2,zoom);
   },
-}
+};
 
 module.exports = SQLProvider;

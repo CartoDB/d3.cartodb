@@ -1,7 +1,7 @@
 L.Mixin.TileLoader = {
 
   _initTileLoader: function() {
-    this._tiles = {}
+    this._tiles = {};
     this._tilesLoading = {};
     this._tilesToLoad = 0;
     this._map.on({
@@ -90,7 +90,7 @@ L.Mixin.TileLoader = {
 
   _tileLoaded: function(tilePoint, tileData) {
     this._tilesToLoad--;
-    var k = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
+    var k = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
     this._tiles[k] = tileData;
     delete this._tilesLoading[k];
     if(this._tilesToLoad === 0) {
@@ -145,4 +145,4 @@ L.Mixin.TileLoader = {
 
   }
 
-}
+};

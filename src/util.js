@@ -24,7 +24,7 @@ module.exports = {
             sql: layer.options.sql.replace(/\n/g, ' '),
             cartocss: layer.options.cartocss,
             table: layer.options.layer_name
-          }
+          };
         });
 
         // for each layer generate a d3 layer
@@ -43,5 +43,5 @@ module.exports = {
       }
     });
   }
-}
+};
 

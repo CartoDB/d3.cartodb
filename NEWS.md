@@ -3,6 +3,8 @@
 * Improved readme.
 * Added test framework, using Karma.
 * Added unit tests for layer and renderer.
+* Added jshint to maintain code clean.
+* Passed data retrieval to providers
 
 ### 0.1.0
 

@@ -3,7 +3,7 @@ var cartodb = global.cartodb || {};
 var carto = global.carto || require('carto');
 var _ = global._ || require('underscore');
 
-cartodb.d3 = {}
+cartodb.d3 = {};
 
 d3.selection.prototype.moveToFront = function() {
   return this.each(function(){
@@ -16,10 +16,10 @@ var Renderer = function(options) {
   if (options.cartocss){
     this.setCartoCSS(options.cartocss);
   }
-  this.globalVariables = {}
+  this.globalVariables = {};
   this.user = options.user;
   this.layer = options.layer;
-}
+};
 
 Renderer.prototype = {
 
@@ -39,7 +39,7 @@ Renderer.prototype = {
     if (args.length === 2) {
       this.globalVariables[args[0]] = args[1];
     } else {
-      this.globalVariables = args[0]
+      this.globalVariables = args[0];
     }
   },
 
@@ -57,10 +57,10 @@ Renderer.prototype = {
   // hover as an attribute
   processLayersRules: function(layers) {
     var specialAttachments = ['hover'];
-    var realLayers = []
-    var attachments = []
+    var realLayers = [];
+    var attachments = [];
     // map layer names 
-    var layerByName = {}
+    var layerByName = {};
     layers.forEach(function(layer) {
       if (specialAttachments.indexOf(layer.attachment()) != -1) {
         attachments.push(layer);
@@ -68,11 +68,11 @@ Renderer.prototype = {
         layerByName[layer.name()] = layer;
         realLayers.push(layer);
       }
-    })
+    });
 
     // link attachment with layers
     attachments.forEach(function(attachment) {
-      var n = layerByName[attachment.name()]
+      var n = layerByName[attachment.name()];
       if (n) {
         n[attachment.attachment()] = attachment;
       } else {
@@ -85,9 +85,9 @@ Renderer.prototype = {
 
   onMouseover: function(sym, path) {
       return function(d) {
-        var t = d3.select(this)
+        var t = d3.select(this);
         t.moveToFront();
-        var trans_time = d.shader_hover['transition-time']
+        var trans_time = d.shader_hover['transition-time'];
         if (trans_time)
           t = t.transition().duration(trans_time);
         var old = path.pointRadius();
@@ -96,20 +96,20 @@ Renderer.prototype = {
         });
 
         t.attr("d", path)
-         .style(styleForSymbolizer(sym, 'shader_hover'))
+         .style(styleForSymbolizer(sym, 'shader_hover'));
         path.pointRadius(old);
-      }
+      };
   },
 
   onMouseout: function(sym, path){
     return function(d) {
-      var t = d3.select(this)
-      var trans_time = d.shader_hover['transition-time']
+      var t = d3.select(this);
+      var trans_time = d.shader_hover['transition-time'];
       if (trans_time)
         t = t.transition().duration(trans_time);
       t.attr("d", path)
-        .style(styleForSymbolizer(sym, 'shader'))
-    }
+        .style(styleForSymbolizer(sym, 'shader'));
+    };
   },
   
 
@@ -117,7 +117,7 @@ Renderer.prototype = {
     var self = this;
     this.currentPoint = tilePoint;
     var shader = this.shader;
-    var svg = d3.select(svg);
+    svg = d3.select(svg);
     var g = svg.append("g").attr("class", "leaflet-zoom-hide");
 
     var transform = d3.geo.transform({ 
@@ -137,18 +137,18 @@ Renderer.prototype = {
     if (!shader) return;
     if (!collection) return;
     var bounds = path.bounds(collection),
-        buffer = 100;
+        buffer = 100,
         topLeft = bounds[0],
         bottomRight = bounds[1];
-        topLeft[0] -= buffer;
-        topLeft[1] -= buffer;
+    topLeft[0] -= buffer;
+    topLeft[1] -= buffer;
 
     var layers = shader.getLayers();
 
     // search for hovers and other special rules for the renderer
-    layers = this.processLayersRules(layers)
+    layers = this.processLayersRules(layers);
     
-    var styleLayers = g.data(layers)
+    var styleLayers = g.data(layers);
 
     //            polygon line point
     // polygon       X     X     T
@@ -163,7 +163,7 @@ Renderer.prototype = {
       });
 
       // merge line and polygon symbolizers
-      symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d }));
+      symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d; }));
 
       var sym = symbolizers[0];
       geometry = collection.features;
@@ -177,7 +177,7 @@ Renderer.prototype = {
       // select based on symbolizer
       var feature = d3.select(this)
           .selectAll("." + sym)
-          .data(geometry)
+          .data(geometry);
           
       if (sym === 'text') {
         feature.enter().append("svg:text").attr('class', sym);
@@ -189,44 +189,44 @@ Renderer.prototype = {
       // calculate shader for each geometry
       feature.each(function(d) {
         d.properties.global = self.globalVariables;
-        d.shader = layer.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time})
+        d.shader = layer.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time});
         if (layer.hover) {
-          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
+          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time });
           _.defaults(d.shader_hover, d.shader);
         }
-      })
+      });
 
       path.pointRadius(function(d) {
         return (d.shader['marker-width'] || 0)/2.0;
       });
 
-      var f = feature
+      var f = feature;
       // move this outsude
       if (sym === 'text') {
         f.text(function(d) {
             return "text"; //d.shader['text-name']
         });
-        f.attr("dy", ".35em")
-        f.attr('text-anchor', "middle")
+        f.attr("dy", ".35em");
+        f.attr('text-anchor', "middle");
         f.attr("x", function(d) { 
             var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
-            return p.x
+            return p.x;
           });
         f.attr("y", function(d) { 
             var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
             return p.y;
-         })
+         });
 
       } else {
         f.attr('d', path);
       }
 
       // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-      var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: tilePoint.zoom })['transition-time']
+      var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: tilePoint.zoom })['transition-time'];
       if (trans_time)
           f = f.transition().duration(trans_time);
-      f.style(styleForSymbolizer(sym, 'shader'))
-    })
+      f.style(styleForSymbolizer(sym, 'shader'));
+    });
     svg.attr("class", svg.attr("class") + " leaflet-tile-loaded");
   }
 };
@@ -235,22 +235,22 @@ function styleForSymbolizer(symbolyzer, shaderName) {
   if (symbolyzer === 'polygon' || symbolyzer === 'line') {
     return {
       'fill': function(d) { return d[shaderName]['polygon-fill'] || 'none'; },
-      'fill-opacity': function(d) { return d[shaderName]['polygon-opacity'] },
-      'stroke': function(d) { return d[shaderName]['line-color'] },
-      'stroke-width': function(d) { return d[shaderName]['line-width'] },
-      'stroke-opacity': function(d) { return d[shaderName]['line-opacity'] }
-    }
+      'fill-opacity': function(d) { return d[shaderName]['polygon-opacity']; },
+      'stroke': function(d) { return d[shaderName]['line-color']; },
+      'stroke-width': function(d) { return d[shaderName]['line-width'] ;},
+      'stroke-opacity': function(d) { return d[shaderName]['line-opacity']; }
+    };
   } else if (symbolyzer === 'markers') {
     return {
       'fill': function(d) { return d[shaderName]['marker-fill'] || 'none'; },
-      'fill-opacity': function(d) { return d[shaderName]['marker-fill-opacity'] },
-      'stroke': function(d) { return d[shaderName]['marker-line-color'] },
-      'stroke-width': function(d) { return d[shaderName]['marker-line-width'] }
-    }
+      'fill-opacity': function(d) { return d[shaderName]['marker-fill-opacity']; },
+      'stroke': function(d) { return d[shaderName]['marker-line-color']; },
+      'stroke-width': function(d) { return d[shaderName]['marker-line-width']; }
+    };
   } else if (symbolyzer === 'text') {
     return {
       'fill': function(d) { return d[shaderName]['text-fill'] || 'none'; },
-    }
+    };
 
      /*.attr("x", function(d) { return d.cx; })
 4                 .attr("y", function(d) { return d.cy; })
@@ -270,11 +270,11 @@ function transformForSymbolizer(symbolizer) {
         type: 'Point',
         properties: d.properties,
         coordinates: pathC.centroid(d)
-      })
+      });
     };
   }
   return null;
-};
+}
 
 module.exports = Renderer;
 
