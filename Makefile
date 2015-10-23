@@ -11,7 +11,13 @@ dist_folder:
 clean: 
 	rm -rf dist
 
+test: lint
+	./node_modules/.bin/karma start --single-run --browsers Firefox
+
 testDebug:
 	./node_modules/karma/bin/karma start
+
+lint:
+	./node_modules/jshint/bin/jshint src/
 
 .PHONY: clean dist_folder
