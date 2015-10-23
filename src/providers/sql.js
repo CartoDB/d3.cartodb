@@ -1,21 +1,21 @@
 var d3 = require("d3");
 
 function SQLProvider(options) {
-	this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
-	this.user = options.user;
-	this.table = options.table;
-	this.format = options.format;
-	this.tileCache = {};
+  this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
+  this.user = options.user;
+  this.table = options.table;
+  this.format = options.format;
+  this.tileCache = {};
 }
 
 SQLProvider.prototype = {
-	getTile: function(tilePoint, callback){
+  getTile: function(tilePoint, callback){
     var tileData = this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
     if (tileData) {
       callback(tilePoint, tileData);
     }
     else{
-      
+
       var tileBB = {
         n: cartodb.d3.geo.tile2lat(tilePoint.y, tilePoint.zoom),
         s: cartodb.d3.geo.tile2lat(tilePoint.y + 1, tilePoint.zoom),
@@ -25,10 +25,10 @@ SQLProvider.prototype = {
       var query = "SELECT * FROM " + this.table;
       query += " WHERE the_geom && ST_MakeEnvelope({w},{s},{e},{n}, 4326)";
       query = query
-        .replace("{w}", tileBB.w)
-        .replace("{s}", tileBB.s)
-        .replace("{e}", tileBB.e)
-        .replace("{n}", tileBB.n);
+      .replace("{w}", tileBB.w)
+      .replace("{s}", tileBB.s)
+      .replace("{e}", tileBB.e)
+      .replace("{n}", tileBB.n);
 
       this.getGeometry(query, tilePoint.zoom, function(geometry){
         this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
@@ -37,7 +37,7 @@ SQLProvider.prototype = {
     }
   },
 
-	_query: function(sql, callback, format) {
+  _query: function(sql, callback, format) {
     var url = this.sql_api_template.replace('{user}', this.user);
     url += '/api/v2/sql?q=' + encodeURIComponent(sql);
     if (format) {
