@@ -1,4 +1,5 @@
 var Renderer = require("./renderer");
+var providers = require("./providers");
 
 L.CartoDBd3Layer = L.Class.extend({
 
@@ -23,10 +24,7 @@ L.CartoDBd3Layer = L.Class.extend({
     var self = this;
     options = options || {};
     L.Util.setOptions(this, options);
-    this.providers = {
-      "windshaft": require('./providers/windshaft'),
-      "sql": require('./providers/sql')
-    }
+
   },
 
   onAdd: function (map) {
@@ -34,7 +32,7 @@ L.CartoDBd3Layer = L.Class.extend({
     this.options.map = map;
     this.options.layer = this;
 
-    this.provider = this.options.provider || new this.providers.sql(this.options);
+    this.provider = this.options.provider || new providers.SQLProvider(this.options);
     this.renderer = this.options.renderer || new Renderer(this.options);
 
     var tilePane = this._map._panes.tilePane;
