@@ -60,8 +60,7 @@
   }).addTo(map);
 
   var cartoDBd3Layer = new L.CartoDBd3Layer({
-    user: 'rambo-test',
-    table: 'ne_50m_admin_1_states',
+    urlTemplate: "http://vector.mapzen.com/osm/water/{z}/{x}/{y}.topojson?api_key=vector-tiles-KS35hPs",
     cartocss: document.getElementById('choropleth').innerHTML
   }).addTo(map);
 
