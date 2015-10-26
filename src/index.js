@@ -4,5 +4,5 @@ module.exports.d3 = {
 	Util: require('./util.js'),
 	geo: require('./geo.js'),
 	Renderer: require("./renderer.js"),
-	jsonp: require('./d3.jsonp.js')
+	net: require('./net.js')
 };
