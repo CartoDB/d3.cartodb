@@ -116,10 +116,14 @@ Renderer.prototype = {
 
   render: function(svg, collection, tilePoint) {
     var self = this;
-    collection = JSON.parse(collection);
-    var features = collection.objects.vectile.geometries.map(function(geo){
-      return topojson.feature(collection, geo)
-    });
+    if (collection.type === "Topology"){
+
+      collection = {type: "FeatureCollection",
+                    features: collection.objects.vectile.geometries.map(function(geo){
+                      return topojson.feature(collection, geo)
+                    })
+                  };
+    }
     this.currentPoint = tilePoint;
     var shader = this.shader;
     svg = d3.select(svg);
@@ -171,7 +175,7 @@ Renderer.prototype = {
       symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d; }));
 
       var sym = symbolizers[0];
-      geometry = features || collection.features;
+      geometry = collection.features;
 
       // transform the geometry according the symbolizer
       var transform = transformForSymbolizer(sym);
