@@ -29,8 +29,9 @@
   },
   "homepage": "https://github.com/CartoDB/d3.cartodb",
   "dependencies": {
-    "d3": "^3.5.6",
     "carto": "https://github.com/CartoDB/carto/archive/0.15.1-cdb1.tar.gz",
+    "d3": "^3.5.6",
+    "topojson": "^1.6.19",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
