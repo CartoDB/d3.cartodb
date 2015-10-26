@@ -2,6 +2,7 @@ var d3 = global.d3 || require('d3');
 var cartodb = global.cartodb || {};
 var carto = global.carto || require('carto');
 var _ = global._ || require('underscore');
+topojson = require('topojson');
 
 cartodb.d3 = {};
 
@@ -115,6 +116,10 @@ Renderer.prototype = {
 
   render: function(svg, collection, tilePoint) {
     var self = this;
+    collection = JSON.parse(collection);
+    var features = collection.objects.vectile.geometries.map(function(geo){
+      return topojson.feature(collection, geo)
+    });
     this.currentPoint = tilePoint;
     var shader = this.shader;
     svg = d3.select(svg);
