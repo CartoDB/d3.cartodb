@@ -23,9 +23,10 @@ XYZProvider.prototype = {
       }.bind(this));
     }
   },
+
   getGeometry: function(url, callback){
     cartodb.d3.net.get(url, function(httpRequest){
-      return httpRequest.response;
+      callback(httpRequest.response);
     });
   }
 }
