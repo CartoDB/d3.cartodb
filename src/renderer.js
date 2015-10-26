@@ -171,7 +171,7 @@ Renderer.prototype = {
       symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d; }));
 
       var sym = symbolizers[0];
-      geometry = collection.features;
+      geometry = features || collection.features;
 
       // transform the geometry according the symbolizer
       var transform = transformForSymbolizer(sym);
