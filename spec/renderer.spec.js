@@ -59,5 +59,13 @@ describe("The renderer", function() {
 		expect(svg.children[0].children.length).toEqual(15);
 	});
 
+	it("should convert tile to geojson when inputting topojson", function(){
+		var features = MOCK_TOPO;
+		var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		spyOn(topojson, "feature");
+		this.renderer.render(svg, features, {x: 30, y: 30, zoom: 12});
+		expect(topojson.feature).toHaveBeenCalled();
+	})
+
 
 });
