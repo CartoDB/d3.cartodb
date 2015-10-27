@@ -17,7 +17,7 @@ XYZProvider.prototype = {
                 .replace("{x}", tilePoint.x)
                 .replace("{y}", tilePoint.y)
                 .replace("{z}", tilePoint.zoom);
-      this.getGeometry(url, function(geometry){
+      this.getGeometry(url, function(err, geometry){
         this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
         callback(tilePoint, geometry);
       }.bind(this));
@@ -25,9 +25,7 @@ XYZProvider.prototype = {
   },
 
   getGeometry: function(url, callback){
-    cartodb.d3.net.get(url, function(httpRequest){
-      callback(httpRequest.response);
-    });
+      d3.json(url, callback);
   }
 }
 
