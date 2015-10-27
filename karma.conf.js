@@ -22,7 +22,7 @@ module.exports = function(config) {
       'vendor/leaflet.js',
       'vendor/carto.uncompressed.js',
       'vendor/d3.v3.js',
-      'dist/d3.cartodb.js'
+      'dist/d3.cartodb.full.js'
     ],
 
 
