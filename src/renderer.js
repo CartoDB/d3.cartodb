@@ -115,9 +115,15 @@ Renderer.prototype = {
   },
   
 
-  render: function(svg, topo, tilePoint) {
+  render: function(svg, data, tilePoint) {
     var self = this;
-    var collection = topojson.feature(topo, topo.objects.vectile);
+    var collection;
+    if(data.type === "Topology"){
+      collection = topojson.feature(data, data.objects.vectile);
+    }
+    else{
+      collection = data;
+    }
     this.currentPoint = tilePoint;
     var shader = this.shader;
     svg = d3.select(svg);
@@ -126,8 +132,10 @@ Renderer.prototype = {
     var transform = d3.geo.transform({ 
       point: function(x, y) {
           // don't use leaflet projection since it's pretty slow
-          var webm = geo.geo2Webmercator(x,y);
-          x = webm.x, y = webm.y;
+          if(data.type === "Topology"){
+            var webm = geo.geo2Webmercator(x,y);
+            x = webm.x, y = webm.y;
+          }
           var earthRadius = 6378137 * 2 * Math.PI;
           var earthRadius2 = earthRadius/2;
           var invEarth = 1.0/earthRadius;
