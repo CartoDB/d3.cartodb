@@ -8,7 +8,9 @@ module.exports = {
 	},
   geo2Webmercator: function(x_lon, y_lat){
     if (Math.abs(x_lon) <= 180 && Math.abs(y_lat) < 90){
+      // 0.017453292519943295 => Deg to rad constant
       var num = x_lon * 0.017453292519943295;
+      // 6378137 => Earth radius
       var x = 6378137.0 * num;
       var a = y_lat * 0.017453292519943295;
       var x_mercator = x;
