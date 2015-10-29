@@ -2,6 +2,8 @@ var d3 = global.d3 || require('d3');
 var cartodb = global.cartodb || {};
 var carto = global.carto || require('carto');
 var _ = global._ || require('underscore');
+var geo = require("./geo");
+topojson = require('topojson');
 
 cartodb.d3 = {};
 
@@ -123,6 +125,10 @@ Renderer.prototype = {
     var transform = d3.geo.transform({ 
       point: function(x, y) {
           // don't use leaflet projection since it's pretty slow
+          if(self.layer.provider.format === "topojson"){
+            var webm = geo.geo2Webmercator(x,y);
+            x = webm.x, y = webm.y;
+          }
           var earthRadius = 6378137 * 2 * Math.PI;
           var earthRadius2 = earthRadius/2;
           var invEarth = 1.0/earthRadius;

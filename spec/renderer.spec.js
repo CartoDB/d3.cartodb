@@ -36,26 +36,6 @@ describe("The renderer", function() {
 		});
 	});
 
-	it("query shouldn't be performed if the tile is in cache", function(done) {
-		var self = this;
-		this.map.zoomIn();
-		_.defer(function(){
-			self.map.zoomOut();
-			spyOn(self.renderer, "_query");
-			_.defer(function(){
-				expect(self.renderer._query).not.toHaveBeenCalled();
-				done();
-			})
-		})
-	});
-
-	it("tile bounds should be calculated correctly", function() {
-		spyOn(this.renderer, "getGeometry");
-		this.renderer.drawTile(null, {x: 2, y: 3, zoom: 3});
-		expect(this.renderer.getGeometry).toHaveBeenCalled();
-		expect(this.renderer.getGeometry.calls.first().args[0]).toEqual("SELECT * FROM snow WHERE the_geom && ST_MakeEnvelope(-45,0,-90,40.97989806962014, 4326)");
-	});
-
 	it("should cache tile if it has just downloaded it", function() {
 		// this.renderer.drawTile = function(t, p, c){
 		// 	prevDrawTile(t, p, function(){
@@ -72,18 +52,6 @@ describe("The renderer", function() {
 	// 	expect(this.layer.loadTile.calls.count()).toEqual(3); 
 	// });
 
-	it("sql query should contain ST_MakeEnvelope", function(){
-		spyOn(d3,"json");
-		this.renderer.drawTile(null, {x: 2, y: 3, zoom: 3});
-		expect(d3.json.calls.first().args[0].indexOf("ST_MakeEnvelope")).not.toEqual(-1);
-	});
-
-	it("should return correct pixel size for zoom", function(){
-		expect(this.renderer.pixelSizeForZoom(3)).toEqual(19567.87939453125);
-		expect(this.renderer.pixelSizeForZoom(10)).toEqual(152.8740577697754);
-		expect(this.renderer.pixelSizeForZoom(14)).toEqual(9.554628610610962);
-	});
-
 	it("svg tiles should be correctly formed", function(){
 		var features = MOCK_TILE;
 		var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -91,8 +59,13 @@ describe("The renderer", function() {
 		expect(svg.children[0].children.length).toEqual(15);
 	});
 
-	it("webmercator coordinates should be transformed to tile pixels", function(){
+	it("should convert tile to geojson when inputting topojson", function(){
+		var features = MOCK_TOPO;
+		var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		spyOn(topojson, "feature");
+		this.renderer.render(svg, features, {x: 30, y: 30, zoom: 12});
+		expect(topojson.feature).toHaveBeenCalled();
+	})
 
-	});
 
 });

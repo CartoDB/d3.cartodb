@@ -38,10 +38,11 @@ describe("The layer", function(){
 
 	it("should generate an svg tile when tileAdded event is triggered", function(){
 		this.layer.addTo(this.map);
-		spyOn(this.layer.renderer, "drawTile");
+		dump(this.layer._tileLoaded)
+		spyOn(L.DomUtil, "setPosition");
 		this.layer.fire("tileAdded", {x: 1, y: 2, zoom: 3});
-		expect(this.layer.renderer.drawTile).toHaveBeenCalled();
-		expect(this.layer.renderer.drawTile.calls.first().args[0].tagName).toEqual('svg')
+		expect(L.DomUtil.setPosition).toHaveBeenCalled();
+		expect(L.DomUtil.setPosition.calls.first().args[0].tagName).toEqual('svg')
 	});
 
 	it("'s container should have leaflet-specific classnames", function(){

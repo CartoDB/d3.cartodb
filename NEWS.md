@@ -1,10 +1,12 @@
-### 0.1.1
+### 0.2.0
 * Added updated documentation.
 * Improved readme.
 * Added test framework, using Karma.
 * Added unit tests for layer and renderer.
 * Added jshint to maintain code clean.
 * Passed data retrieval to providers
+* Added support for TopoJSON tiles.
+* Adds XYZ support.
 
 ### 0.1.0
 

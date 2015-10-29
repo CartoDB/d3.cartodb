@@ -31,8 +31,12 @@ L.CartoDBd3Layer = L.Class.extend({
     this._map = map;
     this.options.map = map;
     this.options.layer = this;
-
-    this.provider = this.options.provider || new providers.SQLProvider(this.options);
+    if (this.options.urlTemplate){
+      this.provider = new providers.XYZProvider(this.options);
+    }
+    else {
+      this.provider = this.options.provider || new providers.SQLProvider(this.options);
+    }
     this.renderer = this.options.renderer || new Renderer(this.options);
 
     var tilePane = this._map._panes.tilePane;
