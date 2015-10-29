@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta charset="UTF-8">
     <style>
-        @import url(vendor/leaflet.css);
+        @import url(../vendor/leaflet.css);
         html, body {
             width: 100%;
             height: 100%;
@@ -77,12 +77,8 @@
     <div id="mouse_feedback"></div>
 </div>
     <!--<input id="time_slider" value = 0 type="range" min="0" max="1000" step="1" />-->
-  <script src="vendor/d3.v3.js" charset="utf-8"></script>
-  <script src="vendor/leaflet.js"></script>
-  <script src="vendor/underscore-min.js"></script>
-  <script src="vendor/carto.uncompressed.js"></script>
-  <script src="d3.jsonp.js"></script>
-  <script src="d3_cartodb_layer.js"></script>
+  <script src="../vendor/leaflet.js"></script>
+  <script src="../dist/d3.cartodb.full.js"></script>
   <script>
 
 
@@ -101,8 +97,8 @@
   //layer.setCartoCSS('#test { marker-fill: red; marker-width: quantile([pop2005], 3, 20); }');
   //viz('https://docker4data.cartodb.com/api/v2/viz/9dfc25e8-315d-11e5-80a0-0e6e1df11cbf/viz.json', map);
   */
-  var vizjsonUrl = location.hash.slice(1);
-  cartodb.d3.viz(vizjsonUrl, map, function(err, lyrs) {
+  var vizjsonUrl = 'https://docker4data.cartodb.com/api/v2/viz/9dfc25e8-315d-11e5-80a0-0e6e1df11cbf/viz.json';
+  cartodb.d3.Util.viz(vizjsonUrl, map, function(err, lyrs) {
       layers = lyrs;
       document.getElementById('css_text').value = layers[0].cartocss 
       document.getElementById('layers').innerHTML= layers.map(function(l, i) {

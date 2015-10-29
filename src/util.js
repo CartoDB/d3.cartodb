@@ -3,7 +3,7 @@ var d3 = global.d3 || require('d3');
 module.exports = {
 
   viz: function(url, map, done) {
-    d3.jsonp(url + "?callback=vizjson", function(data) {
+    cartodb.d3.net.jsonp(url + "?callback=vizjson", function(data) {
       map.setView(JSON.parse(data.center), data.zoom);
       // get base layer, not render anything in case of non ZXY layers
       var baseLayer = data.layers[0];
