@@ -115,15 +115,8 @@ Renderer.prototype = {
   },
   
 
-  render: function(svg, data, tilePoint) {
+  render: function(svg, collection, tilePoint) {
     var self = this;
-    var collection;
-    if(data.type === "Topology"){
-      collection = topojson.feature(data, data.objects.vectile);
-    }
-    else{
-      collection = data;
-    }
     this.currentPoint = tilePoint;
     var shader = this.shader;
     svg = d3.select(svg);
@@ -132,7 +125,7 @@ Renderer.prototype = {
     var transform = d3.geo.transform({ 
       point: function(x, y) {
           // don't use leaflet projection since it's pretty slow
-          if(data.type === "Topology"){
+          if(self.layer.provider.format === "topojson"){
             var webm = geo.geo2Webmercator(x,y);
             x = webm.x, y = webm.y;
           }
