@@ -79,6 +79,9 @@ SQLProvider.prototype = {
     var full_resolution = earth_circumference/tile_size;
     return full_resolution / Math.pow(2,zoom);
   },
+  invalidateCache: function(){
+    this.tileCache = {};
+  }
 };
 
 module.exports = SQLProvider;
