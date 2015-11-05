@@ -59,7 +59,10 @@ L.CartoDBd3Layer = L.Class.extend({
 
   loadTile: function (tilePoint) {
     var self = this;
-    var tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    var tile = this._tiles[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
+    if(!tile){
+      tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    }
     tile.setAttribute("class", "leaflet-tile");
     this._container.appendChild(tile);
 
@@ -81,6 +84,7 @@ L.CartoDBd3Layer = L.Class.extend({
       'moveend': this._updateTiles
     }, this);
     this.on('tileAdded', this.loadTile);
+    this._map.on('zoomstart', this.provider.invalidateCache);
     this._updateTiles();
   },
 
@@ -110,6 +114,5 @@ L.CartoDBd3Layer = L.Class.extend({
 
   setCartoCSS: function(cartocss){
     this.renderer.setCartoCSS(cartocss);
-    this._reloadTiles();
   }
 });
