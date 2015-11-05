@@ -32,6 +32,10 @@ XYZProvider.prototype = {
 
   getGeometry: function(url, callback){
       d3.json(url, callback);
+  },
+
+  invalidateCache: function(){
+    this.tileCache = {};
   }
 }
 
