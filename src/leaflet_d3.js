@@ -84,7 +84,10 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       'moveend': this._updateTiles
     }, this);
     this.on('tileAdded', this.loadTile);
-    this._map.on('zoomstart', this.provider.invalidateCache);
+    this._map.on('zoomstart', function(){
+      this.provider.invalidateCache();
+      this._container.innerHTML = '';
+    }, this);
     this._updateTiles();
   },
 
