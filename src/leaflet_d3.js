@@ -1,7 +1,7 @@
 var Renderer = require("./renderer");
 var providers = require("./providers");
 
-L.CartoDBd3Layer = L.Class.extend({
+L.CartoDBd3Layer = L.TileLayer.extend({
 
   includes: [L.Mixin.Events, L.Mixin.TileLoader],
 
