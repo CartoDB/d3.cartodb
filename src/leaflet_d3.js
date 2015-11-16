@@ -93,7 +93,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _removeTile: function (key) {
-    this._container.removeChild(this._tiles[key]);
+    // this._container.removeChild(this._tiles[key]);
+    this._tiles[key].innerHTML = '';
     this.fire('tileRemoved', this._tiles[key]);
     delete this._tiles[key];
     delete this._tilesLoading[key];
