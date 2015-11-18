@@ -281,7 +281,9 @@ Renderer.prototype = {
      
 
       // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-      feature = feature.transition().duration(1000);
+      if(cached){
+        feature = feature.transition().duration(200);
+      }
       feature.style(self.styleForSymbolizer(sym, 'shader'));
     });
     svgSel.attr("class", svgSel.attr("class") + " leaflet-tile-loaded");
