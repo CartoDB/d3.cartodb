@@ -245,6 +245,7 @@ Renderer.prototype = {
 
         // calculate shader for each geometry
         feature.each(function(d) {
+          if(!d.properties) d.properties = {};
           d.properties.global = self.globalVariables;
           d.shader = layer.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time});
           if (layer.hover) {
