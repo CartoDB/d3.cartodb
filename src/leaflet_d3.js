@@ -31,8 +31,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this._map = map;
     this.options.map = map;
     this.options.layer = this;
-    if (this.options.urlTemplate || this.tilejson){
-      this.options.tilejson = this.tilejson;
+    if (this.options.urlTemplate || this.options.tilejson){
       this.provider = new providers.XYZProvider(this.options);
     }
     else {
