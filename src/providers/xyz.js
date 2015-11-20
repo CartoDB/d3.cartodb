@@ -23,7 +23,7 @@ XYZProvider.prototype = {
                 .replace("{x}", tilePoint.x)
                 .replace("{y}", tilePoint.y)
                 .replace("{z}", tilePoint.zoom)
-                .replace("{s}", "a")
+                .replace("{s}", "abcd"[(tilePoint.x * tilePoint.y) % 4])
                 .replace(".png", ".geojson");
       this.getGeometry(url, function(err, geometry){
         if(geometry.type === "Topology"){
