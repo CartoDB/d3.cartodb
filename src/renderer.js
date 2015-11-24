@@ -152,13 +152,13 @@ Renderer.prototype = {
   },
   
 
-  render: function(svg, collection, tilePoint) {
+  render: function(svg, collection, tilePoint, updating) {
     var self = this;
     this.currentPoint = tilePoint;
     var shader = this.shader;
     var g, cached = false, styleLayers;
     svgSel = d3.select(svg);
-    if(svg.firstChild && svg.firstChild.children.length > 0) {
+    if(updating) {
       collection = {features: d3.selectAll(svg.firstChild.children).data()};
       g = d3.select(svg.firstChild);
       styleLayers = g.data();
@@ -216,10 +216,7 @@ Renderer.prototype = {
       symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d; }));
       var sym = symbolizers[0];
       geometry = collection.features;
-      if(!cached){
-
-
-
+      if(!updating){
         // transform the geometry according the symbolizer
         var transform = transformForSymbolizer(sym);
         if (transform) {
