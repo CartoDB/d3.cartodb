@@ -19,7 +19,6 @@ var Renderer = function(options) {
     this.setCartoCSS(options.cartocss);
   }
   this.globalVariables = {};
-  this.user = options.user;
   this.layer = options.layer;
 };
 
