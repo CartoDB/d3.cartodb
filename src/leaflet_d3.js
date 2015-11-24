@@ -40,8 +40,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     }
     var styles = this.options.styles;
     if(!styles){
-      this.renderers.push(new Renderer({cartocss: cartocss,
-                                        layer: this}));
+      styles = [this.options.cartocss];
     }
     for (var i = 0; i < styles.length; i++){
       this.renderers.push(new Renderer({cartocss: styles[i],
@@ -76,7 +75,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
     this.provider.getTile(tilePoint, function(tilePoint, geometry){
       for(var i = 0; i < self.renderers.length; i++){
-        self.renderers[i].render(tile, geometry.features[i], tilePoint);
+        var collection = self.renderers.length > 1? geometry.features[i]: geometry
+        self.renderers[i].render(tile, collection, tilePoint);
       }
       self._tileLoaded(tilePoint, tile);
     });
