@@ -126,7 +126,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     return tileSize;
   },
 
-  setCartoCSS: function(cartocss){
-    this.renderer.setCartoCSS(cartocss);
+  setCartoCSS: function(index, cartocss){
+    this.renderers[index].setCartoCSS(cartocss);
   }
 });
