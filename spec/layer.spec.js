@@ -27,13 +27,13 @@ describe("The layer", function(){
 		expect(carto).not.toEqual(undefined);
 	});
 
-	it("shouldn't initialise renderer until layer is added to map", function(){
-		expect(this.layer.renderer).toBeUndefined();
+	it("shouldn't initialise renderers until layer is added to map", function(){
+		expect(this.layer.renderers.length).toEqual(0);
 	});
 
 	it("should init renderer when it's added to map", function(){
 		this.layer.addTo(this.map);
-		expect(this.layer.renderer).toBeDefined();
+		expect(this.layer.renderers.length).not.toBeLessThan(0);
 	});
 
 	it("should generate an svg tile when tileAdded event is triggered", function(){
