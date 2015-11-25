@@ -19,7 +19,6 @@ L.CartoDBd3Layer = L.Class.extend({
 
   onAdd: function (map) {
     this._map = map;
-    this.options.layer = this;
     if (this.options.urlTemplate || this.options.tilejson){
       this.provider = new providers.XYZProvider(this.options);
     }
