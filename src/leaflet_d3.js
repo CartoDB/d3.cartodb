@@ -94,6 +94,11 @@ L.CartoDBd3Layer = L.Class.extend({
     return tileSize;
   },
 
+  // this.renderer is using this
+  latLngToLayerPoint: function(lat, lng){
+    return this._map.latLngToLayerPoint(new L.LatLng(lat,lng));
+  },
+
   setCartoCSS: function(cartocss){
     this.renderer.setCartoCSS(cartocss);
   }
