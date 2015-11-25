@@ -153,7 +153,7 @@ Renderer.prototype = {
   },
   
 
-  render: function(svg, collection, tilePoint) {
+  render: function(svg, collection, tilePoint, format) {
     var self = this;
     this.currentPoint = tilePoint;
     var shader = this.shader;
@@ -172,7 +172,7 @@ Renderer.prototype = {
     var transform = d3.geo.transform({ 
       point: function(x, y) {
           // don't use leaflet projection since it's pretty slow
-          if(self.layer.provider.format === "topojson"){
+          if (format === "topojson"){
             var webm = geo.geo2Webmercator(x,y);
             x = webm.x, y = webm.y;
           }

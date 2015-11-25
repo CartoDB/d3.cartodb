@@ -15,7 +15,7 @@ XYZProvider.prototype = {
     if (tileData) {
       callback(tilePoint, tileData);
     }
-    else{
+    else {
       if (!this.urlTemplate){
         this.urlTemplate = this.tilejson.tiles[0];
       }
@@ -26,7 +26,7 @@ XYZProvider.prototype = {
                 .replace("{s}", "abcd"[(tilePoint.x * tilePoint.y) % 4])
                 .replace(".png", ".geojson");
       this.getGeometry(url, function(err, geometry){
-        if(geometry.type === "Topology"){
+        if (geometry.type === "Topology"){
           self.format = "topojson";
           geometry = topojson.feature(geometry, geometry.objects.vectile);
         }

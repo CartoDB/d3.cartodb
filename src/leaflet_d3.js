@@ -19,13 +19,17 @@ L.CartoDBd3Layer = L.Class.extend({
 
   onAdd: function (map) {
     this._map = map;
+
+    // TODO: Be more explicit about the options that providers and renderers need instead of
+    // passing the options of this object (this.options)
+    this.options.layer = this;
     if (this.options.urlTemplate || this.options.tilejson){
       this.provider = new providers.XYZProvider(this.options);
     }
     else {
       this.provider = this.options.provider || new providers.SQLProvider(this.options);
     }
-    this.renderer = this.options.renderer || new Renderer(this.options);
+    this.renderer = this.options.renderer || new Renderer({});
 
     var tilePane = this._map._panes.tilePane;
     var layer = L.DomUtil.create('div', 'leaflet-layer');
@@ -67,8 +71,8 @@ L.CartoDBd3Layer = L.Class.extend({
     tile.setAttribute("class", "leaflet-tile");
     this._container.appendChild(tile);
 
-    this.provider.getTile(tilePoint, function(tilePoint, geometry){
-      self.renderer.render(tile, geometry, tilePoint);
+    this.provider.getTile(tilePoint, function(tilePoint, geometry) {
+      self.renderer.render(tile, geometry, tilePoint, self.provider.format);
     });
 
     var tileSize = this._getTileSize();
