@@ -1,16 +1,27 @@
-L.Mixin.TileLoader = {
+L.TileLoader = L.Class.extend({
 
-  _initTileLoader: function() {
+  includes: L.Mixin.Events,
+
+  initialize: function(options) {
+    this.options = options;
+  },
+
+  getTile: function(tilePoint) {
+    return this._tiles[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
+  },
+
+  bind: function(map) {
+    this._map = map;
     this._tiles = {};
     this._tilesLoading = {};
     this._tilesToLoad = 0;
     this._map.on({
-        'moveend': this._updateTiles
+      'moveend': this._updateTiles
     }, this);
     this._updateTiles();
   },
 
-  _removeTileLoader: function() {
+  unbind: function() {
     this._map.off({
         'moveend': this._updateTiles
     }, this);
@@ -98,10 +109,9 @@ L.Mixin.TileLoader = {
     }
   },
 
-  _getTilePos: function (tilePoint) {
+  _getTilePos: function (tilePoint, tileSize) {
     tilePoint = new L.Point(tilePoint.x, tilePoint.y);
-    var origin = this._map.getPixelOrigin(),
-        tileSize = this._getTileSize();
+    var origin = this._map.getPixelOrigin();
 
     return tilePoint.multiplyBy(tileSize).subtract(origin);
   },
@@ -145,4 +155,4 @@ L.Mixin.TileLoader = {
 
   }
 
-};
+});
