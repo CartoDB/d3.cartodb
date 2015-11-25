@@ -29,7 +29,7 @@ L.CartoDBd3Layer = L.Class.extend({
     else {
       this.provider = this.options.provider || new providers.SQLProvider(this.options);
     }
-    this.renderer = this.options.renderer || new Renderer({});
+    this.renderer = this.options.renderer || new Renderer(this.options);
 
     var tilePane = this._map._panes.tilePane;
     var layer = L.DomUtil.create('div', 'leaflet-layer');
