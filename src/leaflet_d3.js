@@ -75,10 +75,16 @@ L.CartoDBd3Layer = L.Class.extend({
       self.renderer.render(tile, geometry, tilePoint, self.provider.format);
     });
 
-    var tileSize = this._getTileSize();
-    var tilePos = this.tileLoader._getTilePos(tilePoint, tileSize);
-    tile.style.width = tile.style.height = tileSize + 'px';
+    var tilePos = this._getTilePos(tilePoint);
+    tile.style.width = tile.style.height = this._getTileSize() + 'px';
     L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome);
+  },
+
+  _getTilePos: function (tilePoint) {
+    tilePoint = new L.Point(tilePoint.x, tilePoint.y);
+    var origin = this._map.getPixelOrigin();
+
+    return tilePoint.multiplyBy(this._getTileSize()).subtract(origin);
   },
 
   _getTileSize: function () {

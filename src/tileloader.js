@@ -21,15 +21,7 @@ L.TileLoader = L.Class.extend({
     this._updateTiles();
   },
 
-  unbind: function() {
-    this._map.off({
-        'moveend': this._updateTiles
-    }, this);
-    this._removeTiles();
-  },
-
   _updateTiles: function () {
-
       if (!this._map) { return; }
 
       var bounds = this._map.getPixelBounds(),
@@ -52,68 +44,6 @@ L.TileLoader = L.Class.extend({
 
       this._addTilesFromCenterOut(tileBounds);
       this._removeOtherTiles(tileBounds);
-  },
-
-  _removeTiles: function (bounds) {
-      for (var key in this._tiles) {
-        this._removeTile(key);
-      }
-  },
-
-  _reloadTiles: function() {
-    this._removeTiles();
-    this._updateTiles();
-  },
-
-  _removeOtherTiles: function (bounds) {
-      var kArr, x, y, z, key;
-      var zoom = this._map.getZoom();
-
-      for (key in this._tiles) {
-          if (this._tiles.hasOwnProperty(key)) {
-              kArr = key.split(':');
-              x = parseInt(kArr[0], 10);
-              y = parseInt(kArr[1], 10);
-              z = parseInt(kArr[2], 10);
-
-              // remove tile if it's out of bounds
-              if (zoom !== z || x < bounds.min.x || x > bounds.max.x || y < bounds.min.y || y > bounds.max.y) {
-                  this._removeTile(key);
-              }
-          }
-      }
-  },
-
-  _removeTile: function (key) {
-      this.fire('tileRemoved', this._tiles[key]);
-      delete this._tiles[key];
-      delete this._tilesLoading[key];
-  },
-
-  _tileKey: function(tilePoint) {
-    return tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
-  },
-
-  _tileShouldBeLoaded: function (tilePoint) {
-      var k = this._tileKey(tilePoint);
-      return !(k in this._tiles) && !(k in this._tilesLoading);
-  },
-
-  _tileLoaded: function(tilePoint, tileData) {
-    this._tilesToLoad--;
-    var k = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
-    this._tiles[k] = tileData;
-    delete this._tilesLoading[k];
-    if(this._tilesToLoad === 0) {
-      this.fire("tilesLoaded");
-    }
-  },
-
-  _getTilePos: function (tilePoint, tileSize) {
-    tilePoint = new L.Point(tilePoint.x, tilePoint.y);
-    var origin = this._map.getPixelOrigin();
-
-    return tilePoint.multiplyBy(tileSize).subtract(origin);
   },
 
   _addTilesFromCenterOut: function (bounds) {
@@ -152,7 +82,53 @@ L.TileLoader = L.Class.extend({
         this.fire('tileAdded', t);
       }
       this.fire("tilesLoading");
+  },
 
+  _removeOtherTiles: function (bounds) {
+      var kArr, x, y, z, key;
+      var zoom = this._map.getZoom();
+
+      for (key in this._tiles) {
+          if (this._tiles.hasOwnProperty(key)) {
+              kArr = key.split(':');
+              x = parseInt(kArr[0], 10);
+              y = parseInt(kArr[1], 10);
+              z = parseInt(kArr[2], 10);
+
+              // remove tile if it's out of bounds
+              if (zoom !== z || x < bounds.min.x || x > bounds.max.x || y < bounds.min.y || y > bounds.max.y) {
+                  this._removeTile(key);
+              }
+          }
+      }
+  },
+
+  unbind: function() {
+    this._map.off({
+        'moveend': this._updateTiles
+    }, this);
+    this._removeTiles();
+  },
+
+
+  _removeTiles: function (bounds) {
+    for (var key in this._tiles) {
+      this._removeTile(key);
+    }
+  },
+
+  _removeTile: function (key) {
+    this.fire('tileRemoved', this._tiles[key]);
+    delete this._tiles[key];
+    delete this._tilesLoading[key];
+  },
+
+  _tileKey: function(tilePoint) {
+    return tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
+  },
+
+  _tileShouldBeLoaded: function (tilePoint) {
+      var k = this._tileKey(tilePoint);
+      return !(k in this._tiles) && !(k in this._tilesLoading);
   }
-
 });
