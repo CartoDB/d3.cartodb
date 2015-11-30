@@ -17,7 +17,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     unloadInvisibleTiles: L.Browser.mobile,
     updateWhenIdle: L.Browser.mobile,
     tileLoader: false, // installs tile loading events
-    zoomAnimation: true
+    zoomAnimation: true,
+    tileBuffer: 50
   },
 
   initialize: function (options) {
@@ -69,6 +70,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     var tile = this._tiles[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
     if(!tile){
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      tile.style.padding = this.options.tileBuffer+"px";
+      tile.style.margin = "-"+this.options.tileBuffer+"px";
     }
     tile.setAttribute("class", "leaflet-tile");
     this._container.appendChild(tile);
