@@ -40,12 +40,6 @@ describe("The provider", function() {
     expect(this.layer.provider.getGeometry.calls.first().args[0]).toEqual("SELECT * FROM snow WHERE the_geom && ST_MakeEnvelope(-45,0,-90,40.97989806962014, 4326)");
   });
 
-  it("sql query should contain ST_MakeEnvelope", function(){
-    spyOn(d3,"json");
-    this.layer.provider.getTile({x: 2, y: 3, zoom: 3});
-    expect(d3.json.calls.first().args[0].indexOf("ST_MakeEnvelope")).not.toEqual(-1);
-  });
-
   it("should return correct pixel size for zoom", function(){
     expect(this.layer.provider.pixelSizeForZoom(3)).toEqual(19567.87939453125);
     expect(this.layer.provider.pixelSizeForZoom(10)).toEqual(152.8740577697754);
