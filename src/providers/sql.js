@@ -1,4 +1,5 @@
 var d3 = require("d3");
+var geo = require("../geo");
 
 function SQLProvider(options) {
   this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
@@ -17,10 +18,10 @@ SQLProvider.prototype = {
     else{
 
       var tileBB = {
-        n: cartodb.d3.geo.tile2lat(tilePoint.y, tilePoint.zoom),
-        s: cartodb.d3.geo.tile2lat(tilePoint.y + 1, tilePoint.zoom),
-        e: cartodb.d3.geo.tile2lon(tilePoint.x, tilePoint.zoom),
-        w: cartodb.d3.geo.tile2lon(tilePoint.x + 1, tilePoint.zoom),
+        n: geo.tile2lat(tilePoint.y, tilePoint.zoom),
+        s: geo.tile2lat(tilePoint.y + 1, tilePoint.zoom),
+        e: geo.tile2lon(tilePoint.x, tilePoint.zoom),
+        w: geo.tile2lon(tilePoint.x + 1, tilePoint.zoom),
       };
       var query = "SELECT * FROM " + this.table;
       query += " WHERE the_geom && ST_MakeEnvelope({w},{s},{e},{n}, 4326)";
@@ -79,6 +80,9 @@ SQLProvider.prototype = {
     var full_resolution = earth_circumference/tile_size;
     return full_resolution / Math.pow(2,zoom);
   },
+  invalidateCache: function(){
+    this.tileCache = {};
+  }
 };
 
 module.exports = SQLProvider;

@@ -19,7 +19,6 @@ var Renderer = function(options) {
     this.setCartoCSS(options.cartocss);
   }
   this.globalVariables = {};
-  this.user = options.user;
   this.layer = options.layer;
 };
 
@@ -48,6 +47,13 @@ Renderer.prototype = {
   setCartoCSS: function(cartocss) {
     this.renderer = new carto.RendererJS();
     this.shader = this.renderer.render(cartocss);
+    if (this.layer){
+      for (var tileKey in this.layer._tiles){
+        var tilePoint = tileKey.split(":");
+        tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]};
+        this.render(this.layer._tiles[tileKey], null, tilePoint);
+      }
+    }
   },
   
 
@@ -113,14 +119,54 @@ Renderer.prototype = {
         .style(styleForSymbolizer(sym, 'shader'));
     };
   },
+
+  styleForSymbolizer: function(symbolyzer, shaderName) {
+    if (symbolyzer === 'polygon' || symbolyzer === 'line') {
+      return {
+        'fill': function(d) { return d[shaderName]['polygon-fill'] || 'none'; },
+        'fill-opacity': function(d) { return d[shaderName]['polygon-opacity']; },
+        'stroke': function(d) { return d[shaderName]['line-color']; },
+        'stroke-width': function(d) { return d[shaderName]['line-width'] ;},
+        'stroke-opacity': function(d) { return d[shaderName]['line-opacity']; }
+      };
+    } else if (symbolyzer === 'markers') {
+      return {
+        'fill': function(d) { return d[shaderName]['marker-fill'] || 'none'; },
+        'fill-opacity': function(d) { return d[shaderName]['marker-fill-opacity']; },
+        'stroke': function(d) { return d[shaderName]['marker-line-color']; },
+        'stroke-width': function(d) { return d[shaderName]['marker-line-width']; }
+      };
+    } else if (symbolyzer === 'text') {
+      return {
+        'fill': function(d) { return d[shaderName]['text-fill'] || 'none'; },
+      };
+
+       /*.attr("x", function(d) { return d.cx; })
+  4                 .attr("y", function(d) { return d.cy; })
+  5                 .text( function (d) { return "( " + d.cx + ", " + d.cy +" )"; })
+  6                 .attr("font-family", "sans-serif")
+  7                 .attr("font-size", "20px")
+  8                 .attr("fill", "red");
+  */
+    }
+  },
   
 
-  render: function(svg, collection, tilePoint) {
+  render: function(svg, collection, tilePoint, updating) {
     var self = this;
     this.currentPoint = tilePoint;
     var shader = this.shader;
-    svg = d3.select(svg);
-    var g = svg.append("g").attr("class", "leaflet-zoom-hide");
+    var g, cached = false, styleLayers;
+    svgSel = d3.select(svg);
+    if(updating) {
+      collection = {features: d3.selectAll(svg.firstChild.children).data()};
+      g = d3.select(svg.firstChild);
+      styleLayers = g.data();
+      cached = true;
+    }
+    else {
+      g = svgSel.append("g").attr("class", "leaflet-zoom-hide");
+    }
 
     var transform = d3.geo.transform({ 
       point: function(x, y) {
@@ -141,7 +187,7 @@ Renderer.prototype = {
     path = d3.geo.path().projection(transform);
     
     if (!shader) return;
-    if (!collection) return;
+    if (!collection || collection.features.length === 0) return;
     var bounds = path.bounds(collection),
         buffer = 100,
         topLeft = bounds[0],
@@ -154,119 +200,93 @@ Renderer.prototype = {
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers);
     
-    var styleLayers = g.data(layers);
+    styleLayers = g.data(layers);
 
     //            polygon line point
     // polygon       X     X     T
     // line                X     T
     // point               X     X
-
-
+    if (collection) {
     styleLayers.each(function(layer) {
       var symbolizers = layer.getSymbolizers();
       symbolizers = _.filter(symbolizers, function(f) {
         return f !== '*';
       });
-
       // merge line and polygon symbolizers
       symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d; }));
-
       var sym = symbolizers[0];
       geometry = collection.features;
-
-      // transform the geometry according the symbolizer
-      var transform = transformForSymbolizer(sym);
-      if (transform) {
-        geometry = geometry.map(transform);
-      }
-
-      // select based on symbolizer
-      var feature = d3.select(this)
-          .selectAll("." + sym)
-          .data(geometry);
-          
-      if (sym === 'text') {
-        feature.enter().append("svg:text").attr('class', sym);
-      } else {
-        feature.enter().append("path").attr('class', sym);
-      }
-      feature.exit().remove();
-
-      // calculate shader for each geometry
-      feature.each(function(d) {
-        d.properties.global = self.globalVariables;
-        d.shader = layer.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time});
-        if (layer.hover) {
-          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time });
-          _.defaults(d.shader_hover, d.shader);
+      if(!updating){
+        // transform the geometry according the symbolizer
+        var transform = transformForSymbolizer(sym);
+        if (transform) {
+          geometry = geometry.map(transform);
         }
-      });
 
-      path.pointRadius(function(d) {
-        return (d.shader['marker-width'] || 0)/2.0;
-      });
-
-      var f = feature;
-      // move this outsude
-      if (sym === 'text') {
-        f.text(function(d) {
-            return "text"; //d.shader['text-name']
-        });
-        f.attr("dy", ".35em");
-        f.attr('text-anchor', "middle");
-        f.attr("x", function(d) { 
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
-            return p.x;
-          });
-        f.attr("y", function(d) { 
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
-            return p.y;
-         });
-
-      } else {
-        f.attr('d', path);
+        // select based on symbolizer
+        var feature = d3.select(this)
+            .selectAll("." + sym)
+            .data(geometry);
+            
+        if (sym === 'text') {
+          feature.enter().append("svg:text").attr('class', sym);
+        } else {
+          feature.enter().append("path").attr('class', sym);
+        }
+        feature.exit().remove();
       }
+       else{
+        feature = d3.select(this).selectAll("." + sym);
+      }
+
+        // calculate shader for each geometry
+        feature.each(function(d) {
+          if(!d.properties) d.properties = {};
+          d.properties.global = self.globalVariables;
+          d.shader = layer.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time});
+          if (layer.hover) {
+            d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time });
+            _.defaults(d.shader_hover, d.shader);
+          }
+        });
+
+        path.pointRadius(function(d) {
+          return (d.shader['marker-width'] || 0)/2.0;
+        });
+
+        // move this outsude
+        if (sym === 'text') {
+          feature.text(function(d) {
+              return "text"; //d.shader['text-name']
+          });
+          feature.attr("dy", ".35em");
+          feature.attr('text-anchor', "middle");
+          feature.attr("x", function(d) { 
+              var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
+              return p.x;
+            });
+          feature.attr("y", function(d) { 
+              var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
+              return p.y;
+           });
+
+        } else {
+          feature.attr('d', path);
+        }
+      
+     
 
       // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-      var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: tilePoint.zoom })['transition-time'];
-      if (trans_time)
-          f = f.transition().duration(trans_time);
-      f.style(styleForSymbolizer(sym, 'shader'));
+      if(cached){
+        feature = feature.transition().duration(200);
+      }
+      feature.style(self.styleForSymbolizer(sym, 'shader'));
     });
-    svg.attr("class", svg.attr("class") + " leaflet-tile-loaded");
-  }
+    svgSel.attr("class", svgSel.attr("class") + " leaflet-tile-loaded");
+  }}
 };
 
-function styleForSymbolizer(symbolyzer, shaderName) {
-  if (symbolyzer === 'polygon' || symbolyzer === 'line') {
-    return {
-      'fill': function(d) { return d[shaderName]['polygon-fill'] || 'none'; },
-      'fill-opacity': function(d) { return d[shaderName]['polygon-opacity']; },
-      'stroke': function(d) { return d[shaderName]['line-color']; },
-      'stroke-width': function(d) { return d[shaderName]['line-width'] ;},
-      'stroke-opacity': function(d) { return d[shaderName]['line-opacity']; }
-    };
-  } else if (symbolyzer === 'markers') {
-    return {
-      'fill': function(d) { return d[shaderName]['marker-fill'] || 'none'; },
-      'fill-opacity': function(d) { return d[shaderName]['marker-fill-opacity']; },
-      'stroke': function(d) { return d[shaderName]['marker-line-color']; },
-      'stroke-width': function(d) { return d[shaderName]['marker-line-width']; }
-    };
-  } else if (symbolyzer === 'text') {
-    return {
-      'fill': function(d) { return d[shaderName]['text-fill'] || 'none'; },
-    };
 
-     /*.attr("x", function(d) { return d.cx; })
-4                 .attr("y", function(d) { return d.cy; })
-5                 .text( function (d) { return "( " + d.cx + ", " + d.cy +" )"; })
-6                 .attr("font-family", "sans-serif")
-7                 .attr("font-size", "20px")
-8                 .attr("fill", "red");
-*/
-  }
-}
 
 function transformForSymbolizer(symbolizer) {
   if (symbolizer === 'markers' || symbolizer === 'labels') {
