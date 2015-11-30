@@ -35,7 +35,7 @@ L.CartoDBd3Layer = L.Class.extend({
       this.provider = new providers.XYZProvider(this.options);
     }
     else {
-      this.provider = this.options.provider || new providers.SQLProvider(this.options);
+      this.provider = this.options.provider || new providers.WindshaftProvider(this.options);
     }
     this.renderer = this.options.renderer || new Renderer(this.options);
 
