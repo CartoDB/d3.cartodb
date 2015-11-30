@@ -23,6 +23,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   initialize: function (options) {
     var self = this;
     options = options || {};
+    this.renderers = [];
     L.Util.setOptions(this, options);
 
   },
@@ -37,8 +38,14 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     else {
       this.provider = this.options.provider || new providers.SQLProvider(this.options);
     }
-    this.renderer = this.options.renderer || new Renderer(this.options);
-
+    var styles = this.options.styles;
+    if(!styles){
+      styles = [this.options.cartocss];
+    }
+    for (var i = 0; i < styles.length; i++){
+      this.renderers.push(new Renderer({cartocss: styles[i],
+                                        layer: this}));
+    }
     var tilePane = this._map._panes.tilePane;
     var layer = L.DomUtil.create('div', 'leaflet-layer');
     var _container = layer.appendChild(L.DomUtil.create('div',"leaflet-tile-container leaflet-zoom-animated"));
@@ -67,7 +74,10 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this._container.appendChild(tile);
 
     this.provider.getTile(tilePoint, function(tilePoint, geometry){
-      self.renderer.render(tile, geometry, tilePoint);
+      for(var i = 0; i < self.renderers.length; i++){
+        var collection = self.renderers.length > 1? geometry.features[i]: geometry
+        self.renderers[i].render(tile, collection, tilePoint);
+      }
       self._tileLoaded(tilePoint, tile);
     });
 
@@ -116,7 +126,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     return tileSize;
   },
 
-  setCartoCSS: function(cartocss){
-    this.renderer.setCartoCSS(cartocss);
+  setCartoCSS: function(index, cartocss){
+    this.renderers[index].setCartoCSS(cartocss);
   }
 });
