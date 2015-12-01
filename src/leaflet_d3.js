@@ -43,8 +43,10 @@ L.CartoDBd3Layer = L.Class.extend({
     this._container = _container;
 
     this.tileLoader = new TileLoader({
-      provider: this.provider,
       tileSize: this.options.tileSize,
+      maxZoom: this.options.maxZoom,
+      minZoom: this.options.minZoom,
+      provider: this.provider,
       map: map
     });
     this.tileLoader.on('tileAdded', this._renderTile, this);
