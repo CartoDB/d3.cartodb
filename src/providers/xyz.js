@@ -13,7 +13,7 @@ function XYZProvider(options) {
 
 XYZProvider.prototype = {
 
-  getTile: function(tilePoint, callback){
+  getTile: function(tilePoint, callback) {
     var self = this;
     var tileKey = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
     var tileData = this.tileCache[tileKey];

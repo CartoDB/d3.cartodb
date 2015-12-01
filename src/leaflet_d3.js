@@ -15,7 +15,7 @@ L.CartoDBd3Layer = L.Class.extend({
     var self = this;
     options = options || {};
     this.renderers = [];
-    this.svgTiles = [];
+    this.svgTiles = {};
     L.Util.setOptions(this, options);
   },
 
@@ -53,13 +53,8 @@ L.CartoDBd3Layer = L.Class.extend({
       map: map
     });
     this.tileLoader.on('tileAdded', this._renderTile, this);
+    this.tileLoader.on('tileRemoved', this._clearTile, this);
     this.tileLoader.loadTiles();
-    this._map.on('zoomstart', function() {
-      // TODO: This could be moved to the tileloader
-      this.provider.invalidateCache();
-      // TODO: Instead of doing this, we could listen for events on the tileLoader
-      this._container.innerHTML = '';
-    }, this);
   },
 
   onRemove: function (map) {
@@ -72,9 +67,9 @@ L.CartoDBd3Layer = L.Class.extend({
     return this;
   },
 
-  _renderTile: function (options) {
-    var tilePoint = options.tilePoint;
-    var geometry = options.geometry;
+  _renderTile: function (data) {
+    var tilePoint = data.tilePoint;
+    var geometry = data.geometry;
     var self = this;
     var tileKey = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
     var tile = this.svgTiles[tileKey];
@@ -93,6 +88,12 @@ L.CartoDBd3Layer = L.Class.extend({
     var tilePos = this._getTilePos(tilePoint);
     tile.style.width = tile.style.height = this._getTileSize() + 'px';
     L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome);
+  },
+
+  _clearTile: function(data) {
+    var svg = this.svgTiles[data.tileKey];
+    this._container.removeChild(svg);
+    delete this.svgTiles[data.tileKey];
   },
 
   _getTilePos: function (tilePoint) {
