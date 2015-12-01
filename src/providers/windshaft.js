@@ -42,7 +42,6 @@ WindshaftProvider.prototype = {
 	          self.format = "topojson";
 	          geometry = topojson.feature(geometry, geometry.objects.vectile);
 	        }
-	        this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
 	        callback(tilePoint, geometry);
 	      }.bind(this));
 	    }
