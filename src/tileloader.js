@@ -14,7 +14,7 @@ module.exports = L.Class.extend({
     // this._updateTiles();
   },
 
-  _updateTiles: function () {
+  _updateTiles: function() {
     if (!this._map) {
       return;
     }
@@ -93,7 +93,7 @@ module.exports = L.Class.extend({
 
         // remove tile if it's out of bounds
         if (zoom !== z || x < bounds.min.x || x > bounds.max.x || y < bounds.min.y || y > bounds.max.y) {
-            this._removeTile(key);
+          this._removeTile(key);
         }
       }
     }
@@ -143,6 +143,6 @@ module.exports = L.Class.extend({
   },
 
   getTile: function(tilePoint) {
-    return this._tiles[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
+    return this._tiles[this._tileKey(tilePoint)];
   }
 });
