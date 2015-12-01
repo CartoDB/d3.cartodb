@@ -4,6 +4,7 @@ var carto = global.carto || require('carto');
 var _ = global._ || require('underscore');
 var geo = require("./geo");
 topojson = require('topojson');
+Crossfilter = require("crossfilter");
 
 cartodb.d3 = {};
 
@@ -20,6 +21,7 @@ var Renderer = function(options) {
   }
   this.globalVariables = {};
   this.layer = options.layer;
+  this.crossfilter = new Crossfilter();
 };
 
 Renderer.prototype = {
@@ -154,6 +156,7 @@ Renderer.prototype = {
 
   render: function(svg, collection, tilePoint, updating) {
     var self = this;
+    this.crossfilter.add(collection.features);
     this.currentPoint = tilePoint;
     var shader = this.shader;
     var g, cached = false, styleLayers;
