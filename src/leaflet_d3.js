@@ -1,23 +1,14 @@
 var Renderer = require("./renderer");
 var providers = require("./providers");
+var TileLoader = require('./tileloader');
 
-L.CartoDBd3Layer = L.TileLayer.extend({
-
-  includes: [L.Mixin.Events, L.Mixin.TileLoader],
+L.CartoDBd3Layer = L.Class.extend({
 
   options: {
     minZoom: 0,
     maxZoom: 28,
     tileSize: 256,
-    subdomains: 'abc',
-    errorTileUrl: '',
-    attribution: '',
-    zoomOffset: 0,
-    opacity: 1,
-    unloadInvisibleTiles: L.Browser.mobile,
-    updateWhenIdle: L.Browser.mobile,
-    tileLoader: false, // installs tile loading events
-    zoomAnimation: true
+    zoomOffset: 0
   },
 
   initialize: function (options) {
@@ -25,7 +16,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     options = options || {};
     this.renderers = [];
     L.Util.setOptions(this, options);
-
   },
 
   onAdd: function (map) {
@@ -52,11 +42,22 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     layer.appendChild(_container);
     tilePane.appendChild(layer);
     this._container = _container;
-    this._initTileLoader();
+
+    this.tileLoader = new TileLoader({
+      tileSize: this.options.tileSize,
+      map: map
+    });
+    this.tileLoader.on('tileAdded', this.loadTile, this);
+    this.tileLoader._updateTiles();
+    this._map.on('zoomstart', function(){
+      this.provider.invalidateCache();
+      this._container.innerHTML = '';
+    }, this);
   },
 
   onRemove: function (map) {
     this._container.parentNode.removeChild(this._container);
+    this.tileLoader._removeTileLoader();
   },
 
   addTo: function (map) {
@@ -66,7 +67,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
   loadTile: function (tilePoint) {
     var self = this;
-    var tile = this._tiles[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
+    var tile = this.tileLoader.getTile(tilePoint);
     if(!tile){
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     }
@@ -78,7 +79,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         var collection = self.renderers.length > 1? geometry.features[i]: geometry
         self.renderers[i].render(tile, collection, tilePoint);
       }
-      self._tileLoaded(tilePoint, tile);
+      self.tileLoader._tileLoaded(tilePoint, tile);
     });
 
     var tilePos = this._getTilePos(tilePoint);
@@ -86,31 +87,16 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome);
   },
 
-  _initTileLoader: function() {
-    this._tiles = {};
-    this._tilesLoading = {};
-    this._tilesToLoad = 0;
-    this._map.on({
-      'moveend': this._updateTiles
-    }, this);
-    this.on('tileAdded', this.loadTile);
-    this._map.on('zoomstart', function(){
-      this.provider.invalidateCache();
-      this._container.innerHTML = '';
-    }, this);
-    this._updateTiles();
+  _getTilePos: function (tilePoint) {
+    tilePoint = new L.Point(tilePoint.x, tilePoint.y);
+    var origin = this._map.getPixelOrigin();
+    var tileSize = this._getTileSize();
+
+    return tilePoint.multiplyBy(tileSize).subtract(origin);
   },
 
   latLngToLayerPoint: function(lat, lng){
     return map.latLngToLayerPoint(new L.LatLng(lat,lng));
-  },
-
-  _removeTile: function (key) {
-    // this._container.removeChild(this._tiles[key]);
-    this._tiles[key].innerHTML = '';
-    this.fire('tileRemoved', this._tiles[key]);
-    delete this._tiles[key];
-    delete this._tilesLoading[key];
   },
 
   _getTileSize: function () {
