@@ -3,8 +3,8 @@ var cartodb = global.cartodb || {};
 var carto = global.carto || require('carto');
 var _ = global._ || require('underscore');
 var geo = require("./geo");
+var Filter = require("./filter");
 topojson = require('topojson');
-Crossfilter = require("crossfilter");
 
 cartodb.d3 = {};
 
@@ -21,7 +21,8 @@ var Renderer = function(options) {
   }
   this.globalVariables = {};
   this.layer = options.layer;
-  this.crossfilter = new Crossfilter();
+  this.filter = new Filter();
+  this.dimensions = {};
 };
 
 Renderer.prototype = {
@@ -156,7 +157,7 @@ Renderer.prototype = {
 
   render: function(svg, collection, tilePoint, updating) {
     var self = this;
-    this.crossfilter.add(collection.features);
+    this.filter.addTile(tilePoint, collection); // It won't add duplicates
     this.currentPoint = tilePoint;
     var shader = this.shader;
     var g, cached = false, styleLayers;
