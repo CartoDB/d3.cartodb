@@ -48,7 +48,7 @@ L.CartoDBd3Layer = L.Class.extend({
       map: map
     });
     this.tileLoader.on('tileAdded', this._renderTile, this);
-    this.tileLoader.updateTiles();
+    this.tileLoader.loadTiles();
     this._map.on('zoomstart', function() {
       // TODO: This could be moved to the tileloader
       this.provider.invalidateCache();

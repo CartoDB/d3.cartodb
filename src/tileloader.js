@@ -10,15 +10,15 @@ module.exports = L.Class.extend({
     this._tilesLoading = {};
     this._tilesToLoad = 0;
     this._map.on({
-      'moveend': this.updateTiles
+      'moveend': this._reloadTiles
     }, this);
   },
 
-  updateTiles: function() {
-    this._updateTiles();
+  loadTiles: function() {
+    this._reloadTiles();
   },
 
-  _updateTiles: function() {
+  _reloadTiles: function() {
     if (!this._map) {
       return;
     }
@@ -118,7 +118,7 @@ module.exports = L.Class.extend({
 
   unbindAndClearTiles: function() {
     this._map.off({
-      'moveend': this._updateTiles
+      'moveend': this._reloadTiles
     }, this);
     this._removeTiles();
   },
@@ -127,11 +127,6 @@ module.exports = L.Class.extend({
     for (var key in this._tiles) {
       this._removeTile(key);
     }
-  },
-
-  _reloadTiles: function() {
-    this._removeTiles();
-    this._updateTiles();
   },
 
   _removeTile: function (key) {
