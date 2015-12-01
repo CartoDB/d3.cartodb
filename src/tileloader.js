@@ -4,6 +4,7 @@ module.exports = L.Class.extend({
 
   initialize: function(options) {
     this.options = options;
+    this.provider = options.provider;
     this._map = options.map;
     this._tiles = {};
     this._tilesLoading = {};
@@ -75,12 +76,25 @@ module.exports = L.Class.extend({
     this._tilesToLoad += tilesToLoad;
 
     for (i = 0; i < tilesToLoad; i++) {
-      var t = queue[i];
-      var k = this._tileKey(t);
-      this._tilesLoading[k] = t;
-      this.fire('tileAdded', t);
+      this._loadTile(queue[i]);
     }
     this.fire("tilesLoading");
+  },
+
+  _loadTile: function(tilePoint) {
+    var tileKey = this._tileKey(tilePoint);
+    this._tilesLoading[tileKey] = tilePoint;
+    this._tilesToLoad--;
+
+    this.provider.getTile(tilePoint, function(tilePoint, geometry) {
+      var tileKey = this._tileKey(tilePoint);
+      this._tiles[tileKey] = true;
+      delete this._tilesLoading[tileKey];
+      this.fire('tileAdded', { tilePoint: tilePoint, geometry: geometry} );
+      if(this._tilesToLoad === 0) {
+        this.fire("tilesLoaded");
+      }
+    }.bind(this));
   },
 
   _removeOtherTiles: function (bounds) {
@@ -133,15 +147,5 @@ module.exports = L.Class.extend({
 
   _tileKey: function(tilePoint) {
     return tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
-  },
-
-  tileLoaded: function(tilePoint) {
-    this._tilesToLoad--;
-    var k = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
-    this._tiles[k] = true;
-    delete this._tilesLoading[k];
-    if(this._tilesToLoad === 0) {
-      this.fire("tilesLoaded");
-    }
   }
 });

@@ -43,13 +43,16 @@ L.CartoDBd3Layer = L.Class.extend({
     this._container = _container;
 
     this.tileLoader = new TileLoader({
+      provider: this.provider,
       tileSize: this.options.tileSize,
       map: map
     });
-    this.tileLoader.on('tileAdded', this.loadTile, this);
+    this.tileLoader.on('tileAdded', this._renderTile, this);
     this.tileLoader.updateTiles();
     this._map.on('zoomstart', function() {
+      // TODO: This could be moved to the tileloader
       this.provider.invalidateCache();
+      // TODO: Instead of doing this, we could listen for events on the tileLoader
       this._container.innerHTML = '';
     }, this);
   },
@@ -64,7 +67,9 @@ L.CartoDBd3Layer = L.Class.extend({
     return this;
   },
 
-  loadTile: function (tilePoint) {
+  _renderTile: function (options) {
+    var tilePoint = options.tilePoint;
+    var geometry = options.geometry;
     var self = this;
     var tileKey = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
     var tile = this.svgTiles[tileKey];
@@ -72,16 +77,13 @@ L.CartoDBd3Layer = L.Class.extend({
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       tile.setAttribute("class", "leaflet-tile");
       this.svgTiles[tileKey] = tile;
+      this._container.appendChild(tile);
     }
-    this._container.appendChild(tile);
 
-    this.provider.getTile(tilePoint, function(tilePoint, geometry){
-      for(var i = 0; i < self.renderers.length; i++) {
-        var collection = self.renderers.length > 1 ? geometry.features[i] : geometry;
-        self.renderers[i].render(tile, collection, tilePoint);
-      }
-      self.tileLoader.tileLoaded(tilePoint);
-    });
+    for(var i = 0; i < self.renderers.length; i++) {
+      var collection = self.renderers.length > 1 ? geometry.features[i] : geometry;
+      self.renderers[i].render(tile, collection, tilePoint);
+    }
 
     var tilePos = this._getTilePos(tilePoint);
     tile.style.width = tile.style.height = this._getTileSize() + 'px';
