@@ -88,7 +88,7 @@ L.CartoDBd3Layer = L.Class.extend({
   _clearTile: function(data) {
     var svg = this.svgTiles[data.tileKey];
     this._container.removeChild(svg);
-    delete this.svgTiles[options.tileKey];
+    delete this.svgTiles[data.tileKey];
   },
 
   _getTilePos: function (tilePoint) {
