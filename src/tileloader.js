@@ -9,9 +9,8 @@ module.exports = L.Class.extend({
     this._tiles = {};
     this._tilesLoading = {};
     this._tilesToLoad = 0;
-    this._map.on({
-      'moveend': this._reloadTiles
-    }, this);
+    this._map.on('moveend', this._reloadTiles, this);
+    this._map.on('zoomstart', this._invalidateProviderCache, this);
   },
 
   loadTiles: function() {
@@ -116,10 +115,13 @@ module.exports = L.Class.extend({
     }
   },
 
+  _invalidateProviderCache: function() {
+    this.provider.invalidateCache();
+  },
+
   unbindAndClearTiles: function() {
-    this._map.off({
-      'moveend': this._reloadTiles
-    }, this);
+    this._map.off('moveend', this._reloadTiles, this);
+    this._map.off('zoomstart', this._invalidateProviderCache, this);
     this._removeTiles();
   },
 
@@ -130,7 +132,7 @@ module.exports = L.Class.extend({
   },
 
   _removeTile: function (key) {
-    this.fire('tileRemoved', this._tiles[key]);
+    this.fire('tileRemoved', { tileKey: key });
     delete this._tiles[key];
     delete this._tilesLoading[key];
   },
