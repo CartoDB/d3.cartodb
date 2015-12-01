@@ -9,9 +9,12 @@ module.exports = L.Class.extend({
     this._tilesLoading = {};
     this._tilesToLoad = 0;
     this._map.on({
-      'moveend': this._updateTiles
+      'moveend': this.updateTiles
     }, this);
-    // this._updateTiles();
+  },
+
+  updateTiles: function() {
+    this._updateTiles();
   },
 
   _updateTiles: function() {
@@ -99,7 +102,7 @@ module.exports = L.Class.extend({
     }
   },
 
-  _removeTileLoader: function() {
+  unbindAndClearTiles: function() {
     this._map.off({
       'moveend': this._updateTiles
     }, this);
@@ -132,17 +135,13 @@ module.exports = L.Class.extend({
     return tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
   },
 
-  _tileLoaded: function(tilePoint, tileData) {
+  tileLoaded: function(tilePoint) {
     this._tilesToLoad--;
     var k = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
-    this._tiles[k] = tileData;
+    this._tiles[k] = true;
     delete this._tilesLoading[k];
     if(this._tilesToLoad === 0) {
       this.fire("tilesLoaded");
     }
-  },
-
-  getTile: function(tilePoint) {
-    return this._tiles[this._tileKey(tilePoint)];
   }
 });
