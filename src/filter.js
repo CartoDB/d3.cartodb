@@ -40,19 +40,12 @@ Filter.prototype = {
 
   addExpression: function(id, definition){
     var self = this;
-    if(definition.type === "formula"){
-        this.addFormula(id, definition);
+    if(definition.type === "formula") {
+      this.addFormula(id, definition);
     }
 
-    if(definition.type === "filter"){
-      var functions = {
-        category: function(){
-          this.crossfilter.dimension(function(f){return f[definition.options.column]});
-        },
-        range: function(){
-          this.crossfilter.dimension(function(f){return f[definition.options.column]});
-        }
-      }
+    if(definition.type === "category") {
+      this.addCategory(id, definition);
     }
 
   },
@@ -60,21 +53,29 @@ Filter.prototype = {
   addFormula: function(id, definition){
     var self = this;
     var expression = {result: {}, fn: null};
+    var operations = {
+      sum: function(){ return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() },
+      avg: function(){ return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() / self.crossfilter.size() },
+      count: function(){ return self.crossfilter.size() },
+      min: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties[definition.column] < e) return v.properties[definition.column]; else return e;}, null, function(){return Infinity}).value()},
+      max: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value()}
+    };
+
+    // This is the function that generates the report, i.e. what 
     expression.fn = function(){
       return {
-        operation: definition.options.operation,
-        result: {
-          sum: function(){ return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.options.column]}).value() },
-          avg: function(){ return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.options.column]}).value() / self.crossfilter.size() },
-          count: function(){ return self.crossfilter.size() },
-          min: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties.pop_max < e) return v.properties.pop_max; else return e;}, null, function(){return Infinity}).value()},
-          max: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties.pop_max > e) return v.properties.pop_max; else return e;}, null, function(){return -Infinity}).value()}
-        }[definition.options.operation](),
-        nulls: 0,
+        operation: definition.operation,
+        result: operations[definition.operation](),
+        nulls: 0, // TO DO!
         type: "formula"
       }
     };
     this.expressions[id] = expression;
+  },
+
+  addCategory: function(id, definition) {
+    var self = this;
+    var dimension = this.crossfilter.dimension(function(f){ return f.properties[]})
   },
 
   update: function(){
