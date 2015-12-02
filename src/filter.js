@@ -54,9 +54,9 @@ Filter.prototype = {
     var self = this;
     var expression = {result: {}, fn: null};
     var operations = {
-      sum: function(){ return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() },
-      avg: function(){ return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() / self.crossfilter.size() },
-      count: function(){ return self.crossfilter.size() },
+      sum: function() { return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() },
+      avg: function() { return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() / self.crossfilter.size() },
+      count: function() { return self.crossfilter.size() },
       min: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties[definition.column] < e) return v.properties[definition.column]; else return e;}, null, function(){return Infinity}).value()},
       max: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value()}
     };
