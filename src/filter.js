@@ -84,7 +84,8 @@ Filter.prototype = {
         min: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] < e) return v.properties[definition.column]; else return e;}, null, function(){return Infinity}).value(),
         max: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value(),
         nulls: 0,
-        type: "aggregation"
+        type: "aggregation",
+        categories: expression.dimension.groupAll().reduce(function(e,v){ if (e[v.properties[definition.column]]]){ e[v.properties[definition.column]]].value++;} else { e[v.properties[definition.column]]] = {value: 1, agg: false} } return e; }, null, function(){return {}}).value()
       }
     }
     this.expressions[id] = expression;
