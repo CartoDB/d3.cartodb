@@ -5,6 +5,7 @@ function Filter(){
   this.dimensions = {};
   this.tiles = new Set();
   this.report = {};
+  this.expressions = {};
 };
 
 Filter.prototype = {
@@ -39,20 +40,19 @@ Filter.prototype = {
 
   addExpression: function(id, definition){
     var self = this;
-    switch(definition.type){
-      case "formula":
-        var functions = {
-          sum: function(){self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.options.column]}).value()},
-          count: function(){self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.options.column]}).value() / self.crossfilter.size()},
-          max: function(){
-            self.crossfilter.groupAll().reduce(
-              function(e,v){debugger},
-              null,
-              function(){return Infinity}
-            )
-          }
+    if(definition.type === "formula"){
+        this.addFormula(id, definition);
+    }
+
+    if(definition.type === "filter"){
+      var functions = {
+        category: function(){
+          this.crossfilter.dimension(function(f){return f[definition.options.column]});
+        },
+        range: function(){
+          this.crossfilter.dimension(function(f){return f[definition.options.column]});
         }
-        functions[definition.options.operation]();
+      }
     }
 
   }
