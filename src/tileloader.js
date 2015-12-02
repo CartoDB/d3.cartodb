@@ -83,12 +83,10 @@ module.exports = L.Class.extend({
   _loadTile: function(tilePoint) {
     var tileKey = this._tileKey(tilePoint);
     this._tilesLoading[tileKey] = tilePoint;
-    this._tilesToLoad--;
-
     this.provider.getTile(tilePoint, function(tilePoint, geometry) {
-      var tileKey = this._tileKey(tilePoint);
       this._tiles[tileKey] = true;
       delete this._tilesLoading[tileKey];
+      this._tilesToLoad--;
       this.fire('tileAdded', { tilePoint: tilePoint, geometry: geometry} );
       if(this._tilesToLoad === 0) {
         this.fire("tilesLoaded");
