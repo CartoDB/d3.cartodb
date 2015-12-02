@@ -75,7 +75,18 @@ Filter.prototype = {
 
   addCategory: function(id, definition) {
     var self = this;
-    var dimension = this.crossfilter.dimension(function(f){ return f.properties[]})
+    var expression = {result: {}, fn: null};
+    expression.dimension = this.crossfilter.dimension(function(f){ return f.properties[definition.column]});
+    expression.fn = function(){
+      return {
+        categoriesCount: expression.dimension.groupAll().reduce(function(e,v){e.add(v.properties[definition.column]); return e;},null,function(){return new Set()}).value().size,
+        min: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] < e) return v.properties[definition.column]; else return e;}, null, function(){return Infinity}).value()},
+        max: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value()},
+        nulls: 0,
+
+      }
+    }
+    this.expressions[id] = expression;
   },
 
   update: function(){
