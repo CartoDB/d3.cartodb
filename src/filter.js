@@ -55,6 +55,33 @@ Filter.prototype = {
       }
     }
 
+  },
+
+  addFormula: function(id, definition){
+    var self = this;
+    var expression = {result: {}, fn: null};
+    expression.fn = function(){
+      return {
+        operation: definition.options.operation,
+        result: {
+          sum: function(){ return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.options.column]}).value() },
+          avg: function(){ return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.options.column]}).value() / self.crossfilter.size() },
+          count: function(){ return self.crossfilter.size() },
+          min: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties.pop_max < e) return v.properties.pop_max; else return e;}, null, function(){return Infinity}).value()},
+          max: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties.pop_max > e) return v.properties.pop_max; else return e;}, null, function(){return -Infinity}).value()}
+        }[definition.options.operation](),
+        nulls: 0,
+        type: "formula"
+      }
+    };
+    this.expressions[id] = expression;
+  },
+
+  update: function(){
+    for (var k in this.expressions){
+      this.expressions[k].result = this.report[k] = this.expressions[k].fn();
+    }
+    return this.report;
   }
 
 }
