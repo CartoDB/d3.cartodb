@@ -79,11 +79,12 @@ Filter.prototype = {
     expression.dimension = this.crossfilter.dimension(function(f){ return f.properties[definition.column]});
     expression.fn = function(){
       return {
+        count: self.crossfilter.size(),
         categoriesCount: expression.dimension.groupAll().reduce(function(e,v){e.add(v.properties[definition.column]); return e;},null,function(){return new Set()}).value().size,
-        min: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] < e) return v.properties[definition.column]; else return e;}, null, function(){return Infinity}).value()},
-        max: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value()},
+        min: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] < e) return v.properties[definition.column]; else return e;}, null, function(){return Infinity}).value(),
+        max: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value(),
         nulls: 0,
-
+        type: "aggregation"
       }
     }
     this.expressions[id] = expression;
