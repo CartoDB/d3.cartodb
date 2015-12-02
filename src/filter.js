@@ -35,7 +35,27 @@ Filter.prototype = {
     tile.features = this.dimensions.tiles.top(Infinity);
     this.dimensions.tiles.filterAll();
     return tile;
-	},
+  },
+
+  addExpression: function(id, definition){
+    var self = this;
+    switch(definition.type){
+      case "formula":
+        var functions = {
+          sum: function(){self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.options.column]}).value()},
+          count: function(){self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.options.column]}).value() / self.crossfilter.size()},
+          max: function(){
+            self.crossfilter.groupAll().reduce(
+              function(e,v){debugger},
+              null,
+              function(){return Infinity}
+            )
+          }
+        }
+        functions[definition.options.operation]();
+    }
+
+  }
 
 }
 
