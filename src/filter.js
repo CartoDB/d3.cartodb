@@ -78,6 +78,12 @@ Filter.prototype = {
     var expression = {result: {}, fn: null};
     expression.dimension = this.crossfilter.dimension(function(f){ return f.properties[definition.column]});
     expression.fn = function(){
+      var categories = [];
+      var cats = expression.dimension.groupAll().reduce(function(e,v){ if (e[v.properties[definition.column]]){ e[v.properties[definition.column]].value++;} else { e[v.properties[definition.column]] = {value: 1, agg: false} } return e; }, null, function(){return {}}).value();
+      for(var category in cats){
+        cats[category].category = category;
+        categories.push(cats[category])
+      }
       return {
         count: self.crossfilter.size(),
         categoriesCount: expression.dimension.groupAll().reduce(function(e,v){e.add(v.properties[definition.column]); return e;},null,function(){return new Set()}).value().size,
@@ -85,7 +91,7 @@ Filter.prototype = {
         max: expression.dimension.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value(),
         nulls: 0,
         type: "aggregation",
-        categories: expression.dimension.groupAll().reduce(function(e,v){ if (e[v.properties[definition.column]]]){ e[v.properties[definition.column]]].value++;} else { e[v.properties[definition.column]]] = {value: 1, agg: false} } return e; }, null, function(){return {}}).value()
+        categories: categories
       }
     }
     this.expressions[id] = expression;
