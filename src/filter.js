@@ -38,21 +38,21 @@ Filter.prototype = {
     return tile;
   },
 
-  addExpression: function(id, definition){
-    var self = this;
-    if(definition.type === "formula") {
-      this.addFormula(id, definition);
-    }
+  // addExpression: function(id, definition){
+  //   var self = this;
+  //   if(definition.type === "formula") {
+  //     this.addFormula(id, definition);
+  //   }
 
-    else if(definition.type === "category") {
-      this.addCategory(id, definition);
-    }
+  //   else if(definition.type === "category") {
+  //     this.addCategory(id, definition);
+  //   }
 
-    else if(definition.type === "histogram") {
-      this.addHistogram(id, definition)
-    }
+  //   else if(definition.type === "histogram") {
+  //     this.addHistogram(id, definition)
+  //   }
 
-  },
+  // },
 
   filterRange: function(column, range){
     if (!this.dimensions[column]){
