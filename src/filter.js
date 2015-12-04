@@ -89,11 +89,18 @@ Filter.prototype = {
     });
   },
 
-  update: function(){
-    for (var k in this.expressions){
-      this.expressions[k].result = this.report[k] = this.expressions[k].fn();
+  clearFilters: function() {
+    for (var column in this.dimensions){
+      this.dimensions[column].filterAll();
     }
-    return this.report;
+  },
+
+  clearFilter: function(column) {
+    this.dimensions[column].filterAll();
+  },
+
+  getValues: function(column) {
+    return this.dimensions[column].top(Infinity);
   }
 
 }
