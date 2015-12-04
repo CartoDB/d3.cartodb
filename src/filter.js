@@ -103,6 +103,83 @@ Filter.prototype = {
     return this.dimensions[column].top(Infinity);
   }
 
+  // addFormula: function(id, definition){
+  //   var self = this;
+  //   var expression = {result: {}, fn: null};
+  //   var operations = {
+  //     sum: function() { return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() },
+  //     avg: function() { return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() / self.crossfilter.size() },
+  //     count: function() { return self.crossfilter.size() },
+  //     min: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties[definition.column] < e) return v.properties[definition.column]; else return e;}, null, function(){return Infinity}).value()},
+  //     max: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value()}
+  //   };
+
+  //   // This is the function that generates the report, i.e. what 
+  //   expression.fn = function(cf){
+  //     return {
+  //       operation: definition.operation,
+  //       result: operations[definition.operation](),
+  //       nulls: 0, // TO DO!
+  //       type: "formula"
+  //     }
+  //   };
+  //   this.expressions[id] = expression;
+  // },
+
+  // addCategory: function(id, definition) {
+  //   var self = this;
+  //   var expression = {result: {}, fn: null};
+  //   expression.dimension = this.crossfilter.dimension(function(f){ return f.properties[definition.column]});
+  //   expression.fn = function(cf){
+  //     var cats = this.dimension.group().reduce(function(e,v){ if (e[v.properties[definition.column]]){ e[v.properties[definition.column]].value++;} else { e[v.properties[definition.column]] = {value: 1, agg: false} } return e; }, null, function(){return {}}).order(function(d) { return d[Object.keys(d)[0]].value }).top(5);
+  //     cats = cats.map(function(f){return {"category": f.key, agg: false, value: f.value[f.key].value}});
+  //     return {
+  //       count: cf.size(),
+  //       categoriesCount: this.dimension.groupAll().reduce(function(e,v){e.add(v.properties[definition.column]); return e;},null,function(){return new Set()}).value().size,
+  //       min: this.dimension.groupAll().reduce(function(e,v){
+  //           if(v.properties[definition.column] < e) return v.properties[definition.column]; 
+  //           else return e;
+  //         }, null, function(){return Infinity})
+  //       .value(),
+  //       max: this.dimension.groupAll().reduce(function(e,v){
+  //           if(v.properties[definition.column] > e) return v.properties[definition.column]; 
+  //           else return e;
+  //         }, null, function(){return -Infinity})
+  //       .value(),
+  //       nulls: 0,
+  //       type: "aggregation",
+  //       categories: cats
+  //     }
+  //   }
+  //   this.expressions[id] = expression;
+  // },
+
+  // addHistogram: function(id, definition) {
+  //   var self = this;
+  //   var expression = {result: {}, fn: null};
+  //   expression.dimension = this.crossfilter.dimension(function(f){ return f.properties[definition.column]});
+  //   expression.fn = function(cf){
+
+  //     return {
+  //       bin_width: "", 
+  //       bins_count: "",
+  //       nulls: 0,
+  //       avg: "",
+  //       bins: [
+
+  //       ]
+  //     }
+  //   }
+  //   this.expressions[id] = expression;
+  // },
+
+  // update: function(){
+  //   for (var k in this.expressions){
+  //     this.expressions[k].result = this.report[k] = this.expressions[k].fn(this.crossfilter);
+  //   }
+  //   return this.report;
+  // }
+
 }
 
 module.exports = Filter;
