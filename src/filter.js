@@ -44,33 +44,21 @@ Filter.prototype = {
       this.addFormula(id, definition);
     }
 
-    if(definition.type === "category") {
+    else if(definition.type === "category") {
       this.addCategory(id, definition);
+    }
+
+    else if(definition.type === "histogram") {
+      this.addHistogram(id, definition)
     }
 
   },
 
-  addFormula: function(id, definition){
-    var self = this;
-    var expression = {result: {}, fn: null};
-    var operations = {
-      sum: function() { return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() },
-      avg: function() { return self.crossfilter.groupAll().reduceSum(function(f){return f.properties[definition.column]}).value() / self.crossfilter.size() },
-      count: function() { return self.crossfilter.size() },
-      min: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties[definition.column] < e) return v.properties[definition.column]; else return e;}, null, function(){return Infinity}).value()},
-      max: function() { return self.crossfilter.groupAll().reduce(function(e,v){if(v.properties[definition.column] > e) return v.properties[definition.column]; else return e;}, null, function(){return -Infinity}).value()}
-    };
-
-    // This is the function that generates the report, i.e. what 
-    expression.fn = function(){
-      return {
-        operation: definition.operation,
-        result: operations[definition.operation](),
-        nulls: 0, // TO DO!
-        type: "formula"
-      }
-    };
-    this.expressions[id] = expression;
+  filterRange: function(column, range){
+    if (!this.dimensions[column]){
+      this.dimensions[column] = this.crossfilter.dimension(function(f){return f.properties[column]});
+    }
+    this.dimensions[column].filter(range);
   },
 
   addCategory: function(id, definition) {
