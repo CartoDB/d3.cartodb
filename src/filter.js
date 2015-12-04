@@ -72,8 +72,21 @@ Filter.prototype = {
       if (terms.indexOf(f) > -1){
         return true;
       }
+    });
+  },
+
+  filterReject: function(column, terms){
+    if (!this.dimensions[column]){
+      this.dimensions[column] = this.crossfilter.dimension(function(f){return f.properties[column]});
     }
-    this.expressions[id] = expression;
+    if (!terms.length){
+      terms = [terms];
+    }
+    this.dimensions[column].filter(function(f){
+      if (terms.indexOf(f) === -1){
+        return true;
+      }
+    });
   },
 
   update: function(){
