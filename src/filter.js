@@ -10,34 +10,38 @@ function Filter(){
 
 Filter.prototype = {
   addTile: function(tilePoint, collection){
-    if (this.tiles.has(tilePoint)) return;
+    var tilePointString = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
+    if (this.tiles.has(tilePointString)) return;
     this.crossfilter.add(collection.features.map(function(f){
       f.properties.tilePoint = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
       return f;
     }));
-    this.tiles.add(tilePoint);
+    this.tiles.add(tilePointString);
   },
 
   removeTile: function(tilePoint){
+    var tilePointString = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
     if(!this.dimensions.tiles){
       return;
     }
-    this.dimensions.tiles.filter(tilePoint);
+    this.dimensions.tiles.filter(tilePointString);
     this.crossfilter.remove();
     this.dimensions.tiles.filterAll();
+    this.tiles.delete(tilePointString);
   },
 
   getTile: function(tilePoint){
+    var tilePointString = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
     if(!this.dimensions.tiles){
       this.dimensions.tiles = this.crossfilter.dimension(function(f){return f.properties.tilePoint});
     }
     var tile = {type: "FeatureCollection", features: null};
-    this.dimensions.tiles.filter(tilePoint);
+    this.dimensions.tiles.filter(tilePointString);
     tile.features = this.dimensions.tiles.top(Infinity);
     this.dimensions.tiles.filterAll();
     return tile;
   },
-  
+
   filterRange: function(column, range){
     if (!this.dimensions[column]){
       this.dimensions[column] = this.crossfilter.dimension(function(f){return f.properties[column]});
@@ -85,7 +89,13 @@ Filter.prototype = {
 
   getValues: function(column) {
     return this.dimensions[column].top(Infinity);
-  }
+  },
+
+  // setBoundingBox: function(north, east, south, west) {
+  //   if (!this.dimensions.bbox){
+  //     this.dimensions.bbox = this.crossfilter.dimension(function(f){ return })
+  //   }
+  // }
 
 }
 
