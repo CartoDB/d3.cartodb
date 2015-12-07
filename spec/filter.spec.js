@@ -10,7 +10,7 @@ describe("The filter", function(){
 	});
 
 	it ("should add the tile to the tileset", function(){
-		expect(this.filter.tiles.has("3:2:1")).toBe(true);
+		expect(this.filter.tiles["3:2:1"]).toBe(true);
 	});
 
 	it ("should fetch a tile by tilePoint", function(){
@@ -23,7 +23,7 @@ describe("The filter", function(){
 	});
 
 	it ("should remove the tile from the tileset", function() {
-		expect(this.filter.tiles.size).toEqual(0);
+		expect(Object.keys(this.filter.tiles).length).toEqual(0);
 	});
 
 	it("should add a dimension when filtering for the first time", function(){
