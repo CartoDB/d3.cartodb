@@ -3,7 +3,7 @@ var Crossfilter = require("crossfilter");
 function Filter(){
   this.crossfilter = new Crossfilter();
   this.dimensions = {};
-  this.tiles = new Set();
+  this.tiles = {};
   this.report = {};
   this.expressions = {};
 };
@@ -11,12 +11,12 @@ function Filter(){
 Filter.prototype = {
   addTile: function(tilePoint, collection){
     var tilePointString = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
-    if (this.tiles.has(tilePointString)) return this.getTile(tilePoint);
+    if (typeof this.tiles[tilePointString] != 'undefined') return this.getTile(tilePoint);
     this.crossfilter.add(collection.features.map(function(f){
       f.properties.tilePoint = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
       return f;
     }));
-    this.tiles.add(tilePointString);
+    this.tiles[tilePointString] = true;
     return this.getTile(tilePoint);
   },
 
@@ -28,7 +28,7 @@ Filter.prototype = {
     this.dimensions.tiles.filter(tilePointString);
     this.crossfilter.remove();
     this.dimensions.tiles.filterAll();
-    this.tiles.delete(tilePointString);
+    delete this.tiles[tilePointString];
   },
 
   getTile: function(tilePoint){
