@@ -51,10 +51,21 @@ Renderer.prototype = {
     this.renderer = new carto.RendererJS();
     this.shader = this.renderer.render(cartocss);
     if (this.layer){
-      for (var tileKey in this.layer._tiles){
+      for (var tileKey in this.layer.svgTiles){
         var tilePoint = tileKey.split(":");
         tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]};
-        this.render(this.layer._tiles[tileKey], null, tilePoint);
+        this.render(this.layer.svgTiles[tileKey], null, tilePoint, true);
+      }
+    }
+  },
+
+  redraw: function(updating){
+    if (this.layer){
+      for (var tileKey in this.layer.svgTiles){
+        var tilePoint = tileKey.split(":");
+        this.layer.svgTiles[tileKey].innerHTML = '';
+        tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]};
+        this.render(this.layer.svgTiles[tileKey], null, tilePoint, false);
       }
     }
   },
@@ -157,7 +168,7 @@ Renderer.prototype = {
 
   render: function(svg, collection, tilePoint, updating) {
     var self = this;
-    this.filter.addTile(tilePoint, collection); // It won't add duplicates
+    collection = this.filter.addTile(tilePoint, collection); // It won't add duplicates
     this.currentPoint = tilePoint;
     var shader = this.shader;
     var g, cached = false, styleLayers;
