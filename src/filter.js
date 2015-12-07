@@ -11,12 +11,13 @@ function Filter(){
 Filter.prototype = {
   addTile: function(tilePoint, collection){
     var tilePointString = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
-    if (this.tiles.has(tilePointString)) return;
+    if (this.tiles.has(tilePointString)) return this.getTile(tilePoint);
     this.crossfilter.add(collection.features.map(function(f){
       f.properties.tilePoint = tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y;
       return f;
     }));
     this.tiles.add(tilePointString);
+    return this.getTile(tilePoint);
   },
 
   removeTile: function(tilePoint){
@@ -47,6 +48,7 @@ Filter.prototype = {
       this.dimensions[column] = this.crossfilter.dimension(function(f){return f.properties[column]});
     }
     this.dimensions[column].filter(range);
+
   },
 
   filterAccept: function(column, terms){
@@ -61,6 +63,7 @@ Filter.prototype = {
         return true;
       }
     });
+
   },
 
   filterReject: function(column, terms){
