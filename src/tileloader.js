@@ -55,9 +55,9 @@ module.exports = L.Class.extend({
       for (i = bounds.min.x; i <= bounds.max.x; i++) {
         point = new L.Point(i, j);
         point.zoom =  zoom;
-        // if (this._tileShouldBeLoaded(point)) {
+        if (this._tileShouldBeLoaded(point)) {
           queue.push(point);
-        // }
+        }
       }
     }
 
