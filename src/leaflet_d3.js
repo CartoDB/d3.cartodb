@@ -1,32 +1,22 @@
 var Renderer = require("./renderer");
 var providers = require("./providers");
+var TileLoader = require('./tileloader');
 
-L.CartoDBd3Layer = L.TileLayer.extend({
-
-  includes: [L.Mixin.Events, L.Mixin.TileLoader],
+L.CartoDBd3Layer = L.Class.extend({
 
   options: {
     minZoom: 0,
     maxZoom: 28,
     tileSize: 256,
-    subdomains: 'abc',
-    errorTileUrl: '',
-    attribution: '',
-    zoomOffset: 0,
-    opacity: 1,
-    unloadInvisibleTiles: L.Browser.mobile,
-    updateWhenIdle: L.Browser.mobile,
-    tileLoader: false, // installs tile loading events
-    zoomAnimation: true,
-    tileBuffer: 50
+    zoomOffset: 0
   },
 
   initialize: function (options) {
     var self = this;
     options = options || {};
     this.renderers = [];
+    this.svgTiles = {};
     L.Util.setOptions(this, options);
-
   },
 
   onAdd: function (map) {
@@ -45,20 +35,31 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       this.provider = this.options.provider || new providers.WindshaftProvider(this.options);
     }
     for (var i = 0; i < styles.length; i++){
-      this.renderers.push(new Renderer({cartocss: styles[i],
-                                        layer: this}));
+      this.renderers.push(new Renderer({
+        cartocss: styles[i],
+        layer: this
+      }));
     }
     var tilePane = this._map._panes.tilePane;
     var layer = L.DomUtil.create('div', 'leaflet-layer');
-    var _container = layer.appendChild(L.DomUtil.create('div',"leaflet-tile-container leaflet-zoom-animated"));
+    var _container = layer.appendChild(L.DomUtil.create('div', "leaflet-tile-container leaflet-zoom-animated"));
     layer.appendChild(_container);
     tilePane.appendChild(layer);
     this._container = _container;
-    this._initTileLoader();
+
+    this.tileLoader = new TileLoader({
+      provider: this.provider,
+      tileSize: this.options.tileSize,
+      map: map
+    });
+    this.tileLoader.on('tileAdded', this._renderTile, this);
+    this.tileLoader.on('tileRemoved', this._clearTile, this);
+    this.tileLoader.loadTiles();
   },
 
   onRemove: function (map) {
     this._container.parentNode.removeChild(this._container);
+    this.tileLoader.unbindAndClearTiles();
   },
 
   addTo: function (map) {
@@ -66,58 +67,50 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     return this;
   },
 
-  loadTile: function (tilePoint) {
+  _renderTile: function (data) {
+    var tilePoint = data.tilePoint;
+    var geometry = data.geometry;
     var self = this;
-    var tile = this._tiles[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
-    if(!tile){
+    var tileKey = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
+    var tile = this.svgTiles[tileKey];
+    if (!tile) {
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       tile.style.padding = this.options.tileBuffer+"px";
       tile.style.margin = "-"+this.options.tileBuffer+"px";
+      tile.setAttribute("class", "leaflet-tile");
+      this.svgTiles[tileKey] = tile;
+      this._container.appendChild(tile);
     }
-    tile.setAttribute("class", "leaflet-tile");
-    this._container.appendChild(tile);
 
-    this.provider.getTile(tilePoint, function(tilePoint, geometry){
-      for(var i = 0; i < self.renderers.length; i++){
-        var collection = self.renderers.length > 1? geometry.features[i]: geometry
-        self.renderers[i].render(tile, collection, tilePoint);
-      }
-      self._tileLoaded(tilePoint, tile);
-    });
+    for(var i = 0; i < self.renderers.length; i++) {
+      var collection = self.renderers.length > 1 ? geometry.features[i] : geometry;
+      self.renderers[i].render(tile, collection, tilePoint);
+    }
 
     var tilePos = this._getTilePos(tilePoint);
     tile.style.width = tile.style.height = this._getTileSize() + 'px';
     L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome);
   },
 
-  _initTileLoader: function() {
-    this._tiles = {};
-    this._tilesLoading = {};
-    this._tilesToLoad = 0;
-    this._map.on({
-      'moveend': this._updateTiles
-    }, this);
-    this.on('tileAdded', this.loadTile);
-    this._map.on('zoomstart', function(){
-      this.provider.invalidateCache();
-      this._container.innerHTML = '';
-    }, this);
-    this._updateTiles();
+  _clearTile: function(data) {
+    var svg = this.svgTiles[data.tileKey];
+    this._container.removeChild(svg);
+    delete this.svgTiles[data.tileKey];
+  },
+
+  _getTilePos: function (tilePoint) {
+    tilePoint = new L.Point(tilePoint.x, tilePoint.y);
+    var origin = this._map.getPixelOrigin();
+    var tileSize = this._getTileSize();
+
+    return tilePoint.multiplyBy(tileSize).subtract(origin);
   },
 
   latLngToLayerPoint: function(lat, lng){
     return map.latLngToLayerPoint(new L.LatLng(lat,lng));
   },
 
-  _removeTile: function (key) {
-    // this._container.removeChild(this._tiles[key]);
-    this._tiles[key].innerHTML = '';
-    this.fire('tileRemoved', this._tiles[key]);
-    delete this._tiles[key];
-    delete this._tilesLoading[key];
-  },
-
-  _getTileSize: function () {
+  _getTileSize: function() {
     var map = this._map,
     zoom = map.getZoom() + this.options.zoomOffset,
     zoomN = this.options.maxNativeZoom,

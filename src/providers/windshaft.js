@@ -21,7 +21,6 @@ WindshaftProvider.prototype = {
 		cartodb.d3.net.jsonp(url + "&callback=mapconfig", function(data){
 			self.layergroup = data;
 			self.urlTemplate = self.tiler_template + "/api/v1/map/" + self.layergroup.layergroupid+"/0/{z}/{x}/{y}.geojson"
-			self.options.layer._reloadTiles();
 		});
 	},
 
@@ -42,7 +41,6 @@ WindshaftProvider.prototype = {
 	          self.format = "topojson";
 	          geometry = topojson.feature(geometry, geometry.objects.vectile);
 	        }
-	        this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
 	        callback(tilePoint, geometry);
 	      }.bind(this));
 	    }
