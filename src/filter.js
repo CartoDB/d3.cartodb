@@ -78,27 +78,33 @@ Filter.prototype = {
         return true;
       }
     });
+
   },
 
   clearFilters: function() {
     for (var column in this.dimensions){
       this.dimensions[column].filterAll();
     }
+
   },
 
   clearFilter: function(column) {
     this.dimensions[column].filterAll();
+
   },
 
   getValues: function(column) {
     return this.dimensions[column].top(Infinity);
   },
 
-  // setBoundingBox: function(north, east, south, west) {
-  //   if (!this.dimensions.bbox){
-  //     this.dimensions.bbox = this.crossfilter.dimension(function(f){ return })
-  //   }
-  // }
+  setBoundingBox: function(north, east, south, west) {
+    if (!this.dimensions.bbox){
+      this.dimensions.bbox = this.crossfilter.dimension(function(f){ return f.geometry;})
+      this.dimensions.bbox.filter(function(g){
+        debugger;
+      })
+    }
+  }
 
 }
 
