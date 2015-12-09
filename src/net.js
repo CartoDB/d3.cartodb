@@ -1,3 +1,5 @@
+var d3 = require("d3");
+
 //http://bl.ocks.org/tmcw/4494715
 module.exports.jsonp = function (url, callback) {
   function rand() {
