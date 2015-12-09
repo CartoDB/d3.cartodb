@@ -33,15 +33,16 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this._map = map;
     this.options.map = map;
     this.options.layer = this;
+    var styles = this.options.styles;
+    if(!styles){
+      styles = [this.options.cartocss];
+      this.options.styles = styles;
+    }
     if (this.options.urlTemplate || this.options.tilejson){
       this.provider = new providers.XYZProvider(this.options);
     }
     else {
-      this.provider = this.options.provider || new providers.SQLProvider(this.options);
-    }
-    var styles = this.options.styles;
-    if(!styles){
-      styles = [this.options.cartocss];
+      this.provider = this.options.provider || new providers.WindshaftProvider(this.options);
     }
     for (var i = 0; i < styles.length; i++){
       this.renderers.push(new Renderer({cartocss: styles[i],
