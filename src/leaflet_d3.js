@@ -8,7 +8,8 @@ L.CartoDBd3Layer = L.Class.extend({
     minZoom: 0,
     maxZoom: 28,
     tileSize: 256,
-    zoomOffset: 0
+    zoomOffset: 0,
+    tileBuffer: 50
   },
 
   initialize: function (options) {
