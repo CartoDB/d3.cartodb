@@ -101,11 +101,17 @@ Filter.prototype = {
     if (!this.dimensions.bbox){
       this.dimensions.bbox = this.crossfilter.dimension(function(f){ return f.geometry;})
       this.dimensions.bbox.filter(function(g){
-        debugger;
-      })
+        var north = this[0]
+        var east = this[1]
+        var south = this[2]
+        var west = this[3]
+        return g.coordinates[1] < north && 
+               g.coordinates[0] < east && 
+               g.coordinates[1] > south && 
+               g.coordinates[0] > west;
+      }.bind(arguments))
     }
   }
-
 }
 
 module.exports = Filter;
