@@ -27,6 +27,12 @@ var Renderer = function(options) {
 
 Renderer.prototype = {
 
+  events: {
+    featureOver: null,
+    featureOut: null,
+    featureClick: null
+  },
+
   /**
    * changes a global variable in cartocss
    * it can be used in carotcss in this way:
@@ -57,6 +63,10 @@ Renderer.prototype = {
         this.render(this.layer.svgTiles[tileKey], null, tilePoint, true);
       }
     }
+  },
+
+  on: function(eventName, callback) {
+    this.events[eventName] = callback;
   },
 
   redraw: function(updating){
@@ -295,6 +305,9 @@ Renderer.prototype = {
       if(cached){
         feature = feature.transition().duration(200);
       }
+      if(self.events.featureOver) { feature.on("mouseover", self.events.featureOver); }
+      if(self.events.featureOut) { feature.on("mouseout", self.events.featureOut); }
+      if(self.events.featureClick) { feature.on("click", self.events.featureClick); }
       feature.style(self.styleForSymbolizer(sym, 'shader'));
     });
     svgSel.attr("class", svgSel.attr("class") + " leaflet-tile-loaded");
