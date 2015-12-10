@@ -44,41 +44,22 @@ Filter.prototype = {
   },
 
   filterRange: function(column, range){
+    this.filter(column, range);
+  },
+
+  filter: function(column, filterfn) {
     if (!this.dimensions[column]){
       this.dimensions[column] = this.crossfilter.dimension(function(f){return f.properties[column]});
     }
-    this.dimensions[column].filter(range);
-
+    this.dimensions[column].filter(filterfn);
   },
 
   filterAccept: function(column, terms){
-    if (!this.dimensions[column]){
-      this.dimensions[column] = this.crossfilter.dimension(function(f){return f.properties[column]});
-    }
-    if (!(terms instanceof Array)){
-      terms = [terms];
-    }
-    this.dimensions[column].filter(function(f){
-      if (terms.indexOf(f) > -1){
-        return true;
-      }
-    });
-
+    this.filter(column, Filter.accept(terms));
   },
 
   filterReject: function(column, terms){
-    if (!this.dimensions[column]){
-      this.dimensions[column] = this.crossfilter.dimension(function(f){return f.properties[column]});
-    }
-    if (!terms.length){
-      terms = [terms];
-    }
-    this.dimensions[column].filter(function(f){
-      if (terms.indexOf(f) === -1){
-        return true;
-      }
-    });
-
+    this.filter(column, Filter.reject(terms));
   },
 
   clearFilters: function() {
@@ -112,6 +93,35 @@ Filter.prototype = {
       }.bind(arguments))
     }
   }
-}
+};
+
+
+["accept", "reject"].forEach(function(f){
+  Filter[f] = function(terms){
+    var termsDict = {};
+    if (!(terms instanceof Array)){
+      termsDict[terms] = true;
+    }
+    else{
+      terms.forEach(function(t){
+        termsDict[t] = true;
+      })
+    }
+    if (f === "accept"){
+      return function(f){
+        if (termsDict[f]){
+          return true;
+        }
+      };
+    }
+    else {
+      return function(f){
+        if (!termsDict[f]){
+          return true;
+        }
+      };
+    }
+  }
+});
 
 module.exports = Filter;
