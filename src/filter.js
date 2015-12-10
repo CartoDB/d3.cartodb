@@ -66,7 +66,6 @@ Filter.prototype = {
     for (var column in this.dimensions){
       this.dimensions[column].filterAll();
     }
-
   },
 
   clearFilter: function(column) {
@@ -97,14 +96,9 @@ Filter.prototype = {
 
 Filter.accept = function(terms) {
   var termsDict = {};
-  if (!(terms instanceof Array)){
-    termsDict[terms] = true;
-  }
-  else{
-    terms.forEach(function(t){
-      termsDict[t] = true;
-    })
-  }
+  terms.forEach(function(t){
+    termsDict[t] = true;
+  })
   return function(f){
     if (termsDict[f]){
       return true;
@@ -114,14 +108,9 @@ Filter.accept = function(terms) {
 
 Filter.reject = function(terms) {
   var termsDict = {};
-  if (!(terms instanceof Array)){
-    termsDict[terms] = true;
-  }
-  else{
-    terms.forEach(function(t){
-      termsDict[t] = true;
-    })
-  }
+  terms.forEach(function(t){
+    termsDict[t] = true;
+  })
   return function(f){
     if (termsDict[f]){
       return true;
