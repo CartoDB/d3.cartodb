@@ -95,33 +95,38 @@ Filter.prototype = {
   }
 };
 
-
-["accept", "reject"].forEach(function(f){
-  Filter[f] = function(terms){
-    var termsDict = {};
-    if (!(terms instanceof Array)){
-      termsDict[terms] = true;
-    }
-    else{
-      terms.forEach(function(t){
-        termsDict[t] = true;
-      })
-    }
-    if (f === "accept"){
-      return function(f){
-        if (termsDict[f]){
-          return true;
-        }
-      };
-    }
-    else {
-      return function(f){
-        if (!termsDict[f]){
-          return true;
-        }
-      };
-    }
+Filter.accept = function(terms) {
+  var termsDict = {};
+  if (!(terms instanceof Array)){
+    termsDict[terms] = true;
   }
-});
+  else{
+    terms.forEach(function(t){
+      termsDict[t] = true;
+    })
+  }
+  return function(f){
+    if (termsDict[f]){
+      return true;
+    }
+  };
+}
+
+Filter.reject = function(terms) {
+  var termsDict = {};
+  if (!(terms instanceof Array)){
+    termsDict[terms] = true;
+  }
+  else{
+    terms.forEach(function(t){
+      termsDict[t] = true;
+    })
+  }
+  return function(f){
+    if (termsDict[f]){
+      return true;
+    }
+  };
+}
 
 module.exports = Filter;
