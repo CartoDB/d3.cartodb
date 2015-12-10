@@ -19,6 +19,15 @@ L.CartoDBd3Layer = L.Class.extend({
     L.Util.setOptions(this, options);
   },
 
+  on: function(index, eventName, callback) {
+    if (eventName in this.renderers[index].events){
+      this.renderers[index].on(eventName, callback);
+    }
+    else{
+      L.Class.prototype.on.call(arguments.slice(1));
+    }
+  },
+
   onAdd: function (map) {
     this._map = map;
     this.options.map = map;
