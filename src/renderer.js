@@ -300,14 +300,20 @@ Renderer.prototype = {
         }
       
      
-
-      // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
       if(cached){
         feature = feature.transition().duration(200);
       }
-      if(self.events.featureOver) { feature.on("mouseover", self.events.featureOver); }
-      if(self.events.featureOut) { feature.on("mouseout", self.events.featureOut); }
-      if(self.events.featureClick) { feature.on("click", self.events.featureClick); }
+      if(feature.on){
+        feature.on("mouseover", function(f){
+          self.events.featureOver(f, d3.select(this));
+        });
+        feature.on("mouseout", function(f){
+          var d3feature = d3.select(this);
+          d3feature.transition().duration(400).style(self.styleForSymbolizer(sym, 'shader'));
+          //self.events.featureOver(f, d3.select(this));
+        });
+        if(self.events.featureClick) { feature.on("click", self.events.featureClick); }
+      }
       feature.style(self.styleForSymbolizer(sym, 'shader'));
     });
     svgSel.attr("class", svgSel.attr("class") + " leaflet-tile-loaded");
