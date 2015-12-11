@@ -8,7 +8,8 @@ L.CartoDBd3Layer = L.Class.extend({
     minZoom: 0,
     maxZoom: 28,
     tileSize: 256,
-    zoomOffset: 0
+    zoomOffset: 0,
+    tileBuffer: 50
   },
 
   initialize: function (options) {
@@ -75,6 +76,8 @@ L.CartoDBd3Layer = L.Class.extend({
     var tile = this.svgTiles[tileKey];
     if (!tile) {
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      tile.style.padding = this.options.tileBuffer+"px";
+      tile.style.margin = "-"+this.options.tileBuffer+"px";
       tile.setAttribute("class", "leaflet-tile");
       this.svgTiles[tileKey] = tile;
       this._container.appendChild(tile);
