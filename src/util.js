@@ -1,5 +1,5 @@
 var L = window.L
-var cartodb = window.cartodb
+var cartodb = require('../')
 
 module.exports = {
   viz: function (url, map, done) {

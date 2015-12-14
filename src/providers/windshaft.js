@@ -1,6 +1,6 @@
 var d3 = require('d3')
 var topojson = require('topojson')
-var cartodb = window.cartodb
+var cartodb = require('../')
 
 function WindshaftProvider (options) {
   this.tiler_template = options.tiler_template || 'http://{user}.cartodb.com'
