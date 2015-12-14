@@ -8706,9 +8706,1415 @@ module.exports={
 }
 
 },{}],46:[function(require,module,exports){
+(function(exports){
+crossfilter.version = "1.3.12";
+function crossfilter_identity(d) {
+  return d;
+}
+crossfilter.permute = permute;
+
+function permute(array, index) {
+  for (var i = 0, n = index.length, copy = new Array(n); i < n; ++i) {
+    copy[i] = array[index[i]];
+  }
+  return copy;
+}
+var bisect = crossfilter.bisect = bisect_by(crossfilter_identity);
+
+bisect.by = bisect_by;
+
+function bisect_by(f) {
+
+  // Locate the insertion point for x in a to maintain sorted order. The
+  // arguments lo and hi may be used to specify a subset of the array which
+  // should be considered; by default the entire array is used. If x is already
+  // present in a, the insertion point will be before (to the left of) any
+  // existing entries. The return value is suitable for use as the first
+  // argument to `array.splice` assuming that a is already sorted.
+  //
+  // The returned insertion point i partitions the array a into two halves so
+  // that all v < x for v in a[lo:i] for the left side and all v >= x for v in
+  // a[i:hi] for the right side.
+  function bisectLeft(a, x, lo, hi) {
+    while (lo < hi) {
+      var mid = lo + hi >>> 1;
+      if (f(a[mid]) < x) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+
+  // Similar to bisectLeft, but returns an insertion point which comes after (to
+  // the right of) any existing entries of x in a.
+  //
+  // The returned insertion point i partitions the array into two halves so that
+  // all v <= x for v in a[lo:i] for the left side and all v > x for v in
+  // a[i:hi] for the right side.
+  function bisectRight(a, x, lo, hi) {
+    while (lo < hi) {
+      var mid = lo + hi >>> 1;
+      if (x < f(a[mid])) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo;
+  }
+
+  bisectRight.right = bisectRight;
+  bisectRight.left = bisectLeft;
+  return bisectRight;
+}
+var heap = crossfilter.heap = heap_by(crossfilter_identity);
+
+heap.by = heap_by;
+
+function heap_by(f) {
+
+  // Builds a binary heap within the specified array a[lo:hi]. The heap has the
+  // property such that the parent a[lo+i] is always less than or equal to its
+  // two children: a[lo+2*i+1] and a[lo+2*i+2].
+  function heap(a, lo, hi) {
+    var n = hi - lo,
+        i = (n >>> 1) + 1;
+    while (--i > 0) sift(a, i, n, lo);
+    return a;
+  }
+
+  // Sorts the specified array a[lo:hi] in descending order, assuming it is
+  // already a heap.
+  function sort(a, lo, hi) {
+    var n = hi - lo,
+        t;
+    while (--n > 0) t = a[lo], a[lo] = a[lo + n], a[lo + n] = t, sift(a, 1, n, lo);
+    return a;
+  }
+
+  // Sifts the element a[lo+i-1] down the heap, where the heap is the contiguous
+  // slice of array a[lo:lo+n]. This method can also be used to update the heap
+  // incrementally, without incurring the full cost of reconstructing the heap.
+  function sift(a, i, n, lo) {
+    var d = a[--lo + i],
+        x = f(d),
+        child;
+    while ((child = i << 1) <= n) {
+      if (child < n && f(a[lo + child]) > f(a[lo + child + 1])) child++;
+      if (x <= f(a[lo + child])) break;
+      a[lo + i] = a[lo + child];
+      i = child;
+    }
+    a[lo + i] = d;
+  }
+
+  heap.sort = sort;
+  return heap;
+}
+var heapselect = crossfilter.heapselect = heapselect_by(crossfilter_identity);
+
+heapselect.by = heapselect_by;
+
+function heapselect_by(f) {
+  var heap = heap_by(f);
+
+  // Returns a new array containing the top k elements in the array a[lo:hi].
+  // The returned array is not sorted, but maintains the heap property. If k is
+  // greater than hi - lo, then fewer than k elements will be returned. The
+  // order of elements in a is unchanged by this operation.
+  function heapselect(a, lo, hi, k) {
+    var queue = new Array(k = Math.min(hi - lo, k)),
+        min,
+        i,
+        x,
+        d;
+
+    for (i = 0; i < k; ++i) queue[i] = a[lo++];
+    heap(queue, 0, k);
+
+    if (lo < hi) {
+      min = f(queue[0]);
+      do {
+        if (x = f(d = a[lo]) > min) {
+          queue[0] = d;
+          min = f(heap(queue, 0, k)[0]);
+        }
+      } while (++lo < hi);
+    }
+
+    return queue;
+  }
+
+  return heapselect;
+}
+var insertionsort = crossfilter.insertionsort = insertionsort_by(crossfilter_identity);
+
+insertionsort.by = insertionsort_by;
+
+function insertionsort_by(f) {
+
+  function insertionsort(a, lo, hi) {
+    for (var i = lo + 1; i < hi; ++i) {
+      for (var j = i, t = a[i], x = f(t); j > lo && f(a[j - 1]) > x; --j) {
+        a[j] = a[j - 1];
+      }
+      a[j] = t;
+    }
+    return a;
+  }
+
+  return insertionsort;
+}
+// Algorithm designed by Vladimir Yaroslavskiy.
+// Implementation based on the Dart project; see lib/dart/LICENSE for details.
+
+var quicksort = crossfilter.quicksort = quicksort_by(crossfilter_identity);
+
+quicksort.by = quicksort_by;
+
+function quicksort_by(f) {
+  var insertionsort = insertionsort_by(f);
+
+  function sort(a, lo, hi) {
+    return (hi - lo < quicksort_sizeThreshold
+        ? insertionsort
+        : quicksort)(a, lo, hi);
+  }
+
+  function quicksort(a, lo, hi) {
+    // Compute the two pivots by looking at 5 elements.
+    var sixth = (hi - lo) / 6 | 0,
+        i1 = lo + sixth,
+        i5 = hi - 1 - sixth,
+        i3 = lo + hi - 1 >> 1,  // The midpoint.
+        i2 = i3 - sixth,
+        i4 = i3 + sixth;
+
+    var e1 = a[i1], x1 = f(e1),
+        e2 = a[i2], x2 = f(e2),
+        e3 = a[i3], x3 = f(e3),
+        e4 = a[i4], x4 = f(e4),
+        e5 = a[i5], x5 = f(e5);
+
+    var t;
+
+    // Sort the selected 5 elements using a sorting network.
+    if (x1 > x2) t = e1, e1 = e2, e2 = t, t = x1, x1 = x2, x2 = t;
+    if (x4 > x5) t = e4, e4 = e5, e5 = t, t = x4, x4 = x5, x5 = t;
+    if (x1 > x3) t = e1, e1 = e3, e3 = t, t = x1, x1 = x3, x3 = t;
+    if (x2 > x3) t = e2, e2 = e3, e3 = t, t = x2, x2 = x3, x3 = t;
+    if (x1 > x4) t = e1, e1 = e4, e4 = t, t = x1, x1 = x4, x4 = t;
+    if (x3 > x4) t = e3, e3 = e4, e4 = t, t = x3, x3 = x4, x4 = t;
+    if (x2 > x5) t = e2, e2 = e5, e5 = t, t = x2, x2 = x5, x5 = t;
+    if (x2 > x3) t = e2, e2 = e3, e3 = t, t = x2, x2 = x3, x3 = t;
+    if (x4 > x5) t = e4, e4 = e5, e5 = t, t = x4, x4 = x5, x5 = t;
+
+    var pivot1 = e2, pivotValue1 = x2,
+        pivot2 = e4, pivotValue2 = x4;
+
+    // e2 and e4 have been saved in the pivot variables. They will be written
+    // back, once the partitioning is finished.
+    a[i1] = e1;
+    a[i2] = a[lo];
+    a[i3] = e3;
+    a[i4] = a[hi - 1];
+    a[i5] = e5;
+
+    var less = lo + 1,   // First element in the middle partition.
+        great = hi - 2;  // Last element in the middle partition.
+
+    // Note that for value comparison, <, <=, >= and > coerce to a primitive via
+    // Object.prototype.valueOf; == and === do not, so in order to be consistent
+    // with natural order (such as for Date objects), we must do two compares.
+    var pivotsEqual = pivotValue1 <= pivotValue2 && pivotValue1 >= pivotValue2;
+    if (pivotsEqual) {
+
+      // Degenerated case where the partitioning becomes a dutch national flag
+      // problem.
+      //
+      // [ |  < pivot  | == pivot | unpartitioned | > pivot  | ]
+      //  ^             ^          ^             ^            ^
+      // left         less         k           great         right
+      //
+      // a[left] and a[right] are undefined and are filled after the
+      // partitioning.
+      //
+      // Invariants:
+      //   1) for x in ]left, less[ : x < pivot.
+      //   2) for x in [less, k[ : x == pivot.
+      //   3) for x in ]great, right[ : x > pivot.
+      for (var k = less; k <= great; ++k) {
+        var ek = a[k], xk = f(ek);
+        if (xk < pivotValue1) {
+          if (k !== less) {
+            a[k] = a[less];
+            a[less] = ek;
+          }
+          ++less;
+        } else if (xk > pivotValue1) {
+
+          // Find the first element <= pivot in the range [k - 1, great] and
+          // put [:ek:] there. We know that such an element must exist:
+          // When k == less, then el3 (which is equal to pivot) lies in the
+          // interval. Otherwise a[k - 1] == pivot and the search stops at k-1.
+          // Note that in the latter case invariant 2 will be violated for a
+          // short amount of time. The invariant will be restored when the
+          // pivots are put into their final positions.
+          while (true) {
+            var greatValue = f(a[great]);
+            if (greatValue > pivotValue1) {
+              great--;
+              // This is the only location in the while-loop where a new
+              // iteration is started.
+              continue;
+            } else if (greatValue < pivotValue1) {
+              // Triple exchange.
+              a[k] = a[less];
+              a[less++] = a[great];
+              a[great--] = ek;
+              break;
+            } else {
+              a[k] = a[great];
+              a[great--] = ek;
+              // Note: if great < k then we will exit the outer loop and fix
+              // invariant 2 (which we just violated).
+              break;
+            }
+          }
+        }
+      }
+    } else {
+
+      // We partition the list into three parts:
+      //  1. < pivot1
+      //  2. >= pivot1 && <= pivot2
+      //  3. > pivot2
+      //
+      // During the loop we have:
+      // [ | < pivot1 | >= pivot1 && <= pivot2 | unpartitioned  | > pivot2  | ]
+      //  ^            ^                        ^              ^             ^
+      // left         less                     k              great        right
+      //
+      // a[left] and a[right] are undefined and are filled after the
+      // partitioning.
+      //
+      // Invariants:
+      //   1. for x in ]left, less[ : x < pivot1
+      //   2. for x in [less, k[ : pivot1 <= x && x <= pivot2
+      //   3. for x in ]great, right[ : x > pivot2
+      for (var k = less; k <= great; k++) {
+        var ek = a[k], xk = f(ek);
+        if (xk < pivotValue1) {
+          if (k !== less) {
+            a[k] = a[less];
+            a[less] = ek;
+          }
+          ++less;
+        } else {
+          if (xk > pivotValue2) {
+            while (true) {
+              var greatValue = f(a[great]);
+              if (greatValue > pivotValue2) {
+                great--;
+                if (great < k) break;
+                // This is the only location inside the loop where a new
+                // iteration is started.
+                continue;
+              } else {
+                // a[great] <= pivot2.
+                if (greatValue < pivotValue1) {
+                  // Triple exchange.
+                  a[k] = a[less];
+                  a[less++] = a[great];
+                  a[great--] = ek;
+                } else {
+                  // a[great] >= pivot1.
+                  a[k] = a[great];
+                  a[great--] = ek;
+                }
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Move pivots into their final positions.
+    // We shrunk the list from both sides (a[left] and a[right] have
+    // meaningless values in them) and now we move elements from the first
+    // and third partition into these locations so that we can store the
+    // pivots.
+    a[lo] = a[less - 1];
+    a[less - 1] = pivot1;
+    a[hi - 1] = a[great + 1];
+    a[great + 1] = pivot2;
+
+    // The list is now partitioned into three partitions:
+    // [ < pivot1   | >= pivot1 && <= pivot2   |  > pivot2   ]
+    //  ^            ^                        ^             ^
+    // left         less                     great        right
+
+    // Recursive descent. (Don't include the pivot values.)
+    sort(a, lo, less - 1);
+    sort(a, great + 2, hi);
+
+    if (pivotsEqual) {
+      // All elements in the second partition are equal to the pivot. No
+      // need to sort them.
+      return a;
+    }
+
+    // In theory it should be enough to call _doSort recursively on the second
+    // partition.
+    // The Android source however removes the pivot elements from the recursive
+    // call if the second partition is too large (more than 2/3 of the list).
+    if (less < i1 && great > i5) {
+      var lessValue, greatValue;
+      while ((lessValue = f(a[less])) <= pivotValue1 && lessValue >= pivotValue1) ++less;
+      while ((greatValue = f(a[great])) <= pivotValue2 && greatValue >= pivotValue2) --great;
+
+      // Copy paste of the previous 3-way partitioning with adaptions.
+      //
+      // We partition the list into three parts:
+      //  1. == pivot1
+      //  2. > pivot1 && < pivot2
+      //  3. == pivot2
+      //
+      // During the loop we have:
+      // [ == pivot1 | > pivot1 && < pivot2 | unpartitioned  | == pivot2 ]
+      //              ^                      ^              ^
+      //            less                     k              great
+      //
+      // Invariants:
+      //   1. for x in [ *, less[ : x == pivot1
+      //   2. for x in [less, k[ : pivot1 < x && x < pivot2
+      //   3. for x in ]great, * ] : x == pivot2
+      for (var k = less; k <= great; k++) {
+        var ek = a[k], xk = f(ek);
+        if (xk <= pivotValue1 && xk >= pivotValue1) {
+          if (k !== less) {
+            a[k] = a[less];
+            a[less] = ek;
+          }
+          less++;
+        } else {
+          if (xk <= pivotValue2 && xk >= pivotValue2) {
+            while (true) {
+              var greatValue = f(a[great]);
+              if (greatValue <= pivotValue2 && greatValue >= pivotValue2) {
+                great--;
+                if (great < k) break;
+                // This is the only location inside the loop where a new
+                // iteration is started.
+                continue;
+              } else {
+                // a[great] < pivot2.
+                if (greatValue < pivotValue1) {
+                  // Triple exchange.
+                  a[k] = a[less];
+                  a[less++] = a[great];
+                  a[great--] = ek;
+                } else {
+                  // a[great] == pivot1.
+                  a[k] = a[great];
+                  a[great--] = ek;
+                }
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // The second partition has now been cleared of pivot elements and looks
+    // as follows:
+    // [  *  |  > pivot1 && < pivot2  | * ]
+    //        ^                      ^
+    //       less                  great
+    // Sort the second partition using recursive descent.
+
+    // The second partition looks as follows:
+    // [  *  |  >= pivot1 && <= pivot2  | * ]
+    //        ^                        ^
+    //       less                    great
+    // Simply sort it by recursive descent.
+
+    return sort(a, less, great + 1);
+  }
+
+  return sort;
+}
+
+var quicksort_sizeThreshold = 32;
+var crossfilter_array8 = crossfilter_arrayUntyped,
+    crossfilter_array16 = crossfilter_arrayUntyped,
+    crossfilter_array32 = crossfilter_arrayUntyped,
+    crossfilter_arrayLengthen = crossfilter_arrayLengthenUntyped,
+    crossfilter_arrayWiden = crossfilter_arrayWidenUntyped;
+
+if (typeof Uint8Array !== "undefined") {
+  crossfilter_array8 = function(n) { return new Uint8Array(n); };
+  crossfilter_array16 = function(n) { return new Uint16Array(n); };
+  crossfilter_array32 = function(n) { return new Uint32Array(n); };
+
+  crossfilter_arrayLengthen = function(array, length) {
+    if (array.length >= length) return array;
+    var copy = new array.constructor(length);
+    copy.set(array);
+    return copy;
+  };
+
+  crossfilter_arrayWiden = function(array, width) {
+    var copy;
+    switch (width) {
+      case 16: copy = crossfilter_array16(array.length); break;
+      case 32: copy = crossfilter_array32(array.length); break;
+      default: throw new Error("invalid array width!");
+    }
+    copy.set(array);
+    return copy;
+  };
+}
+
+function crossfilter_arrayUntyped(n) {
+  var array = new Array(n), i = -1;
+  while (++i < n) array[i] = 0;
+  return array;
+}
+
+function crossfilter_arrayLengthenUntyped(array, length) {
+  var n = array.length;
+  while (n < length) array[n++] = 0;
+  return array;
+}
+
+function crossfilter_arrayWidenUntyped(array, width) {
+  if (width > 32) throw new Error("invalid array width!");
+  return array;
+}
+function crossfilter_filterExact(bisect, value) {
+  return function(values) {
+    var n = values.length;
+    return [bisect.left(values, value, 0, n), bisect.right(values, value, 0, n)];
+  };
+}
+
+function crossfilter_filterRange(bisect, range) {
+  var min = range[0],
+      max = range[1];
+  return function(values) {
+    var n = values.length;
+    return [bisect.left(values, min, 0, n), bisect.left(values, max, 0, n)];
+  };
+}
+
+function crossfilter_filterAll(values) {
+  return [0, values.length];
+}
+function crossfilter_null() {
+  return null;
+}
+function crossfilter_zero() {
+  return 0;
+}
+function crossfilter_reduceIncrement(p) {
+  return p + 1;
+}
+
+function crossfilter_reduceDecrement(p) {
+  return p - 1;
+}
+
+function crossfilter_reduceAdd(f) {
+  return function(p, v) {
+    return p + +f(v);
+  };
+}
+
+function crossfilter_reduceSubtract(f) {
+  return function(p, v) {
+    return p - f(v);
+  };
+}
+exports.crossfilter = crossfilter;
+
+function crossfilter() {
+  var crossfilter = {
+    add: add,
+    remove: removeData,
+    dimension: dimension,
+    groupAll: groupAll,
+    size: size
+  };
+
+  var data = [], // the records
+      n = 0, // the number of records; data.length
+      m = 0, // a bit mask representing which dimensions are in use
+      M = 8, // number of dimensions that can fit in `filters`
+      filters = crossfilter_array8(0), // M bits per record; 1 is filtered out
+      filterListeners = [], // when the filters change
+      dataListeners = [], // when data is added
+      removeDataListeners = []; // when data is removed
+
+  // Adds the specified new records to this crossfilter.
+  function add(newData) {
+    var n0 = n,
+        n1 = newData.length;
+
+    // If there's actually new data to add…
+    // Merge the new data into the existing data.
+    // Lengthen the filter bitset to handle the new records.
+    // Notify listeners (dimensions and groups) that new data is available.
+    if (n1) {
+      data = data.concat(newData);
+      filters = crossfilter_arrayLengthen(filters, n += n1);
+      dataListeners.forEach(function(l) { l(newData, n0, n1); });
+    }
+
+    return crossfilter;
+  }
+
+  // Removes all records that match the current filters.
+  function removeData() {
+    var newIndex = crossfilter_index(n, n),
+        removed = [];
+    for (var i = 0, j = 0; i < n; ++i) {
+      if (filters[i]) newIndex[i] = j++;
+      else removed.push(i);
+    }
+
+    // Remove all matching records from groups.
+    filterListeners.forEach(function(l) { l(0, [], removed); });
+
+    // Update indexes.
+    removeDataListeners.forEach(function(l) { l(newIndex); });
+
+    // Remove old filters and data by overwriting.
+    for (var i = 0, j = 0, k; i < n; ++i) {
+      if (k = filters[i]) {
+        if (i !== j) filters[j] = k, data[j] = data[i];
+        ++j;
+      }
+    }
+    data.length = j;
+    while (n > j) filters[--n] = 0;
+  }
+
+  // Adds a new dimension with the specified value accessor function.
+  function dimension(value) {
+    var dimension = {
+      filter: filter,
+      filterExact: filterExact,
+      filterRange: filterRange,
+      filterFunction: filterFunction,
+      filterAll: filterAll,
+      top: top,
+      bottom: bottom,
+      group: group,
+      groupAll: groupAll,
+      dispose: dispose,
+      remove: dispose // for backwards-compatibility
+    };
+
+    var one = ~m & -~m, // lowest unset bit as mask, e.g., 00001000
+        zero = ~one, // inverted one, e.g., 11110111
+        values, // sorted, cached array
+        index, // value rank ↦ object id
+        newValues, // temporary array storing newly-added values
+        newIndex, // temporary array storing newly-added index
+        sort = quicksort_by(function(i) { return newValues[i]; }),
+        refilter = crossfilter_filterAll, // for recomputing filter
+        refilterFunction, // the custom filter function in use
+        indexListeners = [], // when data is added
+        dimensionGroups = [],
+        lo0 = 0,
+        hi0 = 0;
+
+    // Updating a dimension is a two-stage process. First, we must update the
+    // associated filters for the newly-added records. Once all dimensions have
+    // updated their filters, the groups are notified to update.
+    dataListeners.unshift(preAdd);
+    dataListeners.push(postAdd);
+
+    removeDataListeners.push(removeData);
+
+    // Incorporate any existing data into this dimension, and make sure that the
+    // filter bitset is wide enough to handle the new dimension.
+    m |= one;
+    if (M >= 32 ? !one : m & -(1 << M)) {
+      filters = crossfilter_arrayWiden(filters, M <<= 1);
+    }
+    preAdd(data, 0, n);
+    postAdd(data, 0, n);
+
+    // Incorporates the specified new records into this dimension.
+    // This function is responsible for updating filters, values, and index.
+    function preAdd(newData, n0, n1) {
+
+      // Permute new values into natural order using a sorted index.
+      newValues = newData.map(value);
+      newIndex = sort(crossfilter_range(n1), 0, n1);
+      newValues = permute(newValues, newIndex);
+
+      // Bisect newValues to determine which new records are selected.
+      var bounds = refilter(newValues), lo1 = bounds[0], hi1 = bounds[1], i;
+      if (refilterFunction) {
+        for (i = 0; i < n1; ++i) {
+          if (!refilterFunction(newValues[i], i)) filters[newIndex[i] + n0] |= one;
+        }
+      } else {
+        for (i = 0; i < lo1; ++i) filters[newIndex[i] + n0] |= one;
+        for (i = hi1; i < n1; ++i) filters[newIndex[i] + n0] |= one;
+      }
+
+      // If this dimension previously had no data, then we don't need to do the
+      // more expensive merge operation; use the new values and index as-is.
+      if (!n0) {
+        values = newValues;
+        index = newIndex;
+        lo0 = lo1;
+        hi0 = hi1;
+        return;
+      }
+
+      var oldValues = values,
+          oldIndex = index,
+          i0 = 0,
+          i1 = 0;
+
+      // Otherwise, create new arrays into which to merge new and old.
+      values = new Array(n);
+      index = crossfilter_index(n, n);
+
+      // Merge the old and new sorted values, and old and new index.
+      for (i = 0; i0 < n0 && i1 < n1; ++i) {
+        if (oldValues[i0] < newValues[i1]) {
+          values[i] = oldValues[i0];
+          index[i] = oldIndex[i0++];
+        } else {
+          values[i] = newValues[i1];
+          index[i] = newIndex[i1++] + n0;
+        }
+      }
+
+      // Add any remaining old values.
+      for (; i0 < n0; ++i0, ++i) {
+        values[i] = oldValues[i0];
+        index[i] = oldIndex[i0];
+      }
+
+      // Add any remaining new values.
+      for (; i1 < n1; ++i1, ++i) {
+        values[i] = newValues[i1];
+        index[i] = newIndex[i1] + n0;
+      }
+
+      // Bisect again to recompute lo0 and hi0.
+      bounds = refilter(values), lo0 = bounds[0], hi0 = bounds[1];
+    }
+
+    // When all filters have updated, notify index listeners of the new values.
+    function postAdd(newData, n0, n1) {
+      indexListeners.forEach(function(l) { l(newValues, newIndex, n0, n1); });
+      newValues = newIndex = null;
+    }
+
+    function removeData(reIndex) {
+      for (var i = 0, j = 0, k; i < n; ++i) {
+        if (filters[k = index[i]]) {
+          if (i !== j) values[j] = values[i];
+          index[j] = reIndex[k];
+          ++j;
+        }
+      }
+      values.length = j;
+      while (j < n) index[j++] = 0;
+
+      // Bisect again to recompute lo0 and hi0.
+      var bounds = refilter(values);
+      lo0 = bounds[0], hi0 = bounds[1];
+    }
+
+    // Updates the selected values based on the specified bounds [lo, hi].
+    // This implementation is used by all the public filter methods.
+    function filterIndexBounds(bounds) {
+      var lo1 = bounds[0],
+          hi1 = bounds[1];
+
+      if (refilterFunction) {
+        refilterFunction = null;
+        filterIndexFunction(function(d, i) { return lo1 <= i && i < hi1; });
+        lo0 = lo1;
+        hi0 = hi1;
+        return dimension;
+      }
+
+      var i,
+          j,
+          k,
+          added = [],
+          removed = [];
+
+      // Fast incremental update based on previous lo index.
+      if (lo1 < lo0) {
+        for (i = lo1, j = Math.min(lo0, hi1); i < j; ++i) {
+          filters[k = index[i]] ^= one;
+          added.push(k);
+        }
+      } else if (lo1 > lo0) {
+        for (i = lo0, j = Math.min(lo1, hi0); i < j; ++i) {
+          filters[k = index[i]] ^= one;
+          removed.push(k);
+        }
+      }
+
+      // Fast incremental update based on previous hi index.
+      if (hi1 > hi0) {
+        for (i = Math.max(lo1, hi0), j = hi1; i < j; ++i) {
+          filters[k = index[i]] ^= one;
+          added.push(k);
+        }
+      } else if (hi1 < hi0) {
+        for (i = Math.max(lo0, hi1), j = hi0; i < j; ++i) {
+          filters[k = index[i]] ^= one;
+          removed.push(k);
+        }
+      }
+
+      lo0 = lo1;
+      hi0 = hi1;
+      filterListeners.forEach(function(l) { l(one, added, removed); });
+      return dimension;
+    }
+
+    // Filters this dimension using the specified range, value, or null.
+    // If the range is null, this is equivalent to filterAll.
+    // If the range is an array, this is equivalent to filterRange.
+    // Otherwise, this is equivalent to filterExact.
+    function filter(range) {
+      return range == null
+          ? filterAll() : Array.isArray(range)
+          ? filterRange(range) : typeof range === "function"
+          ? filterFunction(range)
+          : filterExact(range);
+    }
+
+    // Filters this dimension to select the exact value.
+    function filterExact(value) {
+      return filterIndexBounds((refilter = crossfilter_filterExact(bisect, value))(values));
+    }
+
+    // Filters this dimension to select the specified range [lo, hi].
+    // The lower bound is inclusive, and the upper bound is exclusive.
+    function filterRange(range) {
+      return filterIndexBounds((refilter = crossfilter_filterRange(bisect, range))(values));
+    }
+
+    // Clears any filters on this dimension.
+    function filterAll() {
+      return filterIndexBounds((refilter = crossfilter_filterAll)(values));
+    }
+
+    // Filters this dimension using an arbitrary function.
+    function filterFunction(f) {
+      refilter = crossfilter_filterAll;
+
+      filterIndexFunction(refilterFunction = f);
+
+      lo0 = 0;
+      hi0 = n;
+
+      return dimension;
+    }
+
+    function filterIndexFunction(f) {
+      var i,
+          k,
+          x,
+          added = [],
+          removed = [];
+
+      for (i = 0; i < n; ++i) {
+        if (!(filters[k = index[i]] & one) ^ !!(x = f(values[i], i))) {
+          if (x) filters[k] &= zero, added.push(k);
+          else filters[k] |= one, removed.push(k);
+        }
+      }
+      filterListeners.forEach(function(l) { l(one, added, removed); });
+    }
+
+    // Returns the top K selected records based on this dimension's order.
+    // Note: observes this dimension's filter, unlike group and groupAll.
+    function top(k) {
+      var array = [],
+          i = hi0,
+          j;
+
+      while (--i >= lo0 && k > 0) {
+        if (!filters[j = index[i]]) {
+          array.push(data[j]);
+          --k;
+        }
+      }
+
+      return array;
+    }
+
+    // Returns the bottom K selected records based on this dimension's order.
+    // Note: observes this dimension's filter, unlike group and groupAll.
+    function bottom(k) {
+      var array = [],
+          i = lo0,
+          j;
+
+      while (i < hi0 && k > 0) {
+        if (!filters[j = index[i]]) {
+          array.push(data[j]);
+          --k;
+        }
+        i++;
+      }
+
+      return array;
+    }
+
+    // Adds a new group to this dimension, using the specified key function.
+    function group(key) {
+      var group = {
+        top: top,
+        all: all,
+        reduce: reduce,
+        reduceCount: reduceCount,
+        reduceSum: reduceSum,
+        order: order,
+        orderNatural: orderNatural,
+        size: size,
+        dispose: dispose,
+        remove: dispose // for backwards-compatibility
+      };
+
+      // Ensure that this group will be removed when the dimension is removed.
+      dimensionGroups.push(group);
+
+      var groups, // array of {key, value}
+          groupIndex, // object id ↦ group id
+          groupWidth = 8,
+          groupCapacity = crossfilter_capacity(groupWidth),
+          k = 0, // cardinality
+          select,
+          heap,
+          reduceAdd,
+          reduceRemove,
+          reduceInitial,
+          update = crossfilter_null,
+          reset = crossfilter_null,
+          resetNeeded = true,
+          groupAll = key === crossfilter_null;
+
+      if (arguments.length < 1) key = crossfilter_identity;
+
+      // The group listens to the crossfilter for when any dimension changes, so
+      // that it can update the associated reduce values. It must also listen to
+      // the parent dimension for when data is added, and compute new keys.
+      filterListeners.push(update);
+      indexListeners.push(add);
+      removeDataListeners.push(removeData);
+
+      // Incorporate any existing data into the grouping.
+      add(values, index, 0, n);
+
+      // Incorporates the specified new values into this group.
+      // This function is responsible for updating groups and groupIndex.
+      function add(newValues, newIndex, n0, n1) {
+        var oldGroups = groups,
+            reIndex = crossfilter_index(k, groupCapacity),
+            add = reduceAdd,
+            initial = reduceInitial,
+            k0 = k, // old cardinality
+            i0 = 0, // index of old group
+            i1 = 0, // index of new record
+            j, // object id
+            g0, // old group
+            x0, // old key
+            x1, // new key
+            g, // group to add
+            x; // key of group to add
+
+        // If a reset is needed, we don't need to update the reduce values.
+        if (resetNeeded) add = initial = crossfilter_null;
+
+        // Reset the new groups (k is a lower bound).
+        // Also, make sure that groupIndex exists and is long enough.
+        groups = new Array(k), k = 0;
+        groupIndex = k0 > 1 ? crossfilter_arrayLengthen(groupIndex, n) : crossfilter_index(n, groupCapacity);
+
+        // Get the first old key (x0 of g0), if it exists.
+        if (k0) x0 = (g0 = oldGroups[0]).key;
+
+        // Find the first new key (x1), skipping NaN keys.
+        while (i1 < n1 && !((x1 = key(newValues[i1])) >= x1)) ++i1;
+
+        // While new keys remain…
+        while (i1 < n1) {
+
+          // Determine the lesser of the two current keys; new and old.
+          // If there are no old keys remaining, then always add the new key.
+          if (g0 && x0 <= x1) {
+            g = g0, x = x0;
+
+            // Record the new index of the old group.
+            reIndex[i0] = k;
+
+            // Retrieve the next old key.
+            if (g0 = oldGroups[++i0]) x0 = g0.key;
+          } else {
+            g = {key: x1, value: initial()}, x = x1;
+          }
+
+          // Add the lesser group.
+          groups[k] = g;
+
+          // Add any selected records belonging to the added group, while
+          // advancing the new key and populating the associated group index.
+          while (!(x1 > x)) {
+            groupIndex[j = newIndex[i1] + n0] = k;
+            if (!(filters[j] & zero)) g.value = add(g.value, data[j]);
+            if (++i1 >= n1) break;
+            x1 = key(newValues[i1]);
+          }
+
+          groupIncrement();
+        }
+
+        // Add any remaining old groups that were greater than all new keys.
+        // No incremental reduce is needed; these groups have no new records.
+        // Also record the new index of the old group.
+        while (i0 < k0) {
+          groups[reIndex[i0] = k] = oldGroups[i0++];
+          groupIncrement();
+        }
+
+        // If we added any new groups before any old groups,
+        // update the group index of all the old records.
+        if (k > i0) for (i0 = 0; i0 < n0; ++i0) {
+          groupIndex[i0] = reIndex[groupIndex[i0]];
+        }
+
+        // Modify the update and reset behavior based on the cardinality.
+        // If the cardinality is less than or equal to one, then the groupIndex
+        // is not needed. If the cardinality is zero, then there are no records
+        // and therefore no groups to update or reset. Note that we also must
+        // change the registered listener to point to the new method.
+        j = filterListeners.indexOf(update);
+        if (k > 1) {
+          update = updateMany;
+          reset = resetMany;
+        } else {
+          if (!k && groupAll) {
+            k = 1;
+            groups = [{key: null, value: initial()}];
+          }
+          if (k === 1) {
+            update = updateOne;
+            reset = resetOne;
+          } else {
+            update = crossfilter_null;
+            reset = crossfilter_null;
+          }
+          groupIndex = null;
+        }
+        filterListeners[j] = update;
+
+        // Count the number of added groups,
+        // and widen the group index as needed.
+        function groupIncrement() {
+          if (++k === groupCapacity) {
+            reIndex = crossfilter_arrayWiden(reIndex, groupWidth <<= 1);
+            groupIndex = crossfilter_arrayWiden(groupIndex, groupWidth);
+            groupCapacity = crossfilter_capacity(groupWidth);
+          }
+        }
+      }
+
+      function removeData() {
+        if (k > 1) {
+          var oldK = k,
+              oldGroups = groups,
+              seenGroups = crossfilter_index(oldK, oldK);
+
+          // Filter out non-matches by copying matching group index entries to
+          // the beginning of the array.
+          for (var i = 0, j = 0; i < n; ++i) {
+            if (filters[i]) {
+              seenGroups[groupIndex[j] = groupIndex[i]] = 1;
+              ++j;
+            }
+          }
+
+          // Reassemble groups including only those groups that were referred
+          // to by matching group index entries.  Note the new group index in
+          // seenGroups.
+          groups = [], k = 0;
+          for (i = 0; i < oldK; ++i) {
+            if (seenGroups[i]) {
+              seenGroups[i] = k++;
+              groups.push(oldGroups[i]);
+            }
+          }
+
+          if (k > 1) {
+            // Reindex the group index using seenGroups to find the new index.
+            for (var i = 0; i < j; ++i) groupIndex[i] = seenGroups[groupIndex[i]];
+          } else {
+            groupIndex = null;
+          }
+          filterListeners[filterListeners.indexOf(update)] = k > 1
+              ? (reset = resetMany, update = updateMany)
+              : k === 1 ? (reset = resetOne, update = updateOne)
+              : reset = update = crossfilter_null;
+        } else if (k === 1) {
+          if (groupAll) return;
+          for (var i = 0; i < n; ++i) if (filters[i]) return;
+          groups = [], k = 0;
+          filterListeners[filterListeners.indexOf(update)] =
+          update = reset = crossfilter_null;
+        }
+      }
+
+      // Reduces the specified selected or deselected records.
+      // This function is only used when the cardinality is greater than 1.
+      function updateMany(filterOne, added, removed) {
+        if (filterOne === one || resetNeeded) return;
+
+        var i,
+            k,
+            n,
+            g;
+
+        // Add the added values.
+        for (i = 0, n = added.length; i < n; ++i) {
+          if (!(filters[k = added[i]] & zero)) {
+            g = groups[groupIndex[k]];
+            g.value = reduceAdd(g.value, data[k]);
+          }
+        }
+
+        // Remove the removed values.
+        for (i = 0, n = removed.length; i < n; ++i) {
+          if ((filters[k = removed[i]] & zero) === filterOne) {
+            g = groups[groupIndex[k]];
+            g.value = reduceRemove(g.value, data[k]);
+          }
+        }
+      }
+
+      // Reduces the specified selected or deselected records.
+      // This function is only used when the cardinality is 1.
+      function updateOne(filterOne, added, removed) {
+        if (filterOne === one || resetNeeded) return;
+
+        var i,
+            k,
+            n,
+            g = groups[0];
+
+        // Add the added values.
+        for (i = 0, n = added.length; i < n; ++i) {
+          if (!(filters[k = added[i]] & zero)) {
+            g.value = reduceAdd(g.value, data[k]);
+          }
+        }
+
+        // Remove the removed values.
+        for (i = 0, n = removed.length; i < n; ++i) {
+          if ((filters[k = removed[i]] & zero) === filterOne) {
+            g.value = reduceRemove(g.value, data[k]);
+          }
+        }
+      }
+
+      // Recomputes the group reduce values from scratch.
+      // This function is only used when the cardinality is greater than 1.
+      function resetMany() {
+        var i,
+            g;
+
+        // Reset all group values.
+        for (i = 0; i < k; ++i) {
+          groups[i].value = reduceInitial();
+        }
+
+        // Add any selected records.
+        for (i = 0; i < n; ++i) {
+          if (!(filters[i] & zero)) {
+            g = groups[groupIndex[i]];
+            g.value = reduceAdd(g.value, data[i]);
+          }
+        }
+      }
+
+      // Recomputes the group reduce values from scratch.
+      // This function is only used when the cardinality is 1.
+      function resetOne() {
+        var i,
+            g = groups[0];
+
+        // Reset the singleton group values.
+        g.value = reduceInitial();
+
+        // Add any selected records.
+        for (i = 0; i < n; ++i) {
+          if (!(filters[i] & zero)) {
+            g.value = reduceAdd(g.value, data[i]);
+          }
+        }
+      }
+
+      // Returns the array of group values, in the dimension's natural order.
+      function all() {
+        if (resetNeeded) reset(), resetNeeded = false;
+        return groups;
+      }
+
+      // Returns a new array containing the top K group values, in reduce order.
+      function top(k) {
+        var top = select(all(), 0, groups.length, k);
+        return heap.sort(top, 0, top.length);
+      }
+
+      // Sets the reduce behavior for this group to use the specified functions.
+      // This method lazily recomputes the reduce values, waiting until needed.
+      function reduce(add, remove, initial) {
+        reduceAdd = add;
+        reduceRemove = remove;
+        reduceInitial = initial;
+        resetNeeded = true;
+        return group;
+      }
+
+      // A convenience method for reducing by count.
+      function reduceCount() {
+        return reduce(crossfilter_reduceIncrement, crossfilter_reduceDecrement, crossfilter_zero);
+      }
+
+      // A convenience method for reducing by sum(value).
+      function reduceSum(value) {
+        return reduce(crossfilter_reduceAdd(value), crossfilter_reduceSubtract(value), crossfilter_zero);
+      }
+
+      // Sets the reduce order, using the specified accessor.
+      function order(value) {
+        select = heapselect_by(valueOf);
+        heap = heap_by(valueOf);
+        function valueOf(d) { return value(d.value); }
+        return group;
+      }
+
+      // A convenience method for natural ordering by reduce value.
+      function orderNatural() {
+        return order(crossfilter_identity);
+      }
+
+      // Returns the cardinality of this group, irrespective of any filters.
+      function size() {
+        return k;
+      }
+
+      // Removes this group and associated event listeners.
+      function dispose() {
+        var i = filterListeners.indexOf(update);
+        if (i >= 0) filterListeners.splice(i, 1);
+        i = indexListeners.indexOf(add);
+        if (i >= 0) indexListeners.splice(i, 1);
+        i = removeDataListeners.indexOf(removeData);
+        if (i >= 0) removeDataListeners.splice(i, 1);
+        return group;
+      }
+
+      return reduceCount().orderNatural();
+    }
+
+    // A convenience function for generating a singleton group.
+    function groupAll() {
+      var g = group(crossfilter_null), all = g.all;
+      delete g.all;
+      delete g.top;
+      delete g.order;
+      delete g.orderNatural;
+      delete g.size;
+      g.value = function() { return all()[0].value; };
+      return g;
+    }
+
+    // Removes this dimension and associated groups and event listeners.
+    function dispose() {
+      dimensionGroups.forEach(function(group) { group.dispose(); });
+      var i = dataListeners.indexOf(preAdd);
+      if (i >= 0) dataListeners.splice(i, 1);
+      i = dataListeners.indexOf(postAdd);
+      if (i >= 0) dataListeners.splice(i, 1);
+      i = removeDataListeners.indexOf(removeData);
+      if (i >= 0) removeDataListeners.splice(i, 1);
+      m &= zero;
+      return filterAll();
+    }
+
+    return dimension;
+  }
+
+  // A convenience method for groupAll on a dummy dimension.
+  // This implementation can be optimized since it always has cardinality 1.
+  function groupAll() {
+    var group = {
+      reduce: reduce,
+      reduceCount: reduceCount,
+      reduceSum: reduceSum,
+      value: value,
+      dispose: dispose,
+      remove: dispose // for backwards-compatibility
+    };
+
+    var reduceValue,
+        reduceAdd,
+        reduceRemove,
+        reduceInitial,
+        resetNeeded = true;
+
+    // The group listens to the crossfilter for when any dimension changes, so
+    // that it can update the reduce value. It must also listen to the parent
+    // dimension for when data is added.
+    filterListeners.push(update);
+    dataListeners.push(add);
+
+    // For consistency; actually a no-op since resetNeeded is true.
+    add(data, 0, n);
+
+    // Incorporates the specified new values into this group.
+    function add(newData, n0) {
+      var i;
+
+      if (resetNeeded) return;
+
+      // Add the added values.
+      for (i = n0; i < n; ++i) {
+        if (!filters[i]) {
+          reduceValue = reduceAdd(reduceValue, data[i]);
+        }
+      }
+    }
+
+    // Reduces the specified selected or deselected records.
+    function update(filterOne, added, removed) {
+      var i,
+          k,
+          n;
+
+      if (resetNeeded) return;
+
+      // Add the added values.
+      for (i = 0, n = added.length; i < n; ++i) {
+        if (!filters[k = added[i]]) {
+          reduceValue = reduceAdd(reduceValue, data[k]);
+        }
+      }
+
+      // Remove the removed values.
+      for (i = 0, n = removed.length; i < n; ++i) {
+        if (filters[k = removed[i]] === filterOne) {
+          reduceValue = reduceRemove(reduceValue, data[k]);
+        }
+      }
+    }
+
+    // Recomputes the group reduce value from scratch.
+    function reset() {
+      var i;
+
+      reduceValue = reduceInitial();
+
+      for (i = 0; i < n; ++i) {
+        if (!filters[i]) {
+          reduceValue = reduceAdd(reduceValue, data[i]);
+        }
+      }
+    }
+
+    // Sets the reduce behavior for this group to use the specified functions.
+    // This method lazily recomputes the reduce value, waiting until needed.
+    function reduce(add, remove, initial) {
+      reduceAdd = add;
+      reduceRemove = remove;
+      reduceInitial = initial;
+      resetNeeded = true;
+      return group;
+    }
+
+    // A convenience method for reducing by count.
+    function reduceCount() {
+      return reduce(crossfilter_reduceIncrement, crossfilter_reduceDecrement, crossfilter_zero);
+    }
+
+    // A convenience method for reducing by sum(value).
+    function reduceSum(value) {
+      return reduce(crossfilter_reduceAdd(value), crossfilter_reduceSubtract(value), crossfilter_zero);
+    }
+
+    // Returns the computed reduce value.
+    function value() {
+      if (resetNeeded) reset(), resetNeeded = false;
+      return reduceValue;
+    }
+
+    // Removes this group and associated event listeners.
+    function dispose() {
+      var i = filterListeners.indexOf(update);
+      if (i >= 0) filterListeners.splice(i);
+      i = dataListeners.indexOf(add);
+      if (i >= 0) dataListeners.splice(i);
+      return group;
+    }
+
+    return reduceCount();
+  }
+
+  // Returns the number of records in this crossfilter, irrespective of any filters.
+  function size() {
+    return n;
+  }
+
+  return arguments.length
+      ? add(arguments[0])
+      : crossfilter;
+}
+
+// Returns an array of size n, big enough to store ids up to m.
+function crossfilter_index(n, m) {
+  return (m < 0x101
+      ? crossfilter_array8 : m < 0x10001
+      ? crossfilter_array16
+      : crossfilter_array32)(n);
+}
+
+// Constructs a new array of size n, with sequential values from 0 to n - 1.
+function crossfilter_range(n) {
+  var range = crossfilter_index(n, n);
+  for (var i = -1; ++i < n;) range[i] = i;
+  return range;
+}
+
+function crossfilter_capacity(w) {
+  return w === 8
+      ? 0x100 : w === 16
+      ? 0x10000
+      : 0x100000000;
+}
+})(typeof exports !== 'undefined' && exports || this);
+
+},{}],47:[function(require,module,exports){
+module.exports = require("./crossfilter").crossfilter;
+
+},{"./crossfilter":46}],48:[function(require,module,exports){
 !function() {
   var d3 = {
-    version: "3.5.6"
+    version: "3.5.9"
   };
   var d3_arraySlice = [].slice, d3_array = function(list) {
     return d3_arraySlice.call(list);
@@ -9339,10 +10745,7 @@ module.exports={
     prefix: d3_nsPrefix,
     qualify: function(name) {
       var i = name.indexOf(":"), prefix = name;
-      if (i >= 0) {
-        prefix = name.slice(0, i);
-        name = name.slice(i + 1);
-      }
+      if (i >= 0 && (prefix = name.slice(0, i)) !== "xmlns") name = name.slice(i + 1);
       return d3_nsPrefix.hasOwnProperty(prefix) ? {
         space: d3_nsPrefix[prefix],
         local: name
@@ -9553,12 +10956,14 @@ module.exports={
       if (key) {
         var nodeByKeyValue = new d3_Map(), keyValues = new Array(n), keyValue;
         for (i = -1; ++i < n; ) {
-          if (nodeByKeyValue.has(keyValue = key.call(node = group[i], node.__data__, i))) {
-            exitNodes[i] = node;
-          } else {
-            nodeByKeyValue.set(keyValue, node);
+          if (node = group[i]) {
+            if (nodeByKeyValue.has(keyValue = key.call(node, node.__data__, i))) {
+              exitNodes[i] = node;
+            } else {
+              nodeByKeyValue.set(keyValue, node);
+            }
+            keyValues[i] = keyValue;
           }
-          keyValues[i] = keyValue;
         }
         for (i = -1; ++i < m; ) {
           if (!(node = nodeByKeyValue.get(keyValue = key.call(groupData, nodeData = groupData[i], i)))) {
@@ -9570,7 +10975,7 @@ module.exports={
           nodeByKeyValue.set(keyValue, true);
         }
         for (i = -1; ++i < n; ) {
-          if (nodeByKeyValue.get(keyValues[i]) !== true) {
+          if (i in keyValues && nodeByKeyValue.get(keyValues[i]) !== true) {
             exitNodes[i] = group[i];
           }
         }
@@ -9762,7 +11167,7 @@ module.exports={
       group = d3_array(d3_selectAll(nodes, d3_document));
       group.parentNode = d3_document.documentElement;
     } else {
-      group = nodes;
+      group = d3_array(nodes);
       group.parentNode = null;
     }
     return d3_selection([ group ]);
@@ -9941,7 +11346,7 @@ module.exports={
         function ended() {
           if (!position(parent, dragId)) return;
           dragSubject.on(move + dragName, null).on(end + dragName, null);
-          dragRestore(dragged && d3.event.target === target);
+          dragRestore(dragged);
           dispatch({
             type: "dragend"
           });
@@ -9993,18 +11398,22 @@ module.exports={
   }
   var ρ = Math.SQRT2, ρ2 = 2, ρ4 = 4;
   d3.interpolateZoom = function(p0, p1) {
-    var ux0 = p0[0], uy0 = p0[1], w0 = p0[2], ux1 = p1[0], uy1 = p1[1], w1 = p1[2];
-    var dx = ux1 - ux0, dy = uy1 - uy0, d2 = dx * dx + dy * dy, d1 = Math.sqrt(d2), b0 = (w1 * w1 - w0 * w0 + ρ4 * d2) / (2 * w0 * ρ2 * d1), b1 = (w1 * w1 - w0 * w0 - ρ4 * d2) / (2 * w1 * ρ2 * d1), r0 = Math.log(Math.sqrt(b0 * b0 + 1) - b0), r1 = Math.log(Math.sqrt(b1 * b1 + 1) - b1), dr = r1 - r0, S = (dr || Math.log(w1 / w0)) / ρ;
-    function interpolate(t) {
-      var s = t * S;
-      if (dr) {
-        var coshr0 = d3_cosh(r0), u = w0 / (ρ2 * d1) * (coshr0 * d3_tanh(ρ * s + r0) - d3_sinh(r0));
+    var ux0 = p0[0], uy0 = p0[1], w0 = p0[2], ux1 = p1[0], uy1 = p1[1], w1 = p1[2], dx = ux1 - ux0, dy = uy1 - uy0, d2 = dx * dx + dy * dy, i, S;
+    if (d2 < ε2) {
+      S = Math.log(w1 / w0) / ρ;
+      i = function(t) {
+        return [ ux0 + t * dx, uy0 + t * dy, w0 * Math.exp(ρ * t * S) ];
+      };
+    } else {
+      var d1 = Math.sqrt(d2), b0 = (w1 * w1 - w0 * w0 + ρ4 * d2) / (2 * w0 * ρ2 * d1), b1 = (w1 * w1 - w0 * w0 - ρ4 * d2) / (2 * w1 * ρ2 * d1), r0 = Math.log(Math.sqrt(b0 * b0 + 1) - b0), r1 = Math.log(Math.sqrt(b1 * b1 + 1) - b1);
+      S = (r1 - r0) / ρ;
+      i = function(t) {
+        var s = t * S, coshr0 = d3_cosh(r0), u = w0 / (ρ2 * d1) * (coshr0 * d3_tanh(ρ * s + r0) - d3_sinh(r0));
         return [ ux0 + u * dx, uy0 + u * dy, w0 * coshr0 / d3_cosh(ρ * s + r0) ];
-      }
-      return [ ux0 + t * dx, uy0 + t * dy, w0 * Math.exp(ρ * s) ];
+      };
     }
-    interpolate.duration = S * 1e3;
-    return interpolate;
+    i.duration = S * 1e3;
+    return i;
   };
   d3.behavior.zoom = function() {
     var view = {
@@ -10074,8 +11483,9 @@ module.exports={
       view = {
         x: view.x,
         y: view.y,
-        k: +_
+        k: null
       };
+      scaleTo(+_);
       rescale();
       return zoom;
     };
@@ -10174,7 +11584,7 @@ module.exports={
       }), center0 = null;
     }
     function mousedowned() {
-      var that = this, target = d3.event.target, dispatch = event.of(that, arguments), dragged = 0, subject = d3.select(d3_window(that)).on(mousemove, moved).on(mouseup, ended), location0 = location(d3.mouse(that)), dragRestore = d3_event_dragSuppress(that);
+      var that = this, dispatch = event.of(that, arguments), dragged = 0, subject = d3.select(d3_window(that)).on(mousemove, moved).on(mouseup, ended), location0 = location(d3.mouse(that)), dragRestore = d3_event_dragSuppress(that);
       d3_selection_interrupt.call(that);
       zoomstarted(dispatch);
       function moved() {
@@ -10184,7 +11594,7 @@ module.exports={
       }
       function ended() {
         subject.on(mousemove, null).on(mouseup, null);
-        dragRestore(dragged && d3.event.target === target);
+        dragRestore(dragged);
         zoomended(dispatch);
       }
     }
@@ -10406,9 +11816,8 @@ module.exports={
     return v < 16 ? "0" + Math.max(0, v).toString(16) : Math.min(255, v).toString(16);
   }
   function d3_rgb_parse(format, rgb, hsl) {
-    format = format.toLowerCase();
     var r = 0, g = 0, b = 0, m1, m2, color;
-    m1 = /([a-z]+)\((.*)\)/.exec(format);
+    m1 = /([a-z]+)\((.*)\)/.exec(format = format.toLowerCase());
     if (m1) {
       m2 = m1[2].split(",");
       switch (m1[1]) {
@@ -10823,17 +12232,19 @@ module.exports={
   };
   d3.csv = d3.dsv(",", "text/csv");
   d3.tsv = d3.dsv("	", "text/tab-separated-values");
-  var d3_timer_queueHead, d3_timer_queueTail, d3_timer_interval, d3_timer_timeout, d3_timer_active, d3_timer_frame = this[d3_vendorSymbol(this, "requestAnimationFrame")] || function(callback) {
+  var d3_timer_queueHead, d3_timer_queueTail, d3_timer_interval, d3_timer_timeout, d3_timer_frame = this[d3_vendorSymbol(this, "requestAnimationFrame")] || function(callback) {
     setTimeout(callback, 17);
   };
-  d3.timer = function(callback, delay, then) {
+  d3.timer = function() {
+    d3_timer.apply(this, arguments);
+  };
+  function d3_timer(callback, delay, then) {
     var n = arguments.length;
     if (n < 2) delay = 0;
     if (n < 3) then = Date.now();
     var time = then + delay, timer = {
       c: callback,
       t: time,
-      f: false,
       n: null
     };
     if (d3_timer_queueTail) d3_timer_queueTail.n = timer; else d3_timer_queueHead = timer;
@@ -10843,7 +12254,8 @@ module.exports={
       d3_timer_interval = 1;
       d3_timer_frame(d3_timer_step);
     }
-  };
+    return timer;
+  }
   function d3_timer_step() {
     var now = d3_timer_mark(), delay = d3_timer_sweep() - now;
     if (delay > 24) {
@@ -10862,22 +12274,21 @@ module.exports={
     d3_timer_sweep();
   };
   function d3_timer_mark() {
-    var now = Date.now();
-    d3_timer_active = d3_timer_queueHead;
-    while (d3_timer_active) {
-      if (now >= d3_timer_active.t) d3_timer_active.f = d3_timer_active.c(now - d3_timer_active.t);
-      d3_timer_active = d3_timer_active.n;
+    var now = Date.now(), timer = d3_timer_queueHead;
+    while (timer) {
+      if (now >= timer.t && timer.c(now - timer.t)) timer.c = null;
+      timer = timer.n;
     }
     return now;
   }
   function d3_timer_sweep() {
     var t0, t1 = d3_timer_queueHead, time = Infinity;
     while (t1) {
-      if (t1.f) {
-        t1 = t0 ? t0.n = t1.n : d3_timer_queueHead = t1.n;
-      } else {
+      if (t1.c) {
         if (t1.t < time) time = t1.t;
         t1 = (t0 = t1).n;
+      } else {
+        t1 = t0 ? t0.n = t1.n : d3_timer_queueHead = t1.n;
       }
     }
     d3_timer_queueTail = t0;
@@ -10892,7 +12303,7 @@ module.exports={
   var d3_formatPrefixes = [ "y", "z", "a", "f", "p", "n", "µ", "m", "", "k", "M", "G", "T", "P", "E", "Z", "Y" ].map(d3_formatPrefix);
   d3.formatPrefix = function(value, precision) {
     var i = 0;
-    if (value) {
+    if (value = +value) {
       if (value < 0) value *= -1;
       if (precision) value = d3.round(value, d3_format_precision(value, precision));
       i = 1 + Math.floor(1e-12 + Math.log(value) / Math.LN10);
@@ -11242,7 +12653,8 @@ module.exports={
         if (i != string.length) return null;
         if ("p" in d) d.H = d.H % 12 + d.p * 12;
         var localZ = d.Z != null && d3_date !== d3_date_utc, date = new (localZ ? d3_date_utc : d3_date)();
-        if ("j" in d) date.setFullYear(d.y, 0, d.j); else if ("w" in d && ("W" in d || "U" in d)) {
+        if ("j" in d) date.setFullYear(d.y, 0, d.j); else if ("W" in d || "U" in d) {
+          if (!("w" in d)) d.w = "W" in d ? 1 : 0;
           date.setFullYear(d.y, 0, 1);
           date.setFullYear(d.y, 0, "W" in d ? (d.w + 6) % 7 + d.W * 7 - (date.getDay() + 5) % 7 : d.w + d.U * 7 - (date.getDay() + 6) % 7);
         } else date.setFullYear(d.y, d.m, d.d);
@@ -14694,54 +16106,68 @@ module.exports={
     f: 0
   };
   d3.interpolateTransform = d3_interpolateTransform;
-  function d3_interpolateTransform(a, b) {
-    var s = [], q = [], n, A = d3.transform(a), B = d3.transform(b), ta = A.translate, tb = B.translate, ra = A.rotate, rb = B.rotate, wa = A.skew, wb = B.skew, ka = A.scale, kb = B.scale;
-    if (ta[0] != tb[0] || ta[1] != tb[1]) {
-      s.push("translate(", null, ",", null, ")");
+  function d3_interpolateTransformPop(s) {
+    return s.length ? s.pop() + "," : "";
+  }
+  function d3_interpolateTranslate(ta, tb, s, q) {
+    if (ta[0] !== tb[0] || ta[1] !== tb[1]) {
+      var i = s.push("translate(", null, ",", null, ")");
       q.push({
-        i: 1,
+        i: i - 4,
         x: d3_interpolateNumber(ta[0], tb[0])
       }, {
-        i: 3,
+        i: i - 2,
         x: d3_interpolateNumber(ta[1], tb[1])
       });
     } else if (tb[0] || tb[1]) {
       s.push("translate(" + tb + ")");
-    } else {
-      s.push("");
     }
-    if (ra != rb) {
+  }
+  function d3_interpolateRotate(ra, rb, s, q) {
+    if (ra !== rb) {
       if (ra - rb > 180) rb += 360; else if (rb - ra > 180) ra += 360;
       q.push({
-        i: s.push(s.pop() + "rotate(", null, ")") - 2,
+        i: s.push(d3_interpolateTransformPop(s) + "rotate(", null, ")") - 2,
         x: d3_interpolateNumber(ra, rb)
       });
     } else if (rb) {
-      s.push(s.pop() + "rotate(" + rb + ")");
+      s.push(d3_interpolateTransformPop(s) + "rotate(" + rb + ")");
     }
-    if (wa != wb) {
+  }
+  function d3_interpolateSkew(wa, wb, s, q) {
+    if (wa !== wb) {
       q.push({
-        i: s.push(s.pop() + "skewX(", null, ")") - 2,
+        i: s.push(d3_interpolateTransformPop(s) + "skewX(", null, ")") - 2,
         x: d3_interpolateNumber(wa, wb)
       });
     } else if (wb) {
-      s.push(s.pop() + "skewX(" + wb + ")");
+      s.push(d3_interpolateTransformPop(s) + "skewX(" + wb + ")");
     }
-    if (ka[0] != kb[0] || ka[1] != kb[1]) {
-      n = s.push(s.pop() + "scale(", null, ",", null, ")");
+  }
+  function d3_interpolateScale(ka, kb, s, q) {
+    if (ka[0] !== kb[0] || ka[1] !== kb[1]) {
+      var i = s.push(d3_interpolateTransformPop(s) + "scale(", null, ",", null, ")");
       q.push({
-        i: n - 4,
+        i: i - 4,
         x: d3_interpolateNumber(ka[0], kb[0])
       }, {
-        i: n - 2,
+        i: i - 2,
         x: d3_interpolateNumber(ka[1], kb[1])
       });
-    } else if (kb[0] != 1 || kb[1] != 1) {
-      s.push(s.pop() + "scale(" + kb + ")");
+    } else if (kb[0] !== 1 || kb[1] !== 1) {
+      s.push(d3_interpolateTransformPop(s) + "scale(" + kb + ")");
     }
-    n = q.length;
+  }
+  function d3_interpolateTransform(a, b) {
+    var s = [], q = [];
+    a = d3.transform(a), b = d3.transform(b);
+    d3_interpolateTranslate(a.translate, b.translate, s, q);
+    d3_interpolateRotate(a.rotate, b.rotate, s, q);
+    d3_interpolateSkew(a.skew, b.skew, s, q);
+    d3_interpolateScale(a.scale, b.scale, s, q);
+    a = b = null;
     return function(t) {
-      var i = -1, o;
+      var i = -1, n = q.length, o;
       while (++i < n) s[(o = q[i]).i] = o.x(t);
       return s.join("");
     };
@@ -14913,7 +16339,7 @@ module.exports={
     return chord;
   };
   d3.layout.force = function() {
-    var force = {}, event = d3.dispatch("start", "tick", "end"), size = [ 1, 1 ], drag, alpha, friction = .9, linkDistance = d3_layout_forceLinkDistance, linkStrength = d3_layout_forceLinkStrength, charge = -30, chargeDistance2 = d3_layout_forceChargeDistance2, gravity = .1, theta2 = .64, nodes = [], links = [], distances, strengths, charges;
+    var force = {}, event = d3.dispatch("start", "tick", "end"), timer, size = [ 1, 1 ], drag, alpha, friction = .9, linkDistance = d3_layout_forceLinkDistance, linkStrength = d3_layout_forceLinkStrength, charge = -30, chargeDistance2 = d3_layout_forceChargeDistance2, gravity = .1, theta2 = .64, nodes = [], links = [], distances, strengths, charges;
     function repulse(node) {
       return function(quad, x1, _, x2) {
         if (quad.point !== node) {
@@ -14937,6 +16363,7 @@ module.exports={
     }
     force.tick = function() {
       if ((alpha *= .99) < .005) {
+        timer = null;
         event.end({
           type: "end",
           alpha: alpha = 0
@@ -14954,7 +16381,7 @@ module.exports={
           l = alpha * strengths[i] * ((l = Math.sqrt(l)) - distances[i]) / l;
           x *= l;
           y *= l;
-          t.x -= x * (k = s.weight / (t.weight + s.weight));
+          t.x -= x * (k = s.weight + t.weight ? s.weight / (s.weight + t.weight) : .5);
           t.y -= y * k;
           s.x += x * (k = 1 - k);
           s.y += y * k;
@@ -15050,13 +16477,21 @@ module.exports={
       if (!arguments.length) return alpha;
       x = +x;
       if (alpha) {
-        if (x > 0) alpha = x; else alpha = 0;
+        if (x > 0) {
+          alpha = x;
+        } else {
+          timer.c = null, timer.t = NaN, timer = null;
+          event.start({
+            type: "end",
+            alpha: alpha = 0
+          });
+        }
       } else if (x > 0) {
         event.start({
           type: "start",
           alpha: alpha = x
         });
-        d3.timer(force.tick);
+        timer = d3_timer(force.tick);
       }
       return force;
     };
@@ -15310,7 +16745,7 @@ module.exports={
     function pie(data) {
       var n = data.length, values = data.map(function(d, i) {
         return +value.call(pie, d, i);
-      }), a = +(typeof startAngle === "function" ? startAngle.apply(this, arguments) : startAngle), da = (typeof endAngle === "function" ? endAngle.apply(this, arguments) : endAngle) - a, p = Math.min(Math.abs(da) / n, +(typeof padAngle === "function" ? padAngle.apply(this, arguments) : padAngle)), pa = p * (da < 0 ? -1 : 1), k = (da - n * pa) / d3.sum(values), index = d3.range(n), arcs = [], v;
+      }), a = +(typeof startAngle === "function" ? startAngle.apply(this, arguments) : startAngle), da = (typeof endAngle === "function" ? endAngle.apply(this, arguments) : endAngle) - a, p = Math.min(Math.abs(da) / n, +(typeof padAngle === "function" ? padAngle.apply(this, arguments) : padAngle)), pa = p * (da < 0 ? -1 : 1), sum = d3.sum(values), k = sum ? (da - n * pa) / sum : 0, index = d3.range(n), arcs = [], v;
       if (sort != null) index.sort(sort === d3_layout_pieSortByValue ? function(i, j) {
         return values[j] - values[i];
       } : function(i, j) {
@@ -16023,10 +17458,8 @@ module.exports={
     }
     function treemap(d) {
       var nodes = stickies || hierarchy(d), root = nodes[0];
-      root.x = 0;
-      root.y = 0;
-      root.dx = size[0];
-      root.dy = size[1];
+      root.x = root.y = 0;
+      if (root.value) root.dx = size[0], root.dy = size[1]; else root.dx = root.dy = 0;
       if (stickies) hierarchy.revalue(root);
       scale([ root ], root.dx * root.dy / root.value);
       (stickies ? stickify : squarify)(root);
@@ -16690,11 +18123,16 @@ module.exports={
       } else {
         x2 = y2 = 0;
       }
-      if ((rc = Math.min(Math.abs(r1 - r0) / 2, +cornerRadius.apply(this, arguments))) > .001) {
+      if (da > ε && (rc = Math.min(Math.abs(r1 - r0) / 2, +cornerRadius.apply(this, arguments))) > .001) {
         cr = r0 < r1 ^ cw ? 0 : 1;
-        var oc = x3 == null ? [ x2, y2 ] : x1 == null ? [ x0, y0 ] : d3_geom_polygonIntersect([ x0, y0 ], [ x3, y3 ], [ x1, y1 ], [ x2, y2 ]), ax = x0 - oc[0], ay = y0 - oc[1], bx = x1 - oc[0], by = y1 - oc[1], kc = 1 / Math.sin(Math.acos((ax * bx + ay * by) / (Math.sqrt(ax * ax + ay * ay) * Math.sqrt(bx * bx + by * by))) / 2), lc = Math.sqrt(oc[0] * oc[0] + oc[1] * oc[1]);
+        var rc1 = rc, rc0 = rc;
+        if (da < π) {
+          var oc = x3 == null ? [ x2, y2 ] : x1 == null ? [ x0, y0 ] : d3_geom_polygonIntersect([ x0, y0 ], [ x3, y3 ], [ x1, y1 ], [ x2, y2 ]), ax = x0 - oc[0], ay = y0 - oc[1], bx = x1 - oc[0], by = y1 - oc[1], kc = 1 / Math.sin(Math.acos((ax * bx + ay * by) / (Math.sqrt(ax * ax + ay * ay) * Math.sqrt(bx * bx + by * by))) / 2), lc = Math.sqrt(oc[0] * oc[0] + oc[1] * oc[1]);
+          rc0 = Math.min(rc, (r0 - lc) / (kc - 1));
+          rc1 = Math.min(rc, (r1 - lc) / (kc + 1));
+        }
         if (x1 != null) {
-          var rc1 = Math.min(rc, (r1 - lc) / (kc + 1)), t30 = d3_svg_arcCornerTangents(x3 == null ? [ x2, y2 ] : [ x3, y3 ], [ x0, y0 ], r1, rc1, cw), t12 = d3_svg_arcCornerTangents([ x1, y1 ], [ x2, y2 ], r1, rc1, cw);
+          var t30 = d3_svg_arcCornerTangents(x3 == null ? [ x2, y2 ] : [ x3, y3 ], [ x0, y0 ], r1, rc1, cw), t12 = d3_svg_arcCornerTangents([ x1, y1 ], [ x2, y2 ], r1, rc1, cw);
           if (rc === rc1) {
             path.push("M", t30[0], "A", rc1, ",", rc1, " 0 0,", cr, " ", t30[1], "A", r1, ",", r1, " 0 ", 1 - cw ^ d3_svg_arcSweep(t30[1][0], t30[1][1], t12[1][0], t12[1][1]), ",", cw, " ", t12[1], "A", rc1, ",", rc1, " 0 0,", cr, " ", t12[0]);
           } else {
@@ -16704,7 +18142,7 @@ module.exports={
           path.push("M", x0, ",", y0);
         }
         if (x3 != null) {
-          var rc0 = Math.min(rc, (r0 - lc) / (kc - 1)), t03 = d3_svg_arcCornerTangents([ x0, y0 ], [ x3, y3 ], r0, -rc0, cw), t21 = d3_svg_arcCornerTangents([ x2, y2 ], x1 == null ? [ x0, y0 ] : [ x1, y1 ], r0, -rc0, cw);
+          var t03 = d3_svg_arcCornerTangents([ x0, y0 ], [ x3, y3 ], r0, -rc0, cw), t21 = d3_svg_arcCornerTangents([ x2, y2 ], x1 == null ? [ x0, y0 ] : [ x1, y1 ], r0, -rc0, cw);
           if (rc === rc0) {
             path.push("L", t21[0], "A", rc0, ",", rc0, " 0 0,", cr, " ", t21[1], "A", r0, ",", r0, " 0 ", cw ^ d3_svg_arcSweep(t21[1][0], t21[1][1], t03[1][0], t03[1][1]), ",", 1 - cw, " ", t03[1], "A", rc0, ",", rc0, " 0 0,", cr, " ", t03[0]);
           } else {
@@ -16786,7 +18224,7 @@ module.exports={
     return (x0 - x1) * y0 - (y0 - y1) * x0 > 0 ? 0 : 1;
   }
   function d3_svg_arcCornerTangents(p0, p1, r1, rc, cw) {
-    var x01 = p0[0] - p1[0], y01 = p0[1] - p1[1], lo = (cw ? rc : -rc) / Math.sqrt(x01 * x01 + y01 * y01), ox = lo * y01, oy = -lo * x01, x1 = p0[0] + ox, y1 = p0[1] + oy, x2 = p1[0] + ox, y2 = p1[1] + oy, x3 = (x1 + x2) / 2, y3 = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, d2 = dx * dx + dy * dy, r = r1 - rc, D = x1 * y2 - x2 * y1, d = (dy < 0 ? -1 : 1) * Math.sqrt(r * r * d2 - D * D), cx0 = (D * dy - dx * d) / d2, cy0 = (-D * dx - dy * d) / d2, cx1 = (D * dy + dx * d) / d2, cy1 = (-D * dx + dy * d) / d2, dx0 = cx0 - x3, dy0 = cy0 - y3, dx1 = cx1 - x3, dy1 = cy1 - y3;
+    var x01 = p0[0] - p1[0], y01 = p0[1] - p1[1], lo = (cw ? rc : -rc) / Math.sqrt(x01 * x01 + y01 * y01), ox = lo * y01, oy = -lo * x01, x1 = p0[0] + ox, y1 = p0[1] + oy, x2 = p1[0] + ox, y2 = p1[1] + oy, x3 = (x1 + x2) / 2, y3 = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, d2 = dx * dx + dy * dy, r = r1 - rc, D = x1 * y2 - x2 * y1, d = (dy < 0 ? -1 : 1) * Math.sqrt(Math.max(0, r * r * d2 - D * D)), cx0 = (D * dy - dx * d) / d2, cy0 = (-D * dx - dy * d) / d2, cx1 = (D * dy + dx * d) / d2, cy1 = (-D * dx + dy * d) / d2, dx0 = cx0 - x3, dy0 = cy0 - y3, dx1 = cx1 - x3, dy1 = cy1 - y3;
     if (dx0 * dx0 + dy0 * dy0 > dx1 * dx1 + dy1 * dy1) cx0 = cx1, cy0 = cy1;
     return [ [ cx0 - ox, cy0 - oy ], [ cx0 * r1 / r, cy0 * r1 / r ] ];
   }
@@ -16858,10 +18296,10 @@ module.exports={
     value.closed = /-closed$/.test(key);
   });
   function d3_svg_lineLinear(points) {
-    return points.join("L");
+    return points.length > 1 ? points.join("L") : points + "Z";
   }
   function d3_svg_lineLinearClosed(points) {
-    return d3_svg_lineLinear(points) + "Z";
+    return points.join("L") + "Z";
   }
   function d3_svg_lineStep(points) {
     var i = 0, n = points.length, p = points[0], path = [ p[0], ",", p[1] ];
@@ -16883,7 +18321,7 @@ module.exports={
     return points.length < 4 ? d3_svg_lineLinear(points) : points[1] + d3_svg_lineHermite(points.slice(1, -1), d3_svg_lineCardinalTangents(points, tension));
   }
   function d3_svg_lineCardinalClosed(points, tension) {
-    return points.length < 3 ? d3_svg_lineLinear(points) : points[0] + d3_svg_lineHermite((points.push(points[0]), 
+    return points.length < 3 ? d3_svg_lineLinearClosed(points) : points[0] + d3_svg_lineHermite((points.push(points[0]), 
     points), d3_svg_lineCardinalTangents([ points[points.length - 2] ].concat(points, [ points[1] ]), tension));
   }
   function d3_svg_lineCardinal(points, tension) {
@@ -17319,9 +18757,11 @@ module.exports={
   var d3_selection_interrupt = d3_selection_interruptNS(d3_transitionNamespace());
   function d3_selection_interruptNS(ns) {
     return function() {
-      var lock, active;
-      if ((lock = this[ns]) && (active = lock[lock.active])) {
-        if (--lock.count) delete lock[lock.active]; else delete this[ns];
+      var lock, activeId, active;
+      if ((lock = this[ns]) && (active = lock[activeId = lock.active])) {
+        active.timer.c = null;
+        active.timer.t = NaN;
+        if (--lock.count) delete lock[activeId]; else delete this[ns];
         lock.active += .5;
         active.event && active.event.interrupt.call(this, this.__data__, active.index);
       }
@@ -17576,12 +19016,68 @@ module.exports={
     var lock = node[ns] || (node[ns] = {
       active: 0,
       count: 0
-    }), transition = lock[id];
+    }), transition = lock[id], time, timer, duration, ease, tweens;
+    function schedule(elapsed) {
+      var delay = transition.delay;
+      timer.t = delay + time;
+      if (delay <= elapsed) return start(elapsed - delay);
+      timer.c = start;
+    }
+    function start(elapsed) {
+      var activeId = lock.active, active = lock[activeId];
+      if (active) {
+        active.timer.c = null;
+        active.timer.t = NaN;
+        --lock.count;
+        delete lock[activeId];
+        active.event && active.event.interrupt.call(node, node.__data__, active.index);
+      }
+      for (var cancelId in lock) {
+        if (+cancelId < id) {
+          var cancel = lock[cancelId];
+          cancel.timer.c = null;
+          cancel.timer.t = NaN;
+          --lock.count;
+          delete lock[cancelId];
+        }
+      }
+      timer.c = tick;
+      d3_timer(function() {
+        if (timer.c && tick(elapsed || 1)) {
+          timer.c = null;
+          timer.t = NaN;
+        }
+        return 1;
+      }, 0, time);
+      lock.active = id;
+      transition.event && transition.event.start.call(node, node.__data__, i);
+      tweens = [];
+      transition.tween.forEach(function(key, value) {
+        if (value = value.call(node, node.__data__, i)) {
+          tweens.push(value);
+        }
+      });
+      ease = transition.ease;
+      duration = transition.duration;
+    }
+    function tick(elapsed) {
+      var t = elapsed / duration, e = ease(t), n = tweens.length;
+      while (n > 0) {
+        tweens[--n].call(node, e);
+      }
+      if (t >= 1) {
+        transition.event && transition.event.end.call(node, node.__data__, i);
+        if (--lock.count) delete lock[id]; else delete node[ns];
+        return 1;
+      }
+    }
     if (!transition) {
-      var time = inherit.time;
+      time = inherit.time;
+      timer = d3_timer(schedule, 0, time);
       transition = lock[id] = {
         tween: new d3_Map(),
         time: time,
+        timer: timer,
         delay: inherit.delay,
         duration: inherit.duration,
         ease: inherit.ease,
@@ -17589,49 +19085,6 @@ module.exports={
       };
       inherit = null;
       ++lock.count;
-      d3.timer(function(elapsed) {
-        var delay = transition.delay, duration, ease, timer = d3_timer_active, tweened = [];
-        timer.t = delay + time;
-        if (delay <= elapsed) return start(elapsed - delay);
-        timer.c = start;
-        function start(elapsed) {
-          if (lock.active > id) return stop();
-          var active = lock[lock.active];
-          if (active) {
-            --lock.count;
-            delete lock[lock.active];
-            active.event && active.event.interrupt.call(node, node.__data__, active.index);
-          }
-          lock.active = id;
-          transition.event && transition.event.start.call(node, node.__data__, i);
-          transition.tween.forEach(function(key, value) {
-            if (value = value.call(node, node.__data__, i)) {
-              tweened.push(value);
-            }
-          });
-          ease = transition.ease;
-          duration = transition.duration;
-          d3.timer(function() {
-            timer.c = tick(elapsed || 1) ? d3_true : tick;
-            return 1;
-          }, 0, time);
-        }
-        function tick(elapsed) {
-          if (lock.active !== id) return 1;
-          var t = elapsed / duration, e = ease(t), n = tweened.length;
-          while (n > 0) {
-            tweened[--n].call(node, e);
-          }
-          if (t >= 1) {
-            transition.event && transition.event.end.call(node, node.__data__, i);
-            return stop();
-          }
-        }
-        function stop() {
-          if (--lock.count) delete lock[id]; else delete node[ns];
-          return 1;
-        }
-      }, 0, time);
     }
   }
   d3.svg.axis = function() {
@@ -17685,7 +19138,7 @@ module.exports={
     };
     axis.ticks = function() {
       if (!arguments.length) return tickArguments_;
-      tickArguments_ = arguments;
+      tickArguments_ = d3_array(arguments);
       return axis;
     };
     axis.tickValues = function(x) {
@@ -18207,10 +19660,9 @@ module.exports={
   d3.xml = d3_xhrType(function(request) {
     return request.responseXML;
   });
-  if (typeof define === "function" && define.amd) define(d3); else if (typeof module === "object" && module.exports) module.exports = d3;
-  this.d3 = d3;
+  if (typeof define === "function" && define.amd) this.d3 = d3, define(d3); else if (typeof module === "object" && module.exports) module.exports = d3; else this.d3 = d3;
 }();
-},{}],47:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 !function() {
   var topojson = {
     version: "1.6.19",
@@ -18746,7 +20198,7 @@ module.exports={
   else this.topojson = topojson;
 }();
 
-},{}],48:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -20296,861 +21748,1094 @@ module.exports={
   }
 }.call(this));
 
-},{}],49:[function(require,module,exports){
-module.exports = {
-	tile2lon: function(x,z) {
-		return (x/Math.pow(2,z)*360-180);
-	},
-	tile2lat: function(y,z) {
-		var n=Math.PI-2*Math.PI*y/Math.pow(2,z);
-		return (180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))));
-	},
-  geo2Webmercator: function(x_lon, y_lat){
-    if (Math.abs(x_lon) <= 180 && Math.abs(y_lat) < 90){
-      // 0.017453292519943295 => Deg to rad constant
-      var num = x_lon * 0.017453292519943295;
-      // 6378137 => Earth radius
-      var x = 6378137.0 * num;
-      var a = y_lat * 0.017453292519943295;
-      var x_mercator = x;
-      var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)));
-      return {x: x_mercator, y: y_mercator};
-    }            
-  }
-            
+},{}],51:[function(require,module,exports){
+var Crossfilter = require('crossfilter')
 
-};
-},{}],50:[function(require,module,exports){
-require('./tileloader.js');
-require('./leaflet_d3.js');
+function Filter () {
+  this.crossfilter = new Crossfilter()
+  this.dimensions = {}
+  this.tiles = {}
+  this.report = {}
+  this.expressions = {}
+}
+
+Filter.prototype = {
+  addTile: function (tilePoint, collection) {
+    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
+    this.crossfilter.add(collection.features.map(function (f) {
+      f.properties.tilePoint = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+      return f
+    }))
+    this.tiles[tilePointString] = true
+    return this.getTile(tilePoint)
+  },
+
+  removeTile: function (tilePoint) {
+    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    if (!this.dimensions.tiles) {
+      return
+    }
+    this.dimensions.tiles.filter(tilePointString)
+    this.crossfilter.remove()
+    this.dimensions.tiles.filterAll()
+    delete this.tiles[tilePointString]
+  },
+
+  getTile: function (tilePoint) {
+    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    if (!this.dimensions.tiles) {
+      this.dimensions.tiles = this.crossfilter.dimension(function (f) { return f.properties.tilePoint })
+    }
+    var tile = {type: 'FeatureCollection', features: null}
+    this.dimensions.tiles.filter(tilePointString)
+    tile.features = this.dimensions.tiles.top(Infinity)
+    this.dimensions.tiles.filterAll()
+    return tile
+  },
+
+  filterRange: function (column, range) {
+    this.filter(column, range)
+  },
+
+  filter: function (column, filterfn) {
+    if (!this.dimensions[column]) {
+      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
+    }
+    this.dimensions[column].filter(filterfn)
+  },
+
+  filterAccept: function (column, terms) {
+    this.filter(column, Filter.accept(terms))
+  },
+
+  filterReject: function (column, terms) {
+    this.filter(column, Filter.reject(terms))
+  },
+
+  clearFilters: function () {
+    for (var column in this.dimensions) {
+      this.dimensions[column].filterAll()
+    }
+  },
+
+  clearFilter: function (column) {
+    this.dimensions[column].filterAll()
+  },
+
+  getValues: function (column) {
+    return this.dimensions[column].top(Infinity)
+  },
+
+  setBoundingBox: function (north, east, south, west) {
+    if (!this.dimensions.bbox) {
+      this.dimensions.bbox = this.crossfilter.dimension(function (f) { return f.geometry })
+      this.dimensions.bbox.filter(function (g) {
+        var north = this[0]
+        var east = this[1]
+        var south = this[2]
+        var west = this[3]
+        return g.coordinates[1] < north &&
+        g.coordinates[0] < east &&
+        g.coordinates[1] > south &&
+        g.coordinates[0] > west
+      }.bind(arguments))
+    }
+  }
+}
+
+Filter.accept = function (terms) {
+  var termsDict = {}
+  terms.forEach(function (t) {
+    termsDict[t] = true
+  })
+  return function (f) {
+    if (termsDict[f]) {
+      return true
+    }
+  }
+}
+
+Filter.reject = function (terms) {
+  var termsDict = {}
+  terms.forEach(function (t) {
+    termsDict[t] = true
+  })
+  return function (f) {
+    if (termsDict[f]) {
+      return true
+    }
+  }
+}
+
+module.exports = Filter
+
+},{"crossfilter":47}],52:[function(require,module,exports){
+module.exports = {
+  tile2lon: function (x, z) {
+    return (x / Math.pow(2, z) * 360 - 180)
+  },
+  tile2lat: function (y, z) {
+    var n = Math.PI - 2 * Math.PI * y / Math.pow(2, z)
+    return (180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))))
+  },
+  geo2Webmercator: function (x_lon, y_lat) {
+    if (Math.abs(x_lon) <= 180 && Math.abs(y_lat) < 90) {
+      // 0.017453292519943295 => Deg to rad constant
+      var num = x_lon * 0.017453292519943295
+      // 6378137 => Earth radius
+      var x = 6378137.0 * num
+      var a = y_lat * 0.017453292519943295
+      var x_mercator = x
+      var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
+      return {x: x_mercator, y: y_mercator}
+    }
+  }
+}
+
+},{}],53:[function(require,module,exports){
+require('./tileloader.js')
+require('./leaflet_d3.js')
 module.exports.d3 = {
-	Util: require('./util.js'),
-	geo: require('./geo.js'),
-	Renderer: require("./renderer.js"),
-	net: require('./net.js')
-};
-},{"./geo.js":49,"./leaflet_d3.js":51,"./net.js":52,"./renderer.js":57,"./tileloader.js":58,"./util.js":59}],51:[function(require,module,exports){
-var Renderer = require("./renderer");
-var providers = require("./providers");
+  Util: require('./util.js'),
+  geo: require('./geo.js'),
+  Renderer: require('./renderer.js'),
+  net: require('./net.js'),
+  filter: require('./filter.js')
+}
+
+},{"./filter.js":51,"./geo.js":52,"./leaflet_d3.js":54,"./net.js":55,"./renderer.js":60,"./tileloader.js":61,"./util.js":62}],54:[function(require,module,exports){
+var Renderer = require('./renderer')
+var providers = require('./providers')
+var TileLoader = require('./tileloader')
+var L = window.L
 
 L.CartoDBd3Layer = L.Class.extend({
-
-  includes: [L.Mixin.Events, L.Mixin.TileLoader],
-
   options: {
     minZoom: 0,
     maxZoom: 28,
     tileSize: 256,
-    subdomains: 'abc',
-    errorTileUrl: '',
-    attribution: '',
     zoomOffset: 0,
-    opacity: 1,
-    unloadInvisibleTiles: L.Browser.mobile,
-    updateWhenIdle: L.Browser.mobile,
-    tileLoader: false, // installs tile loading events
-    zoomAnimation: true
+    tileBuffer: 50
   },
 
   initialize: function (options) {
-    var self = this;
-    options = options || {};
-    L.Util.setOptions(this, options);
-
+    options = options || {}
+    this.renderers = []
+    this.svgTiles = {}
+    L.Util.setOptions(this, options)
   },
 
   onAdd: function (map) {
-    this._map = map;
-    this.options.map = map;
-    this.options.layer = this;
-    if (this.options.urlTemplate){
-      this.provider = new providers.XYZProvider(this.options);
+    this._map = map
+    this.options.map = map
+    this.options.layer = this
+    var styles = this.options.styles
+    if (!styles) {
+      styles = [this.options.cartocss]
+      this.options.styles = styles
     }
-    else {
-      this.provider = this.options.provider || new providers.SQLProvider(this.options);
+    if (this.options.urlTemplate || this.options.tilejson) {
+      this.provider = new providers.XYZProvider(this.options)
+    } else {
+      this.provider = this.options.provider || new providers.WindshaftProvider(this.options)
     }
-    this.renderer = this.options.renderer || new Renderer(this.options);
+    for (var i = 0; i < styles.length; i++) {
+      this.renderers.push(new Renderer({
+        cartocss: styles[i],
+        layer: this
+      }))
+    }
+    var tilePane = this._map._panes.tilePane
+    var layer = L.DomUtil.create('div', 'leaflet-layer')
+    var _container = layer.appendChild(L.DomUtil.create('div', 'leaflet-tile-container leaflet-zoom-animated'))
+    layer.appendChild(_container)
+    tilePane.appendChild(layer)
+    this._container = _container
 
-    var tilePane = this._map._panes.tilePane;
-    var layer = L.DomUtil.create('div', 'leaflet-layer');
-    var _container = layer.appendChild(L.DomUtil.create('div',"leaflet-tile-container leaflet-zoom-animated"));
-    layer.appendChild(_container);
-    tilePane.appendChild(layer);
-    this._container = _container;
-    this._initTileLoader();
+    this.tileLoader = new TileLoader({
+      tileSize: this.options.tileSize,
+      maxZoom: this.options.maxZoom,
+      minZoom: this.options.minZoom,
+      provider: this.provider,
+      map: map
+    })
+    this.tileLoader.on('tileAdded', this._renderTile, this)
+    this.tileLoader.on('tileRemoved', this._clearTile, this)
+    this.tileLoader.loadTiles()
   },
 
   onRemove: function (map) {
-    this._container.parentNode.removeChild(this._container);
+    this._container.parentNode.removeChild(this._container)
+    this.tileLoader.unbindAndClearTiles()
   },
 
   addTo: function (map) {
-    map.addLayer(this);
-    return this;
+    map.addLayer(this)
+    return this
   },
 
-  loadTile: function (tilePoint) {
-    var self = this;
-    var tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    tile.setAttribute("class", "leaflet-tile");
-    this._container.appendChild(tile);
+  _renderTile: function (data) {
+    var tilePoint = data.tilePoint
+    var geometry = data.geometry
+    var self = this
+    var tileKey = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
+    var tile = this.svgTiles[tileKey]
+    if (!tile) {
+      tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      tile.style.padding = this.options.tileBuffer + 'px'
+      tile.style.margin = '-' + this.options.tileBuffer + 'px'
+      tile.setAttribute('class', 'leaflet-tile')
+      this.svgTiles[tileKey] = tile
+      this._container.appendChild(tile)
+    }
 
-    this.provider.getTile(tilePoint, function(tilePoint, geometry){
-      self.renderer.render(tile, geometry, tilePoint);
-      self._tileLoaded(tilePoint, tile);
-    });
+    for (var i = 0; i < self.renderers.length; i++) {
+      var collection = self.renderers.length > 1 ? geometry.features[i] : geometry
+      self.renderers[i].render(tile, collection, tilePoint)
+    }
 
-    var tilePos = this._getTilePos(tilePoint);
-    tile.style.width = tile.style.height = this._getTileSize() + 'px';
-    L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome);
+    var tilePos = this._getTilePos(tilePoint)
+    tile.style.width = tile.style.height = this._getTileSize() + 'px'
+    L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome)
   },
 
-  _initTileLoader: function() {
-    this._tiles = {};
-    this._tilesLoading = {};
-    this._tilesToLoad = 0;
-    this._map.on({
-      'moveend': this._updateTiles
-    }, this);
-    this.on('tileAdded', this.loadTile);
-    this._updateTiles();
+  _clearTile: function (data) {
+    var svg = this.svgTiles[data.tileKey]
+    this._container.removeChild(svg)
+    var split = data.tileKey.split(':')
+    var tilePoint = {x: split[0], y: split[1], zoom: split[2]}
+    this.renderers.forEach(function (r) {
+      r.filter.removeTile(tilePoint)
+    })
+    delete this.svgTiles[data.tileKey]
   },
 
-  latLngToLayerPoint: function(lat, lng){
-    return map.latLngToLayerPoint(new L.LatLng(lat,lng));
+  _getTilePos: function (tilePoint) {
+    tilePoint = new L.Point(tilePoint.x, tilePoint.y)
+    var origin = this._map.getPixelOrigin()
+    var tileSize = this._getTileSize()
+
+    return tilePoint.multiplyBy(tileSize).subtract(origin)
   },
 
-  _removeTile: function (key) {
-    this._container.removeChild(this._tiles[key]);
-    this.fire('tileRemoved', this._tiles[key]);
-    delete this._tiles[key];
-    delete this._tilesLoading[key];
+  latLngToLayerPoint: function (lat, lng) {
+    return this._map.latLngToLayerPoint(new L.LatLng(lat, lng))
   },
 
   _getTileSize: function () {
-    var map = this._map,
-    zoom = map.getZoom() + this.options.zoomOffset,
-    zoomN = this.options.maxNativeZoom,
-    tileSize = this.options.tileSize;
+    var map = this._map
+    var zoom = map.getZoom() + this.options.zoomOffset
+    var zoomN = this.options.maxNativeZoom
+    var tileSize = this.options.tileSize
 
     if (zoomN && zoom > zoomN) {
-      tileSize = Math.round(map.getZoomScale(zoom) / map.getZoomScale(zoomN) * tileSize);
+      tileSize = Math.round(map.getZoomScale(zoom) / map.getZoomScale(zoomN) * tileSize)
     }
 
-    return tileSize;
+    return tileSize
   },
 
-  setCartoCSS: function(cartocss){
-    this.renderer.setCartoCSS(cartocss);
-    this._reloadTiles();
+  setCartoCSS: function (index, cartocss) {
+    this.renderers[index].setCartoCSS(cartocss)
   }
-});
-},{"./providers":53,"./renderer":57}],52:[function(require,module,exports){
+})
+
+},{"./providers":56,"./renderer":60,"./tileloader":61}],55:[function(require,module,exports){
 (function (global){
-//http://bl.ocks.org/tmcw/4494715
+var d3 = require('d3')
+
+// http://bl.ocks.org/tmcw/4494715
 module.exports.jsonp = function (url, callback) {
-  function rand() {
-    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-      c = '', i = -1;
-    while (++i < 15) c += chars.charAt(Math.floor(Math.random() * 52));
-    return c;
+  function rand () {
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+    var c = ''
+    var i = -1
+    while (++i < 15) c += chars.charAt(Math.floor(Math.random() * 52))
+    return c
   }
 
-  function create(url) {
-    var e = url.match(/callback=(\w+)/),
-      c = e ? e[1] : rand();
-    window[c] = function(data) {
-      callback(data);
-      delete window[c];
-      script.remove();
-    };
-    return c;
+  function create (url) {
+    var e = url.match(/callback=(\w+)/)
+    var c = e ? e[1] : rand()
+    window[c] = function (data) {
+      callback(data)
+      delete window[c]
+      script.remove()
+    }
+    return c
   }
 
-  var cb = create(url),
-    script = d3.select('head')
-    .append('script')
-    .attr('type', 'text/javascript')
-    .attr('src', url.replace(/(\{|%7B)callback(\{|%7D)/, cb));
-};
+  var cb = create(url)
+  var script = d3.select('head')
+      .append('script')
+      .attr('type', 'text/javascript')
+      .attr('src', url.replace(/(\{|%7B)callback(\{|%7D)/, cb))
+}
 
-module.exports.get = function get(url, callback, options) {
+module.exports.get = function get (url, callback, options) {
   options = options || {
     method: 'GET',
     data: null,
     responseType: 'text'
-  };
-  lastCall = { url: url, callback: callback };
-  var request = XMLHttpRequest;
+  }
+  var Request = window.XMLHttpRequest
   // from d3.js
-  if (global.XDomainRequest
-      && !("withCredentials" in request)
-      && /^(http(s)?:)?\/\//.test(url)) request = XDomainRequest;
+  if (global.XDomainRequest &&
+    !('withCredentials' in Request) &&
+    /^(http(s)?:)?\/\//.test(url)) Request = global.XDomainRequest
 
-  var req = new request();
-  req.open(options.method, url, true);
+  var req = new Request()
+  req.open(options.method, url, true)
 
-
-  function respond() {
-    var status = req.status, result;
-    var r = options.responseType === 'arraybuffer' ? req.response: req.responseText;
+  function respond () {
+    var status = req.status
+    var r = options.responseType === 'arraybuffer' ? req.response : req.responseText
     if (!status && r || status >= 200 && status < 300 || status === 304) {
-      callback(req);
+      callback(req)
     } else {
-      callback(null);
+      callback(null)
     }
   }
 
-  "onload" in req
+  'onload' in req
     ? req.onload = req.onerror = respond
-    : req.onreadystatechange = function() { req.readyState > 3 && respond(); };
+    : req.onreadystatechange = function () { req.readyState > 3 && respond() }
 
-  req.onprogress = function() {};
+  req.onprogress = function () {}
 
-  req.responseType = options.responseType; //'arraybuffer';
+  req.responseType = options.responseType // 'arraybuffer'
   if (options.data) {
-    req.setRequestHeader("Content-type", "application/json");
-    //req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
-    req.setRequestHeader("Accept", "*");
+    req.setRequestHeader('Content-type', 'application/json')
+    // req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+    req.setRequestHeader('Accept', '*')
   }
-  req.send(options.data);
-  return req;
+  req.send(options.data)
+  return req
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],53:[function(require,module,exports){
+},{"d3":48}],56:[function(require,module,exports){
 module.exports = {
   SQLProvider: require('./sql.js'),
   XYZProvider: require('./xyz.js'),
   WindshaftProvider: require('./windshaft.js')
-};
-},{"./sql.js":54,"./windshaft.js":55,"./xyz.js":56}],54:[function(require,module,exports){
-var d3 = require("d3");
+}
 
-function SQLProvider(options) {
-  this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
-  this.user = options.user;
-  this.table = options.table;
-  this.format = options.format;
-  this.tileCache = {};
+},{"./sql.js":57,"./windshaft.js":58,"./xyz.js":59}],57:[function(require,module,exports){
+var d3 = require('d3')
+var geo = require('../geo')
+
+function SQLProvider (options) {
+  this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com'
+  this.user = options.user
+  this.table = options.table
+  this.format = options.format
+  this.tileCache = {}
 }
 
 SQLProvider.prototype = {
-  getTile: function(tilePoint, callback){
-    var tileData = this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
+  getTile: function (tilePoint, callback) {
+    var tileData = this.tileCache[tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y]
     if (tileData) {
-      callback(tilePoint, tileData);
-    }
-    else{
-
+      callback(tilePoint, tileData)
+    } else {
       var tileBB = {
-        n: cartodb.d3.geo.tile2lat(tilePoint.y, tilePoint.zoom),
-        s: cartodb.d3.geo.tile2lat(tilePoint.y + 1, tilePoint.zoom),
-        e: cartodb.d3.geo.tile2lon(tilePoint.x, tilePoint.zoom),
-        w: cartodb.d3.geo.tile2lon(tilePoint.x + 1, tilePoint.zoom),
-      };
-      var query = "SELECT * FROM " + this.table;
-      query += " WHERE the_geom && ST_MakeEnvelope({w},{s},{e},{n}, 4326)";
+        n: geo.tile2lat(tilePoint.y, tilePoint.zoom),
+        s: geo.tile2lat(tilePoint.y + 1, tilePoint.zoom),
+        e: geo.tile2lon(tilePoint.x, tilePoint.zoom),
+        w: geo.tile2lon(tilePoint.x + 1, tilePoint.zoom)
+      }
+      var query = 'SELECT * FROM ' + this.table
+      query += ' WHERE the_geom && ST_MakeEnvelope({w},{s},{e},{n}, 4326)'
       query = query
-      .replace("{w}", tileBB.w)
-      .replace("{s}", tileBB.s)
-      .replace("{e}", tileBB.e)
-      .replace("{n}", tileBB.n);
+      .replace('{w}', tileBB.w)
+      .replace('{s}', tileBB.s)
+      .replace('{e}', tileBB.e)
+      .replace('{n}', tileBB.n)
 
-      this.getGeometry(query, tilePoint.zoom, function(geometry){
-        this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
-        callback(tilePoint, geometry);
-      }.bind(this));
+      this.getGeometry(query, tilePoint.zoom, function (geometry) {
+        this.tileCache[tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y] = geometry
+        callback(tilePoint, geometry)
+      }.bind(this))
     }
   },
 
-  _query: function(sql, callback, format) {
-    var url = this.sql_api_template.replace('{user}', this.user);
-    url += '/api/v2/sql?q=' + encodeURIComponent(sql);
+  _query: function (sql, callback, format) {
+    var url = this.sql_api_template.replace('{user}', this.user)
+    url += '/api/v2/sql?q=' + encodeURIComponent(sql)
     if (format) {
-      url += "&format=" + format;
+      url += '&format=' + format
     }
-    d3.json(url, callback);
+    d3.json(url, callback)
   },
 
-  getGeometry: function(sql, zoom, callback) {
+  getGeometry: function (sql, zoom, callback) {
     // request the schema fist to extract columns and generate the final
     // sql query with the right the_geom simplification for the zoom level.
     // The current zoom level may not the best but good enough for a test
-    var schemaSQL = 'select * from (' + sql + ') __cdb limit 0';
-    this._query(schemaSQL, function(data) {
+    var schemaSQL = 'select * from (' + sql + ') __cdb limit 0'
+    this._query(schemaSQL, function (data) {
       // generate the final sql. Ideally only variables used in cartocss
       // should be requested
-      var columns = Object.keys(data.fields).filter(function(f) {
-        return f !== 'the_geom' && f !== 'the_geom_webmercator';
-      });
+      var columns = Object.keys(data.fields).filter(function (f) {
+        return f !== 'the_geom' && f !== 'the_geom_webmercator'
+      })
 
       // pixel size with some factor to avoid remove geometries
-      var px = this.pixelSizeForZoom(zoom);
-      var the_geom = 'st_transform(st_simplify(st_snaptogrid(the_geom_webmercator, {px}, {px}), {px}/2), 3857) as the_geom'.replace(/{px}/g, px);
+      var px = this.pixelSizeForZoom(zoom)
+      var the_geom = 'st_transform(st_simplify(st_snaptogrid(the_geom_webmercator, {px}, {px}), {px}/2), 3857) as the_geom'.replace(/{px}/g, px)
       // generate the sql with all the columns + the geometry simplified
-      var finalSQL = "select " + columns.join(',') + "," + the_geom + " FROM (" + sql + ") __cdb";
+      var finalSQL = 'select ' + columns.join(',') + ',' + the_geom + ' FROM (' + sql + ') __cdb'
 
-      this._query(finalSQL, function(collection) {
-        collection.features = collection.features.filter(function(d) {
-          return d.geometry && d.geometry.coordinates.length > 0;
-        });
-        callback(collection);
-      }, 'geojson');
-    }.bind(this));
+      this._query(finalSQL, function (collection) {
+        collection.features = collection.features.filter(function (d) {
+          return d.geometry && d.geometry.coordinates.length > 0
+        })
+        callback(collection)
+      }, 'geojson')
+    }.bind(this))
   },
 
-  pixelSizeForZoom: function(zoom) {
-    var earth_circumference = 40075017;
-    var tile_size = 256;
-    var full_resolution = earth_circumference/tile_size;
-    return full_resolution / Math.pow(2,zoom);
+  pixelSizeForZoom: function (zoom) {
+    var earth_circumference = 40075017
+    var tile_size = 256
+    var full_resolution = earth_circumference / tile_size
+    return full_resolution / Math.pow(2, zoom)
   },
-};
+  invalidateCache: function () {
+    this.tileCache = {}
+  }
+}
 
-module.exports = SQLProvider;
-},{"d3":46}],55:[function(require,module,exports){
-var d3 = require("d3");
+module.exports = SQLProvider
 
-function WindshaftProvider(options) {
-	this.sql_api_template = options.sql_api_template || 'http://{user}.cartodb.com';
-	this.user = options.user;
-	this.table = options.table;
-	this.format = options.format;
-	this.tileCache = {};
+},{"../geo":52,"d3":48}],58:[function(require,module,exports){
+var d3 = require('d3')
+var topojson = require('topojson')
+var cartodb = require('../')
+
+function WindshaftProvider (options) {
+  this.tiler_template = options.tiler_template || 'http://{user}.cartodb.com'
+  this.user = options.user
+  this.table = options.table
+  this.format = options.format
+  this.options = options
+  this.tileCache = {}
+  this.initialize()
 }
 
 WindshaftProvider.prototype = {
+  initialize: function () {
+    var self = this
+    this.tiler_template = this.tiler_template.replace('{user}', this.user)
+    var mapconfig = this._generateMapconfig(this.table)
+    var url = this.tiler_template + '/api/v1/map?config=' + encodeURIComponent(JSON.stringify(mapconfig))
+    cartodb.d3.net.jsonp(url + '&callback=mapconfig', function (data) {
+      self.layergroup = data
+      self.urlTemplate = self.tiler_template + '/api/v1/map/' + self.layergroup.layergroupid + '/0/{z}/{x}/{y}.geojson'
+    })
+  },
 
-};
-},{"d3":46}],56:[function(require,module,exports){
-var d3 = require("d3");
-var topojson = require('topojson');
-
-function XYZProvider(options) {
-  this.format = options.format;
-  this.tileCache = {};
-  this.urlTemplate = options.urlTemplate;
-}
-
-XYZProvider.prototype = {
-  getTile: function(tilePoint, callback){
-    var self = this;
-    var tileData = this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y];
-    if (tileData) {
-      callback(tilePoint, tileData);
-    }
-    else{
-      var url = this.urlTemplate
-                .replace("{x}", tilePoint.x)
-                .replace("{y}", tilePoint.y)
-                .replace("{z}", tilePoint.zoom);
-      this.getGeometry(url, function(err, geometry){
-        if(geometry.type === "Topology"){
-          self.format = "topojson";
-          geometry = topojson.feature(geometry, geometry.objects.vectile);
-        }
-        this.tileCache[tilePoint.zoom + ":" + tilePoint.x + ":" + tilePoint.y] = geometry;
-        callback(tilePoint, geometry);
-      }.bind(this));
+  getTile: function (tilePoint, callback) {
+    if (this.layergroup) {
+      var self = this
+      var tileData = this.tileCache[tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y]
+      if (tileData) {
+        callback(tilePoint, tileData)
+      } else {
+        var url = this.urlTemplate
+                  .replace('{x}', tilePoint.x)
+                  .replace('{y}', tilePoint.y)
+                  .replace('{z}', tilePoint.zoom)
+        this.getGeometry(url, function (err, geometry) {
+          if (err) return
+          if (geometry.type === 'Topology') {
+            self.format = 'topojson'
+            geometry = topojson.feature(geometry, geometry.objects.vectile)
+          }
+          callback(tilePoint, geometry)
+        })
+      }
     }
   },
 
-  getGeometry: function(url, callback){
-      d3.json(url, callback);
+  getGeometry: function (url, callback) {
+    d3.json(url, callback)
+  },
+
+  _generateMapconfig: function (table) {
+    var mapconfig = {
+      'version': '1.0.1',
+      'layers': [
+        {
+          'type': 'cartodb',
+          'options': {
+            'sql': 'select * from ' + table,
+            'cartocss': this.options.styles[0],
+            'cartocss_version': '2.1.1'
+          }
+        }
+      ]
+    }
+    return mapconfig
+  },
+
+  invalidateCache: function () {
+    this.tileCache = {}
   }
 }
 
-module.exports = XYZProvider;
-},{"d3":46,"topojson":47}],57:[function(require,module,exports){
-(function (global){
-var d3 = global.d3 || require('d3');
-var cartodb = global.cartodb || {};
-var carto = global.carto || require('carto');
-var _ = global._ || require('underscore');
-var geo = require("./geo");
-topojson = require('topojson');
+module.exports = WindshaftProvider
 
-cartodb.d3 = {};
+},{"../":53,"d3":48,"topojson":49}],59:[function(require,module,exports){
+var d3 = require('d3')
+var topojson = require('topojson')
 
-d3.selection.prototype.moveToFront = function() {
-  return this.each(function(){
-    this.parentNode.appendChild(this);
-  });
-};
-
-var Renderer = function(options) {
-  this.options = options;
-  if (options.cartocss){
-    this.setCartoCSS(options.cartocss);
+function XYZProvider (options) {
+  this.format = options.format
+  this.tileCache = {}
+  this.urlTemplate = options.urlTemplate
+  this.tilejson = options.tilejson
+  if (!this.urlTemplate) {
+    this.urlTemplate = this.tilejson.tiles[0]
   }
-  this.globalVariables = {};
-  this.user = options.user;
-  this.layer = options.layer;
-};
+}
+
+XYZProvider.prototype = {
+
+  getTile: function (tilePoint, callback) {
+    var self = this
+    var tileKey = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    var tileData = this.tileCache[tileKey]
+    if (tileData) {
+      callback(tilePoint, tileData)
+    } else {
+      this.getGeometry(tilePoint, function (err, geometry) {
+        if (err) return
+        if (geometry.type === 'Topology') {
+          self.format = 'topojson'
+          geometry = topojson.feature(geometry, geometry.objects.vectile)
+        }
+        this.tileCache[tileKey] = geometry
+        callback(tilePoint, geometry)
+      }.bind(this))
+    }
+  },
+
+  getGeometry: function (tilePoint, callback) {
+    var url = this.urlTemplate
+      .replace('{x}', tilePoint.x)
+      .replace('{y}', tilePoint.y)
+      .replace('{z}', tilePoint.zoom)
+      .replace('{s}', 'abcd'[(tilePoint.x * tilePoint.y) % 4])
+      .replace('.png', '.geojson')
+
+    d3.json(url, callback)
+  },
+
+  invalidateCache: function () {
+    this.tileCache = {}
+  }
+}
+
+module.exports = XYZProvider
+
+},{"d3":48,"topojson":49}],60:[function(require,module,exports){
+(function (global){
+var d3 = global.d3 || require('d3')
+var cartodb = global.cartodb || {}
+var carto = global.carto || require('carto')
+var _ = global._ || require('underscore')
+var geo = require('./geo')
+var Filter = require('./filter')
+
+cartodb.d3 = {}
+
+d3.selection.prototype.moveToFront = function () {
+  return this.each(function () {
+    this.parentNode.appendChild(this)
+  })
+}
+
+var Renderer = function (options) {
+  this.options = options
+  if (options.cartocss) {
+    this.setCartoCSS(options.cartocss)
+  }
+  this.globalVariables = {}
+  this.layer = options.layer
+  this.filter = new Filter()
+  this.dimensions = {}
+}
 
 Renderer.prototype = {
-
   /**
    * changes a global variable in cartocss
    * it can be used in carotcss in this way:
    * [prop < global.variableName] {...}
-   * 
+   *
    * this function can be used passing an object with all the variables or just key value:
    * layer.setGlobal('test', 1)
    * layer.setGlobal({test: 1, bar: 3})
    *
    * layer will be refreshed after calling it
    */
-  setGlobal: function() {
-    var args = Array.prototype.slice.call(arguments);
+  setGlobal: function () {
+    var args = Array.prototype.slice.call(arguments)
     if (args.length === 2) {
-      this.globalVariables[args[0]] = args[1];
+      this.globalVariables[args[0]] = args[1]
     } else {
-      this.globalVariables = args[0];
+      this.globalVariables = args[0]
     }
   },
 
-  setCartoCSS: function(cartocss) {
-    this.renderer = new carto.RendererJS();
-    this.shader = this.renderer.render(cartocss);
-  },
-  
-
-  // there are special rules for layers, for example "::hover", this function
-  // search for them and attach to the original layer, so if you have
-  // #test {}
-  // #test::hover {}
-  // this function will return an array with a single layer. That layer will contain a 
-  // hover as an attribute
-  processLayersRules: function(layers) {
-    var specialAttachments = ['hover'];
-    var realLayers = [];
-    var attachments = [];
-    // map layer names 
-    var layerByName = {};
-    layers.forEach(function(layer) {
-      if (specialAttachments.indexOf(layer.attachment()) != -1) {
-        attachments.push(layer);
-      } else {
-        layerByName[layer.name()] = layer;
-        realLayers.push(layer);
+  setCartoCSS: function (cartocss) {
+    this.renderer = new carto.RendererJS()
+    this.shader = this.renderer.render(cartocss)
+    if (this.layer) {
+      for (var tileKey in this.layer.svgTiles) {
+        var tilePoint = tileKey.split(':')
+        tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
+        this.render(this.layer.svgTiles[tileKey], null, tilePoint, true)
       }
-    });
+    }
+  },
+
+  redraw: function (updating) {
+    if (this.layer) {
+      for (var tileKey in this.layer.svgTiles) {
+        var tilePoint = tileKey.split(':')
+        this.layer.svgTiles[tileKey].innerHTML = ''
+        tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
+        this.render(this.layer.svgTiles[tileKey], null, tilePoint, false)
+      }
+    }
+  },
+
+  processLayersRules: function (layers) {
+    var specialAttachments = ['hover']
+    var realLayers = []
+    var attachments = []
+    var layerByName = {}
+    layers.forEach(function (layer) {
+      if (specialAttachments.indexOf(layer.attachment()) !== -1) {
+        attachments.push(layer)
+      } else {
+        layerByName[layer.name()] = layer
+        realLayers.push(layer)
+      }
+    })
 
     // link attachment with layers
-    attachments.forEach(function(attachment) {
-      var n = layerByName[attachment.name()];
+    attachments.forEach(function (attachment) {
+      var n = layerByName[attachment.name()]
       if (n) {
-        n[attachment.attachment()] = attachment;
+        n[attachment.attachment()] = attachment
       } else {
-        console.log("attachment without layer");
+        console.log('attachment without layer')
       }
-    });
+    })
 
-    return realLayers;
+    return realLayers
   },
 
-  onMouseover: function(sym, path) {
-      return function(d) {
-        var t = d3.select(this);
-        t.moveToFront();
-        var trans_time = d.shader_hover['transition-time'];
-        if (trans_time)
-          t = t.transition().duration(trans_time);
-        var old = path.pointRadius();
-        path.pointRadius(function(d) {
-         return (d.shader_hover['marker-width'] || 0)/2.0;
-        });
-
-        t.attr("d", path)
-         .style(styleForSymbolizer(sym, 'shader_hover'));
-        path.pointRadius(old);
-      };
-  },
-
-  onMouseout: function(sym, path){
-    return function(d) {
-      var t = d3.select(this);
-      var trans_time = d.shader_hover['transition-time'];
-      if (trans_time)
-        t = t.transition().duration(trans_time);
-      t.attr("d", path)
-        .style(styleForSymbolizer(sym, 'shader'));
-    };
-  },
-  
-
-  render: function(svg, collection, tilePoint) {
-    var self = this;
-    this.currentPoint = tilePoint;
-    var shader = this.shader;
-    svg = d3.select(svg);
-    var g = svg.append("g").attr("class", "leaflet-zoom-hide");
-
-    var transform = d3.geo.transform({ 
-      point: function(x, y) {
-          // don't use leaflet projection since it's pretty slow
-          if(self.layer.provider.format === "topojson"){
-            var webm = geo.geo2Webmercator(x,y);
-            x = webm.x, y = webm.y;
-          }
-          var earthRadius = 6378137 * 2 * Math.PI;
-          var earthRadius2 = earthRadius/2;
-          var invEarth = 1.0/earthRadius;
-          var pixelScale = 256 * (1 << tilePoint.zoom);
-          x = pixelScale * (x + earthRadius2) * invEarth;
-          y = pixelScale * (-y + earthRadius2) * invEarth;
-          this.stream.point(x - self.currentPoint.x*256, y - self.currentPoint.y*256);
+  onMouseover: function (sym, path) {
+    return function (d) {
+      var t = d3.select(this)
+      t.moveToFront()
+      var trans_time = d.shader_hover['transition-time']
+      if (trans_time) {
+        t = t.transition().duration(trans_time)
       }
-    });
-    path = d3.geo.path().projection(transform);
-    
-    if (!shader) return;
-    if (!collection) return;
-    var bounds = path.bounds(collection),
-        buffer = 100,
-        topLeft = bounds[0],
-        bottomRight = bounds[1];
-    topLeft[0] -= buffer;
-    topLeft[1] -= buffer;
+      var old = path.pointRadius()
+      path.pointRadius(function (d) {
+        return (d.shader_hover['marker-width'] || 0) / 2.0
+      })
 
-    var layers = shader.getLayers();
+      t.attr('d', path)
+        .style(this.styleForSymbolizer(sym, 'shader_hover'))
+      path.pointRadius(old)
+    }
+  },
+
+  onMouseout: function (sym, path) {
+    return function (d) {
+      var t = d3.select(this)
+      var trans_time = d.shader_hover['transition-time']
+      if (trans_time) {
+        t = t.transition().duration(trans_time)
+      }
+      t.attr('d', path)
+        .style(this.styleForSymbolizer(sym, 'shader'))
+    }
+  },
+
+  styleForSymbolizer: function (symbolyzer, shaderName) {
+    if (symbolyzer === 'polygon' || symbolyzer === 'line') {
+      return {
+        'fill': function (d) { return d[shaderName]['polygon-fill'] || 'none' },
+        'fill-opacity': function (d) { return d[shaderName]['polygon-opacity'] },
+        'stroke': function (d) { return d[shaderName]['line-color'] },
+        'stroke-width': function (d) { return d[shaderName]['line-width'] },
+        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] }
+      }
+    } else if (symbolyzer === 'markers') {
+      return {
+        'fill': function (d) { return d[shaderName]['marker-fill'] || 'none' },
+        'fill-opacity': function (d) { return d[shaderName]['marker-fill-opacity'] },
+        'stroke': function (d) { return d[shaderName]['marker-line-color'] },
+        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] }
+      }
+    } else if (symbolyzer === 'text') {
+      return {
+        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' }
+      }
+    }
+  },
+
+  render: function (svg, collection, tilePoint, updating) {
+    var self = this
+    collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
+    this.currentPoint = tilePoint
+    var shader = this.shader
+    var g, cached, styleLayers
+    var svgSel = d3.select(svg)
+    if (updating) {
+      collection = {features: d3.selectAll(svg.firstChild.children).data()}
+      g = d3.select(svg.firstChild)
+      styleLayers = g.data()
+      cached = true
+    } else {
+      g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
+    }
+
+    var transform = d3.geo.transform({
+      point: function (x, y) {
+        // don't use leaflet projection since it's pretty slow
+        if (self.layer.provider.format === 'topojson') {
+          var webm = geo.geo2Webmercator(x, y)
+          x = webm.x
+          y = webm.y
+        }
+        var earthRadius = 6378137 * 2 * Math.PI
+        var earthRadius2 = earthRadius / 2
+        var invEarth = 1.0 / earthRadius
+        var pixelScale = 256 * (1 << tilePoint.zoom)
+        x = pixelScale * (x + earthRadius2) * invEarth
+        y = pixelScale * (-y + earthRadius2) * invEarth
+        this.stream.point(x - self.currentPoint.x * 256, y - self.currentPoint.y * 256)
+      }
+    })
+    var path = d3.geo.path().projection(transform)
+
+    if (!shader) return
+    if (!collection || collection.features.length === 0) return
+    var bounds = path.bounds(collection)
+    var buffer = 100
+    var topLeft = bounds[0]
+    topLeft[0] -= buffer
+    topLeft[1] -= buffer
+
+    var layers = shader.getLayers()
 
     // search for hovers and other special rules for the renderer
-    layers = this.processLayersRules(layers);
-    
-    var styleLayers = g.data(layers);
+    layers = this.processLayersRules(layers)
+
+    styleLayers = g.data(layers)
 
     //            polygon line point
     // polygon       X     X     T
     // line                X     T
     // point               X     X
+    if (collection) {
+      styleLayers.each(function (layer) {
+        var symbolizers = layer.getSymbolizers()
+        symbolizers = _.filter(symbolizers, function (f) {
+          return f !== '*'
+        })
+        // merge line and polygon symbolizers
+        symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
+        var sym = symbolizers[0]
+        var geometry = collection.features
+        if (!updating) {
+          // transform the geometry according the symbolizer
+          var transform = transformForSymbolizer(sym)
+          if (transform) {
+            geometry = geometry.map(transform)
+          }
 
+          // select based on symbolizer
+          var feature = d3.select(this)
+            .selectAll('.' + sym)
+            .data(geometry)
 
-    styleLayers.each(function(layer) {
-      var symbolizers = layer.getSymbolizers();
-      symbolizers = _.filter(symbolizers, function(f) {
-        return f !== '*';
-      });
-
-      // merge line and polygon symbolizers
-      symbolizers = _.uniq(symbolizers.map(function(d) { return d === 'line' ? 'polygon': d; }));
-
-      var sym = symbolizers[0];
-      geometry = collection.features;
-
-      // transform the geometry according the symbolizer
-      var transform = transformForSymbolizer(sym);
-      if (transform) {
-        geometry = geometry.map(transform);
-      }
-
-      // select based on symbolizer
-      var feature = d3.select(this)
-          .selectAll("." + sym)
-          .data(geometry);
-          
-      if (sym === 'text') {
-        feature.enter().append("svg:text").attr('class', sym);
-      } else {
-        feature.enter().append("path").attr('class', sym);
-      }
-      feature.exit().remove();
-
-      // calculate shader for each geometry
-      feature.each(function(d) {
-        d.properties.global = self.globalVariables;
-        d.shader = layer.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time});
-        if (layer.hover) {
-          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time });
-          _.defaults(d.shader_hover, d.shader);
+          if (sym === 'text') {
+            feature.enter().append('svg:text').attr('class', sym)
+          } else {
+            feature.enter().append('path').attr('class', sym)
+          }
+          feature.exit().remove()
+        } else {
+          feature = d3.select(this).selectAll('.' + sym)
         }
-      });
 
-      path.pointRadius(function(d) {
-        return (d.shader['marker-width'] || 0)/2.0;
-      });
+        // calculate shader for each geometry
+        feature.each(function (d) {
+          if (!d.properties) d.properties = {}
+          d.properties.global = self.globalVariables
+          d.shader = layer.getStyle(d.properties, {zoom: tilePoint.zoom, time: self.time})
+          if (layer.hover) {
+            d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
+            _.defaults(d.shader_hover, d.shader)
+          }
+        })
 
-      var f = feature;
-      // move this outsude
-      if (sym === 'text') {
-        f.text(function(d) {
-            return "text"; //d.shader['text-name']
-        });
-        f.attr("dy", ".35em");
-        f.attr('text-anchor', "middle");
-        f.attr("x", function(d) { 
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
-            return p.x;
-          });
-        f.attr("y", function(d) { 
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0]);
-            return p.y;
-         });
+        path.pointRadius(function (d) {
+          return (d.shader['marker-width'] || 0) / 2.0
+        })
 
-      } else {
-        f.attr('d', path);
-      }
+        // move this outsude
+        if (sym === 'text') {
+          feature.text(function (d) {
+            return 'text' // d.shader['text-name']
+          })
+          feature.attr('dy', '.35em')
+          feature.attr('text-anchor', 'middle')
+          feature.attr('x', function (d) {
+            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+            return p.x
+          })
+          feature.attr('y', function (d) {
+            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+            return p.y
+          })
+        } else {
+          feature.attr('d', path)
+        }
 
-      // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-      var trans_time = layer.getStyle({ global: self.globalVariables }, { zoom: tilePoint.zoom })['transition-time'];
-      if (trans_time)
-          f = f.transition().duration(trans_time);
-      f.style(styleForSymbolizer(sym, 'shader'));
-    });
-    svg.attr("class", svg.attr("class") + " leaflet-tile-loaded");
-  }
-};
-
-function styleForSymbolizer(symbolyzer, shaderName) {
-  if (symbolyzer === 'polygon' || symbolyzer === 'line') {
-    return {
-      'fill': function(d) { return d[shaderName]['polygon-fill'] || 'none'; },
-      'fill-opacity': function(d) { return d[shaderName]['polygon-opacity']; },
-      'stroke': function(d) { return d[shaderName]['line-color']; },
-      'stroke-width': function(d) { return d[shaderName]['line-width'] ;},
-      'stroke-opacity': function(d) { return d[shaderName]['line-opacity']; }
-    };
-  } else if (symbolyzer === 'markers') {
-    return {
-      'fill': function(d) { return d[shaderName]['marker-fill'] || 'none'; },
-      'fill-opacity': function(d) { return d[shaderName]['marker-fill-opacity']; },
-      'stroke': function(d) { return d[shaderName]['marker-line-color']; },
-      'stroke-width': function(d) { return d[shaderName]['marker-line-width']; }
-    };
-  } else if (symbolyzer === 'text') {
-    return {
-      'fill': function(d) { return d[shaderName]['text-fill'] || 'none'; },
-    };
-
-     /*.attr("x", function(d) { return d.cx; })
-4                 .attr("y", function(d) { return d.cy; })
-5                 .text( function (d) { return "( " + d.cx + ", " + d.cy +" )"; })
-6                 .attr("font-family", "sans-serif")
-7                 .attr("font-size", "20px")
-8                 .attr("fill", "red");
-*/
+        // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
+        if (cached) {
+          feature = feature.transition().duration(200)
+        }
+        feature.style(self.styleForSymbolizer(sym, 'shader'))
+      })
+      svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+    }
   }
 }
 
-function transformForSymbolizer(symbolizer) {
+function transformForSymbolizer (symbolizer) {
   if (symbolizer === 'markers' || symbolizer === 'labels') {
-    var pathC = d3.geo.path().projection(function(d) { return d; });
-    return function(d) {
+    var pathC = d3.geo.path().projection(function (d) { return d })
+    return function (d) {
       return d._centroid || (d._centroid = {
         type: 'Point',
         properties: d.properties,
         coordinates: pathC.centroid(d)
-      });
-    };
+      })
+    }
   }
-  return null;
+  return null
 }
 
-module.exports = Renderer;
-
+module.exports = Renderer
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./geo":49,"carto":9,"d3":46,"topojson":47,"underscore":48}],58:[function(require,module,exports){
-L.Mixin.TileLoader = {
+},{"./filter":51,"./geo":52,"carto":9,"d3":48,"underscore":50}],61:[function(require,module,exports){
+var L = window.L
 
-  _initTileLoader: function() {
-    this._tiles = {};
-    this._tilesLoading = {};
-    this._tilesToLoad = 0;
-    this._map.on({
-        'moveend': this._updateTiles
-    }, this);
-    this._updateTiles();
+module.exports = L.Class.extend({
+  includes: L.Mixin.Events,
+
+  initialize: function (options) {
+    this.options = options
+    this.provider = options.provider
+    this._map = options.map
+    this._tiles = {}
+    this._tilesLoading = {}
+    this._tilesToLoad = 0
+    this._map.on('moveend', this._reloadTiles, this)
+    this._map.on('zoomstart', this._invalidateProviderCache, this)
   },
 
-  _removeTileLoader: function() {
-    this._map.off({
-        'moveend': this._updateTiles
-    }, this);
-    this._removeTiles();
+  loadTiles: function () {
+    this._reloadTiles()
   },
 
-  _updateTiles: function () {
-
-      if (!this._map) { return; }
-
-      var bounds = this._map.getPixelBounds(),
-          zoom = this._map.getZoom(),
-          tileSize = this.options.tileSize;
-
-      if (zoom > this.options.maxZoom || zoom < this.options.minZoom) {
-          return;
-      }
-
-      var nwTilePoint = new L.Point(
-              Math.floor(bounds.min.x / tileSize),
-              Math.floor(bounds.min.y / tileSize)),
-
-          seTilePoint = new L.Point(
-              Math.floor(bounds.max.x / tileSize),
-              Math.floor(bounds.max.y / tileSize)),
-
-          tileBounds = new L.Bounds(nwTilePoint, seTilePoint);
-
-      this._addTilesFromCenterOut(tileBounds);
-      this._removeOtherTiles(tileBounds);
-  },
-
-  _removeTiles: function (bounds) {
-      for (var key in this._tiles) {
-        this._removeTile(key);
-      }
-  },
-
-  _reloadTiles: function() {
-    this._removeTiles();
-    this._updateTiles();
-  },
-
-  _removeOtherTiles: function (bounds) {
-      var kArr, x, y, z, key;
-      var zoom = this._map.getZoom();
-
-      for (key in this._tiles) {
-          if (this._tiles.hasOwnProperty(key)) {
-              kArr = key.split(':');
-              x = parseInt(kArr[0], 10);
-              y = parseInt(kArr[1], 10);
-              z = parseInt(kArr[2], 10);
-
-              // remove tile if it's out of bounds
-              if (zoom !== z || x < bounds.min.x || x > bounds.max.x || y < bounds.min.y || y > bounds.max.y) {
-                  this._removeTile(key);
-              }
-          }
-      }
-  },
-
-  _removeTile: function (key) {
-      this.fire('tileRemoved', this._tiles[key]);
-      delete this._tiles[key];
-      delete this._tilesLoading[key];
-  },
-
-  _tileKey: function(tilePoint) {
-    return tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
-  },
-
-  _tileShouldBeLoaded: function (tilePoint) {
-      var k = this._tileKey(tilePoint);
-      return !(k in this._tiles) && !(k in this._tilesLoading);
-  },
-
-  _tileLoaded: function(tilePoint, tileData) {
-    this._tilesToLoad--;
-    var k = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom;
-    this._tiles[k] = tileData;
-    delete this._tilesLoading[k];
-    if(this._tilesToLoad === 0) {
-      this.fire("tilesLoaded");
+  _reloadTiles: function () {
+    if (!this._map) {
+      return
     }
-  },
 
-  _getTilePos: function (tilePoint) {
-    tilePoint = new L.Point(tilePoint.x, tilePoint.y);
-    var origin = this._map.getPixelOrigin(),
-        tileSize = this._getTileSize();
+    var bounds = this._map.getPixelBounds()
+    var zoom = this._map.getZoom()
+    var tileSize = this.options.tileSize
 
-    return tilePoint.multiplyBy(tileSize).subtract(origin);
+    if (zoom > this.options.maxZoom || zoom < this.options.minZoom) {
+      return
+    }
+
+    var nwTilePoint = new L.Point(
+      Math.floor(bounds.min.x / tileSize),
+      Math.floor(bounds.min.y / tileSize)
+    )
+    var seTilePoint = new L.Point(
+      Math.floor(bounds.max.x / tileSize),
+      Math.floor(bounds.max.y / tileSize)
+    )
+    var tileBounds = new L.Bounds(nwTilePoint, seTilePoint)
+
+    this._addTilesFromCenterOut(tileBounds)
+    this._removeOtherTiles(tileBounds)
   },
 
   _addTilesFromCenterOut: function (bounds) {
-      var queue = [],
-          center = bounds.getCenter(),
-          zoom = this._map.getZoom();
+    var queue = []
+    var center = bounds.getCenter()
+    var zoom = this._map.getZoom()
 
-      var j, i, point;
+    var j, i, point
 
-      for (j = bounds.min.y; j <= bounds.max.y; j++) {
-          for (i = bounds.min.x; i <= bounds.max.x; i++) {
-              point = new L.Point(i, j);
-              point.zoom =  zoom;
-
-              if (this._tileShouldBeLoaded(point)) {
-                  queue.push(point);
-              }
-          }
+    for (j = bounds.min.y; j <= bounds.max.y; j++) {
+      for (i = bounds.min.x; i <= bounds.max.x; i++) {
+        point = new L.Point(i, j)
+        point.zoom = zoom
+        if (this._tileShouldBeLoaded(point)) {
+          queue.push(point)
+        }
       }
+    }
 
-      var tilesToLoad = queue.length;
+    var tilesToLoad = queue.length
 
-      if (tilesToLoad === 0) { return; }
+    if (tilesToLoad === 0) {
+      return
+    }
 
-      // load tiles in order of their distance to center
-      queue.sort(function (a, b) {
-          return a.distanceTo(center) - b.distanceTo(center);
-      });
+    // load tiles in order of their distance to center
+    queue.sort(function (a, b) {
+      return a.distanceTo(center) - b.distanceTo(center)
+    })
 
-      this._tilesToLoad += tilesToLoad;
+    this._tilesToLoad += tilesToLoad
 
-      for (i = 0; i < tilesToLoad; i++) {
-        var t = queue[i];
-        var k = this._tileKey(t);
-        this._tilesLoading[k] = t;
-        this.fire('tileAdded', t);
+    for (i = 0; i < tilesToLoad; i++) {
+      this._loadTile(queue[i])
+    }
+    this.fire('tilesLoading')
+  },
+
+  _loadTile: function (tilePoint) {
+    var tileKey = this._tileKey(tilePoint)
+    this._tilesLoading[tileKey] = tilePoint
+    this.provider.getTile(tilePoint, function (tilePoint, geometry) {
+      this._tiles[tileKey] = true
+      delete this._tilesLoading[tileKey]
+      this._tilesToLoad--
+      this.fire('tileAdded', {tilePoint: tilePoint, geometry: geometry})
+      if (this._tilesToLoad === 0) {
+        this.fire('tilesLoaded')
       }
-      this.fire("tilesLoading");
+    }.bind(this))
+  },
 
+  _removeOtherTiles: function (bounds) {
+    var kArr, x, y, z, key
+    var zoom = this._map.getZoom()
+
+    for (key in this._tiles) {
+      if (this._tiles.hasOwnProperty(key)) {
+        kArr = key.split(':')
+        x = parseInt(kArr[0], 10)
+        y = parseInt(kArr[1], 10)
+        z = parseInt(kArr[2], 10)
+
+        // remove tile if it's out of bounds
+        if (zoom !== z || x < bounds.min.x || x > bounds.max.x || y < bounds.min.y || y > bounds.max.y) {
+          this._removeTile(key)
+        }
+      }
+    }
+  },
+
+  _invalidateProviderCache: function () {
+    this.provider.invalidateCache()
+  },
+
+  unbindAndClearTiles: function () {
+    this._map.off('moveend', this._reloadTiles, this)
+    this._map.off('zoomstart', this._invalidateProviderCache, this)
+    this._removeTiles()
+  },
+
+  _removeTiles: function (bounds) {
+    for (var key in this._tiles) {
+      this._removeTile(key)
+    }
+  },
+
+  _removeTile: function (key) {
+    this.fire('tileRemoved', { tileKey: key })
+    delete this._tiles[key]
+    delete this._tilesLoading[key]
+  },
+
+  _tileShouldBeLoaded: function (tilePoint) {
+    var k = this._tileKey(tilePoint)
+    return !(k in this._tiles) && !(k in this._tilesLoading)
+  },
+
+  _tileKey: function (tilePoint) {
+    return tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
   }
+})
 
-};
-},{}],59:[function(require,module,exports){
-(function (global){
-var d3 = global.d3 || require('d3');
+},{}],62:[function(require,module,exports){
+var L = window.L
+var cartodb = require('../')
 
 module.exports = {
-
-  viz: function(url, map, done) {
-    cartodb.d3.net.jsonp(url + "?callback=vizjson", function(data) {
-      map.setView(JSON.parse(data.center), data.zoom);
+  viz: function (url, map, done) {
+    cartodb.d3.net.jsonp(url + '?callback=vizjson', function (data) {
+      map.setView(JSON.parse(data.center), data.zoom)
       // get base layer, not render anything in case of non ZXY layers
-      var baseLayer = data.layers[0];
+      var baseLayer = data.layers[0]
       if (baseLayer.options.urlTemplate) {
         map.addLayer(new L.TileLayer(baseLayer.options.urlTemplate, {
           subdomains: baseLayer.options.subdomains || 'abcd'
-        }));
+        }))
       } else if (baseLayer.options.color) {
-        document.getElementById('map').style['background-color']= baseLayer.options.color;
+        document.getElementById('map').style['background-color'] = baseLayer.options.color
       }
-      
       // assume first layer is the one with cartodb data
-      var cartodbLayer = data.layers[1];
+      var cartodbLayer = data.layers[1]
       if (cartodbLayer.type === 'layergroup') {
-        var layers = cartodbLayer.options.layer_definition.layers.map(function(layer) {
+        var layers = cartodbLayer.options.layer_definition.layers.map(function (layer) {
           return {
             // fix the \n in sql
             sql: layer.options.sql.replace(/\n/g, ' '),
             cartocss: layer.options.cartocss,
             table: layer.options.layer_name
-          };
-        });
+          }
+        })
 
         // for each layer generate a d3 layer
-        layers.forEach(function(layer) {
-        var lyr = new L.CartoDBd3Layer({
-          user: cartodbLayer.options.user_name,
-          table: layer.table,
-          cartocss: layer.cartocss
-        }).addTo(map);
-        layer.mapLayer = lyr;
-      });
-
-      done(null, layers);
+        layers.forEach(function (layer) {
+          var lyr = new L.CartoDBd3Layer({
+            user: cartodbLayer.options.user_name,
+            table: layer.table,
+            cartocss: layer.cartocss
+          }).addTo(map)
+          layer.mapLayer = lyr
+        })
+        done(null, layers)
       } else {
-        done(new Error("named maps not supported"));
+        done(new Error('named maps not supported'))
       }
-    });
+    })
   }
-};
+}
 
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"d3":46}]},{},[50])(50)
+},{"../":53}]},{},[53])(53)
 });
