@@ -42,7 +42,7 @@ L.CartoDBd3Layer = L.Class.extend({
       this.provider = new providers.XYZProvider(this.options);
     }
     else {
-      this.provider = this.options.provider || new providers.WindshaftProvider(this.options);
+      this.provider = providers[this.options.provider] || new providers.WindshaftProvider(this.options);
     }
     for (var i = 0; i < styles.length; i++){
       this.renderers.push(new Renderer({

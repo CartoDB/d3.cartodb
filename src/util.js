@@ -21,9 +21,9 @@ module.exports = {
         var layers = cartodbLayer.options.layer_definition.layers.map(function(layer) {
           return {
             // fix the \n in sql
-            sql: layer.options.sql.replace(/\n/g, ' '),
-            cartocss: layer.options.cartocss,
-            table: layer.options.layer_name
+            user: cartodbLayer.options.user_name,
+            table: cartodbLayer.options.layer_definition.layers[0].options.layer_name,
+            cartocss: cartodbLayer.options.layer_definition.layers[0].options.cartocss,
           };
         });
 
