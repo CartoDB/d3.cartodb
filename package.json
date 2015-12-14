@@ -1,6 +1,6 @@
 {
   "name": "d3.cartodb",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "d3.cartodb is an experiment to render cartodb visualizations using d3.",
   "main": "src/index.js",
   "scripts": {
