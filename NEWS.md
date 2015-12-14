@@ -1,3 +1,14 @@
+### 0.3.0
+* Added multi layer support in one tile
+* Added filtering via Crossfilter
+* Added mouse interaction
+* Replaced user/table support with Windshaft provider
+* Added buffer-size support
+* Major layer refactor
+* Changed renderer behaviour so that geometries needn't be reloaded
+* Added transitions
+* Replaced jshint with standardjs
+
 ### 0.2.0
 * Added updated documentation.
 * Improved readme.
