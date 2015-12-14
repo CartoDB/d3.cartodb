@@ -8,7 +8,8 @@ L.CartoDBd3Layer = L.Class.extend({
     minZoom: 0,
     maxZoom: 28,
     tileSize: 256,
-    zoomOffset: 0
+    zoomOffset: 0,
+    tileBuffer: 50
   },
 
   initialize: function (options) {
@@ -23,12 +24,17 @@ L.CartoDBd3Layer = L.Class.extend({
     this._map = map;
     this.options.map = map;
     this.options.layer = this;
+    var styles = this.options.styles;
+    if(!styles){
+      styles = [this.options.cartocss];
+      this.options.styles = styles;
+    }
     if (this.options.urlTemplate || this.options.tilejson){
       this.provider = new providers.XYZProvider(this.options);
-    } else {
-      this.provider = this.options.provider || new providers.SQLProvider(this.options);
     }
-    var styles = this.options.styles || [this.options.cartocss];
+    else {
+      this.provider = this.options.provider || new providers.WindshaftProvider(this.options);
+    }
     for (var i = 0; i < styles.length; i++){
       this.renderers.push(new Renderer({
         cartocss: styles[i],
@@ -72,6 +78,8 @@ L.CartoDBd3Layer = L.Class.extend({
     var tile = this.svgTiles[tileKey];
     if (!tile) {
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      tile.style.padding = this.options.tileBuffer+"px";
+      tile.style.margin = "-"+this.options.tileBuffer+"px";
       tile.setAttribute("class", "leaflet-tile");
       this.svgTiles[tileKey] = tile;
       this._container.appendChild(tile);
@@ -90,6 +98,11 @@ L.CartoDBd3Layer = L.Class.extend({
   _clearTile: function(data) {
     var svg = this.svgTiles[data.tileKey];
     this._container.removeChild(svg);
+    var split = data.tileKey.split(":");
+    var tilePoint = {x: split[0], y: split[1], zoom: split[2]};
+    this.renderers.forEach(function(r){
+      r.filter.removeTile(tilePoint);
+    });
     delete this.svgTiles[data.tileKey];
   },
 
