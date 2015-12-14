@@ -1,9 +1,9 @@
-require('./tileloader.js');
-require('./leaflet_d3.js');
+require('./tileloader.js')
+require('./leaflet_d3.js')
 module.exports.d3 = {
-	Util: require('./util.js'),
-	geo: require('./geo.js'),
-	Renderer: require("./renderer.js"),
-	net: require('./net.js'),
-	filter: require('./filter.js')
-};
+  Util: require('./util.js'),
+  geo: require('./geo.js'),
+  Renderer: require('./renderer.js'),
+  net: require('./net.js'),
+  filter: require('./filter.js')
+}
