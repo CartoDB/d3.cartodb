@@ -36,15 +36,6 @@ describe("The layer", function(){
 		expect(this.layer.renderers.length).not.toBeLessThan(0);
 	});
 
-	it("should generate an svg tile when tileAdded event is triggered", function(){
-		this.layer.addTo(this.map);
-		dump(this.layer._tileLoaded)
-		spyOn(L.DomUtil, "setPosition");
-		this.layer.fire("tileAdded", {x: 1, y: 2, zoom: 3});
-		expect(L.DomUtil.setPosition).toHaveBeenCalled();
-		expect(L.DomUtil.setPosition.calls.first().args[0].tagName).toEqual('svg')
-	});
-
 	it("'s container should have leaflet-specific classnames", function(){
 		this.layer.addTo(this.map);
 		expect(this.layer._container.attributes["class"].value).toEqual('leaflet-tile-container leaflet-zoom-animated');

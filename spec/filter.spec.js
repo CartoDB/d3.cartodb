@@ -28,13 +28,13 @@ describe("The filter", function(){
 
 	it("should add a dimension when filtering for the first time", function(){
 		this.filter.addTile({x: 2, y: 1, zoom: 3}, this.tile);
-		this.filter.filterReject("name", "Illinois");
+		this.filter.filterReject("name", ["Illinois"]);
 		expect(this.filter.dimensions.name).not.toBeUndefined();
 		this.filter.dimensions.name.filterAll();
 	});
 
 	it("shouldn't add a second dimension for the same column", function(){
-		this.filter.filterAccept("name", "Arizona");
+		this.filter.filterAccept("name", ["Arizona"]);
 		expect(Object.keys(this.filter.dimensions).length).toEqual(2);
 		this.filter.dimensions.name.filterAll();
 	});
@@ -51,7 +51,7 @@ describe("The filter", function(){
 	});
 
 	it("should only include results that haven't been rejected", function() {
-		this.filter.filterReject("name", "Illinois");
+		this.filter.filterReject("name", ["Illinois"]);
 		var ranCheck = false;
 		this.filter.getValues("name").forEach(function(f){
 			expect(f.properties.name != "Illinois").toBe(true);
@@ -62,7 +62,7 @@ describe("The filter", function(){
 	});
 
 	it("should only include results that have been accepted", function() {
-		this.filter.filterAccept("name", "Illinois");
+		this.filter.filterAccept("name", ["Illinois"]);
 		var ranCheck = false;
 		this.filter.getValues("name").forEach(function(f){
 			expect(f.properties.name === "Illinois").toBe(true);
@@ -74,7 +74,7 @@ describe("The filter", function(){
 
 
 	it("should return the original feature count when all filters are cleared", function(){
-		this.filter.filterAccept("name", "Illinois");
+		this.filter.filterAccept("name", ["Illinois"]);
 		this.filter.clearFilters();
 		expect(this.filter.crossfilter.size() === 15).toBe(true)
 	})

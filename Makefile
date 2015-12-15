@@ -18,6 +18,6 @@ testDebug:
 	./node_modules/karma/bin/karma start
 
 lint:
-	./node_modules/jshint/bin/jshint src/
+	node_modules/standard/bin/cmd.js src/*.js
 
 .PHONY: clean dist_folder

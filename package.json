@@ -1,6 +1,6 @@
 {
   "name": "d3.cartodb",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "d3.cartodb is an experiment to render cartodb visualizations using d3.",
   "main": "src/index.js",
   "scripts": {
@@ -37,16 +37,17 @@
   },
   "devDependencies": {
     "browserify": "^11.2.0",
-    "uglifyjs": "^2.4.10",
     "jasmine-core": "^2.3.4",
     "jshint": "^2.8.0",
     "karma": "^0.13.11",
     "karma-browserify": "^4.4.0",
     "karma-chrome-launcher": "^0.2.1",
-    "karma-firefox-launcher": "*",
     "karma-coverage": "^0.5.2",
+    "karma-firefox-launcher": "*",
     "karma-jasmine": "^0.3.6",
     "karma-requirejs": "^0.2.2",
-    "requirejs": "^2.1.20"
+    "requirejs": "^2.1.20",
+    "standard": "^5.4.1",
+    "uglifyjs": "^2.4.10"
   }
 }
