@@ -264,19 +264,20 @@ Renderer.prototype = {
   },
 
   handleInteractivity: function (feature) {
+    var self = this;
     if (this.events.featureOver) {
       feature.on('mouseover', function (f) {
-        this.events.featureOver(f, d3.select(this))
+        self.events.featureOver(f, d3.select(this))
       })
     }
     if (this.events.featureOut) {
       feature.on('mouseout', function (f) {
-        this.events.featureOut(f, d3.select(this))
+        self.events.featureOut(f, d3.select(this))
       })
     }
     if (this.events.featureClick) {
       feature.on('click', function (f) {
-        this.events.featureOut(f, d3.select(this))
+        self.events.featureOut(f, d3.select(this))
       })
     }
   }
