@@ -5,7 +5,7 @@ var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
 
-cartodb.d3 = {}
+cartodb.d3 = d3 || {};
 
 d3.selection.prototype.moveToFront = function () {
   return this.each(function () {
