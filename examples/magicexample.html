@@ -116,6 +116,10 @@
 
   var alternate = "/** choropleth visualization */ #ne_10m_populated_places_simple_6{ marker-fill-opacity: 0.8; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1; marker-width: 10; marker-fill: #FFFFCC; marker-allow-overlap: true; } #ne_10m_populated_places_simple_6 [ pop_max <= 35676000] { marker-fill: #0C2C84; } #ne_10m_populated_places_simple_6 [ pop_max <= 534555] { marker-fill: #225EA8; } #ne_10m_populated_places_simple_6 [ pop_max <= 211138] { marker-fill: #1D91C0; } #ne_10m_populated_places_simple_6 [ pop_max <= 109023] { marker-fill: #41B6C4; } #ne_10m_populated_places_simple_6 [ pop_max <= 59575] { marker-fill: #7FCDBB; } #ne_10m_populated_places_simple_6 [ pop_max <= 31253] { marker-fill: #C7E9B4; } #ne_10m_populated_places_simple_6 [ pop_max <= 11739] { marker-fill: #FFFFCC; }";
 
+  cartoDBd3Layer.on(0, "featureOut", function(f, d3selection){
+    d3selection.reset();
+  });
+
   cartoDBd3Layer.on(0, "featureOver", function(f, d3selection){
     var tags = ['<h2>{{name}},</h2>',
     '<h3>{{adm0name}}</h3>',
