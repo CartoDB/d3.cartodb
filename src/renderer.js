@@ -257,13 +257,13 @@ Renderer.prototype = {
       if (cached) {
         feature = feature.transition().duration(200)
       }
-      if (feature) self.handleInteractivity(feature)
+      if (feature) self.handleInteractivity(feature, sym)
       feature.style(self.styleForSymbolizer(sym, 'shader'))
     })
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
   },
 
-  handleInteractivity: function (feature) {
+  handleInteractivity: function (feature, sym) {
     var self = this;
     if (this.events.featureOver) {
       feature.on('mouseover', function (f) {
@@ -272,7 +272,11 @@ Renderer.prototype = {
     }
     if (this.events.featureOut) {
       feature.on('mouseout', function (f) {
-        self.events.featureOut(f, d3.select(this))
+        var selection = d3.select(this);
+        selection.reset = function(){
+          selection.transition().duration(200).style(self.styleForSymbolizer(this.sym, 'shader'))
+        }.bind({sym:sym})
+        self.events.featureOut(f, selection)
       })
     }
     if (this.events.featureClick) {
