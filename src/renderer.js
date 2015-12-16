@@ -5,7 +5,7 @@ var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
 
-cartodb.d3 = d3 || {};
+cartodb.d3 = d3 || {}
 
 d3.selection.prototype.moveToFront = function () {
   return this.each(function () {
@@ -64,7 +64,29 @@ Renderer.prototype = {
   },
 
   on: function (eventName, callback) {
-    this.events[eventName] = callback
+    var self = this
+    switch (eventName) {
+      case 'featureOver':
+        this.events.featureOver = function (f) {
+          callback(f, d3.select(this))
+        }
+        break
+      case 'featureOut':
+        this.events.featureOut = function (f) {
+          var selection = d3.select(this)
+          var sym = this.attributes["class"].value
+          selection.reset = function () {
+            selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
+          }
+          callback(f, selection)
+        }
+        break
+      case 'featureClick':
+        this.events.featureClick = function (f) {
+          callback(f, d3.select(this))
+        }
+        break
+    }
   },
 
   redraw: function (updating) {
@@ -257,33 +279,9 @@ Renderer.prototype = {
       if (cached) {
         feature = feature.transition().duration(200)
       }
-      if (feature.on) self.handleInteractivity(feature, sym)
       feature.style(self.styleForSymbolizer(sym, 'shader'))
     })
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
-  },
-
-  handleInteractivity: function (feature, sym) {
-    var self = this;
-    if (this.events.featureOver) {
-      feature.on('mouseover', function (f) {
-        self.events.featureOver(f, d3.select(this))
-      })
-    }
-    if (this.events.featureOut) {
-      feature.on('mouseout', function (f) {
-        var selection = d3.select(this);
-        selection.reset = function(){
-          selection.transition().duration(200).style(self.styleForSymbolizer(this.sym, 'shader'))
-        }.bind({sym:sym})
-        self.events.featureOut(f, selection)
-      })
-    }
-    if (this.events.featureClick) {
-      feature.on('click', function (f) {
-        self.events.featureOut(f, d3.select(this))
-      })
-    }
   }
 }
 
