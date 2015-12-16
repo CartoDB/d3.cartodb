@@ -257,7 +257,7 @@ Renderer.prototype = {
       if (cached) {
         feature = feature.transition().duration(200)
       }
-      if (feature) self.handleInteractivity(feature, sym)
+      if (feature.on) self.handleInteractivity(feature, sym)
       feature.style(self.styleForSymbolizer(sym, 'shader'))
     })
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
