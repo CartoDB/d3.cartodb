@@ -74,7 +74,7 @@ Renderer.prototype = {
       case 'featureOut':
         this.events.featureOut = function (f) {
           var selection = d3.select(this)
-          var sym = this.attributes["class"].value
+          var sym = this.attributes['class'].value
           selection.reset = function () {
             selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
           }
