@@ -2,6 +2,7 @@ var Renderer = require('./renderer')
 var providers = require('./providers')
 var TileLoader = require('./tileloader')
 var L = window.L
+var d3 = require('d3')
 
 L.CartoDBd3Layer = L.Class.extend({
   options: {
@@ -19,12 +20,11 @@ L.CartoDBd3Layer = L.Class.extend({
     L.Util.setOptions(this, options)
   },
 
-  on: function(index, eventName, callback) {
-    if (eventName in this.renderers[index].events){
-      this.renderers[index].on(eventName, callback);
-    }
-    else{
-      L.Class.prototype.on.call(arguments.slice(1));
+  on: function (index, eventName, callback) {
+    if (eventName in this.renderers[index].events) {
+      this.renderers[index].on(eventName, callback)
+    } else {
+      L.Class.prototype.on.call(arguments.slice(1))
     }
   },
 
@@ -92,6 +92,8 @@ L.CartoDBd3Layer = L.Class.extend({
       this._container.appendChild(tile)
     }
 
+    this._initTileEvents(tile)
+
     for (var i = 0; i < self.renderers.length; i++) {
       var collection = self.renderers.length > 1 ? geometry.features[i] : geometry
       self.renderers[i].render(tile, collection, tilePoint)
@@ -100,6 +102,30 @@ L.CartoDBd3Layer = L.Class.extend({
     var tilePos = this._getTilePos(tilePoint)
     tile.style.width = tile.style.height = this._getTileSize() + 'px'
     L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome)
+  },
+
+  _initTileEvents: function (tile) {
+    var self = this
+    tile.onmouseenter = function () {
+      for (var i = 0; i < this.children.length; i++) {
+        var group = this.children[i]
+        for (var f = 0; f < group.children.length; f++) {
+          d3.select(group.children[f]).on('mouseenter', self.renderers[i].events.featureOver)
+          d3.select(group.children[f]).on('mouseleave', self.renderers[i].events.featureOut)
+          d3.select(group.children[f]).on('mouseclick', self.renderers[i].events.featureClick)
+        }
+      }
+    }
+    tile.onmouseleave = function () {
+      for (var i = 0; i < this.children.length; i++) {
+        var group = this.children[i]
+        for (var f = 0; f < group.children.length; f++) {
+          d3.select(group.children[f]).on('mouseenter', null)
+          d3.select(group.children[f]).on('mouseleave', null)
+          d3.select(group.children[f]).on('mouseclick', null)
+        }
+      }
+    }
   },
 
   _clearTile: function (data) {
