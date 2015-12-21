@@ -245,38 +245,42 @@ Renderer.prototype = {
             _.defaults(d.shader_hover, d.shader)
           }
         })
-
-        path.pointRadius(function (d) {
-          return (d.shader['marker-width'] || 0) / 2.0
-        })
-
-        // move this outsude
-        if (sym === 'text') {
-          feature.text(function (d) {
-            return 'text' // d.shader['text-name']
-          })
-          feature.attr('dy', '.35em')
-          feature.attr('text-anchor', 'middle')
-          feature.attr('x', function (d) {
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-            return p.x
-          })
-          feature.attr('y', function (d) {
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-            return p.y
-          })
-        } else {
-          feature.attr('d', path)
-        }
-
-        // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-        if (cached) {
-          feature = feature.transition().duration(200)
-        }
-        feature.style(self.styleForSymbolizer(sym, 'shader'))
       })
-      svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
-    }
+
+      path.pointRadius(function (d) {
+        return (d.shader['marker-width'] || 0) / 2.0
+      })
+
+      // move this outsude
+      if (sym === 'text') {
+        this.processText(feature)
+      } else {
+        feature.attr('d', path)
+      }
+
+      if (cached) {
+        feature = feature.transition().duration(200)
+      }
+      feature.style(self.styleForSymbolizer(sym, 'shader'))
+    })
+    svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+  },
+
+  processText: function (feature) {
+    feature.text(function (d) {
+      return 'text' // d.shader['text-name']
+    })
+    feature.attr('dy', '.35em')
+    feature.attr('text-anchor', 'middle')
+    feature.attr('x', function (d) {
+      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+      return p.x
+    })
+    feature.attr('y', function (d) {
+      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+      return p.y
+    })
+    return feature
   }
 }
 
