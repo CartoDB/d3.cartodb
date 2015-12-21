@@ -5,7 +5,7 @@ var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
 
-cartodb.d3 = d3 || {};
+cartodb.d3 = d3 || {}
 
 d3.selection.prototype.moveToFront = function () {
   return this.each(function () {
@@ -198,72 +198,69 @@ Renderer.prototype = {
     layers = this.processLayersRules(layers)
 
     styleLayers = g.data(layers)
-
-    //            polygon line point
-    // polygon       X     X     T
-    // line                X     T
-    // point               X     X
-    if (collection) {
-      styleLayers.each(function (layer) {
-        var symbolizers = layer.getSymbolizers()
-        symbolizers = _.filter(symbolizers, function (f) {
-          return f !== '*'
-        })
-        // merge line and polygon symbolizers
-        symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
-        var sym = symbolizers[0]
+    
+    styleLayers.each(function (layer) {
+      var sym = self.getSymbolizer(layer)
+      if (!updating) {
         var geometry = collection.features
-        if (!updating) {
-          // transform the geometry according the symbolizer
-          var transform = transformForSymbolizer(sym)
-          if (transform) {
-            geometry = geometry.map(transform)
-          }
-
-          // select based on symbolizer
-          var feature = d3.select(this)
-            .selectAll('.' + sym)
-            .data(geometry)
-
-          if (sym === 'text') {
-            feature.enter().append('svg:text').attr('class', sym)
-          } else {
-            feature.enter().append('path').attr('class', sym)
-          }
-          feature.exit().remove()
-        } else {
-          feature = d3.select(this).selectAll('.' + sym)
+        var transform = transformForSymbolizer(sym)
+        if (transform) {
+          geometry = geometry.map(transform)
         }
 
-        // calculate shader for each geometry
-        feature.each(function (d) {
-          if (!d.properties) d.properties = {}
-          d.properties.global = self.globalVariables
-          d.shader = layer.getStyle(d.properties, {zoom: tilePoint.zoom, time: self.time})
-          if (layer.hover) {
-            d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
-            _.defaults(d.shader_hover, d.shader)
-          }
-        })
-
-        path.pointRadius(function (d) {
-          return (d.shader['marker-width'] || 0) / 2.0
-        })
+        // select based on symbolizer
+        var feature = d3.select(this)
+          .selectAll('.' + sym)
+          .data(geometry)
 
         if (sym === 'text') {
-          feature = self.transformText(feature)
+          feature.enter().append('svg:text').attr('class', sym)
         } else {
-          feature.attr('d', path)
+          feature.enter().append('path').attr('class', sym)
         }
+        feature.exit().remove()
+      } else {
+        feature = d3.select(this).selectAll('.' + sym)
+      }
 
-        // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-        if (cached) {
-          feature = feature.transition().duration(200)
+      // calculate shader for each geometry
+      feature.each(function (d) {
+        if (!d.properties) d.properties = {}
+        d.properties.global = self.globalVariables
+        d.shader = layer.getStyle(d.properties, {zoom: tilePoint.zoom, time: self.time})
+        if (layer.hover) {
+          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
+          _.defaults(d.shader_hover, d.shader)
         }
-        feature.style(self.styleForSymbolizer(sym, 'shader'))
       })
-      svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
-    }
+
+      path.pointRadius(function (d) {
+        return (d.shader['marker-width'] || 0) / 2.0
+      })
+
+      if (sym === 'text') {
+        feature = self.transformText(feature)
+      } else {
+        feature.attr('d', path)
+      }
+
+      // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
+      if (cached) {
+        feature = feature.transition().duration(200)
+      }
+      feature.style(self.styleForSymbolizer(sym, 'shader'))
+    })
+    svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+  },
+
+  getSymbolizer: function (layer) {
+    var symbolizers = layer.getSymbolizers()
+    symbolizers = _.filter(symbolizers, function (f) {
+      return f !== '*'
+    })
+    // merge line and polygon symbolizers
+    symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
+    return symbolizers[0]
   },
 
   transformText: function (feature) {
