@@ -68,7 +68,8 @@ Renderer.prototype = {
     switch (eventName) {
       case 'featureOver':
         this.events.featureOver = function (f) {
-          callback(f, d3.select(this))
+          this.style.cursor = 'pointer'
+          callback(d3.select(this).data()[0], d3.select(this))
         }
         break
       case 'featureOut':
@@ -78,12 +79,12 @@ Renderer.prototype = {
           selection.reset = function () {
             selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
           }
-          callback(f, selection)
+          callback(d3.select(this).data()[0], selection)
         }
         break
       case 'featureClick':
         this.events.featureClick = function (f) {
-          callback(f, d3.select(this))
+          callback(d3.select(this).data()[0], d3.select(this))
         }
         break
     }
