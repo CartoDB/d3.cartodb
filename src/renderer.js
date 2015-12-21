@@ -173,17 +173,16 @@ Renderer.prototype = {
   render: function (svg, collection, tilePoint, updating) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
-    var g, cached, styleLayers
+    var g, styleLayers
     var svgSel = d3.select(svg)
     if (updating) {
       collection = {features: d3.selectAll(svg.firstChild.children).data()}
       g = d3.select(svg.firstChild)
       styleLayers = g.data()
-      cached = true
     } else {
       g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
     }
-    var path = this.generatePath(tilePoint)
+    this.path = this.generatePath(tilePoint)
 
     if (!this.shader || !collection || collection.features.length === 0) return
     var layers = this.shader.getLayers()
@@ -201,35 +200,28 @@ Renderer.prototype = {
       } else {
         features = d3.select(this).selectAll('.' + sym)
       }
-
-      // calculate shader for each geometry
-      features.each(function (d) {
-        if (!d.properties) d.properties = {}
-        d.properties.global = self.globalVariables
-        d.shader = layer.getStyle(d.properties, {zoom: tilePoint.zoom, time: self.time})
-        if (layer.hover) {
-          d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
-          _.defaults(d.shader_hover, d.shader)
-        }
-      })
-
-      path.pointRadius(function (d) {
-        return (d.shader['marker-width'] || 0) / 2.0
-      })
-
-      if (sym === 'text') {
-        features = self._transformText(features)
-      } else {
-        features.attr('d', path)
-      }
-
-      // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-      if (cached) {
-        features = features.transition().duration(200)
-      }
-      features.style(self.styleForSymbolizer(sym, 'shader'))
+      this.tilePoint = tilePoint
+      self._styleFeatures(layer, features, this)
     })
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+  },
+
+  _styleFeatures: function (layer, features, group) {
+    var self = this
+    features.each(function (d) {
+      if (!d.properties) d.properties = {}
+      d.properties.global = self.globalVariables
+      d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
+      if (layer.hover) {
+        d.shader_hover = layer.hover.getStyle(d.properties, { zoom: group.tilePoint.zoom, time: self.time })
+        _.defaults(d.shader_hover, d.shader)
+      }
+    })
+
+    self.path.pointRadius(function (d) {
+      return (d.shader['marker-width'] || 0) / 2.0
+    })
+    features.style(self.styleForSymbolizer(this._getSymbolizer(layer), 'shader'))
   },
 
   _createFeatures: function (layer, collection, group) {
@@ -247,8 +239,10 @@ Renderer.prototype = {
 
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
+      features = this._transformText(features)
     } else {
       features.enter().append('path').attr('class', sym)
+      features.attr('d', this.path)
     }
     features.exit().remove()
     return features
