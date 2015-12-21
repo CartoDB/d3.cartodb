@@ -2,7 +2,6 @@ var Renderer = require('./renderer')
 var providers = require('./providers')
 var TileLoader = require('./tileloader')
 var L = window.L
-var d3 = require('d3')
 
 L.CartoDBd3Layer = L.Class.extend({
   options: {
