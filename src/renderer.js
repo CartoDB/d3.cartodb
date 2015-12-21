@@ -149,6 +149,27 @@ Renderer.prototype = {
     }
   },
 
+  generatePath: function (tilePoint) {
+    var self = this
+    return d3.geo.path().projection(d3.geo.transform({
+      point: function (x, y) {
+        // don't use leaflet projection since it's pretty slow
+        if (self.layer.provider.format === 'topojson') {
+          var webm = geo.geo2Webmercator(x, y)
+          x = webm.x
+          y = webm.y
+        }
+        var earthRadius = 6378137 * 2 * Math.PI
+        var earthRadius2 = earthRadius / 2
+        var invEarth = 1.0 / earthRadius
+        var pixelScale = 256 * (1 << tilePoint.zoom)
+        x = pixelScale * (x + earthRadius2) * invEarth
+        y = pixelScale * (-y + earthRadius2) * invEarth
+        this.stream.point(x - tilePoint.x * 256, y - tilePoint.y * 256)
+      }
+    }))
+  },
+
   render: function (svg, collection, tilePoint, updating) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
@@ -164,28 +185,9 @@ Renderer.prototype = {
     } else {
       g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
     }
+    var path = this.generatePath(tilePoint)
 
-    var transform = d3.geo.transform({
-      point: function (x, y) {
-        // don't use leaflet projection since it's pretty slow
-        if (self.layer.provider.format === 'topojson') {
-          var webm = geo.geo2Webmercator(x, y)
-          x = webm.x
-          y = webm.y
-        }
-        var earthRadius = 6378137 * 2 * Math.PI
-        var earthRadius2 = earthRadius / 2
-        var invEarth = 1.0 / earthRadius
-        var pixelScale = 256 * (1 << tilePoint.zoom)
-        x = pixelScale * (x + earthRadius2) * invEarth
-        y = pixelScale * (-y + earthRadius2) * invEarth
-        this.stream.point(x - self.currentPoint.x * 256, y - self.currentPoint.y * 256)
-      }
-    })
-    var path = d3.geo.path().projection(transform)
-
-    if (!shader) return
-    if (!collection || collection.features.length === 0) return
+    if (!shader || !collection || collection.features.length === 0) return
     var bounds = path.bounds(collection)
     var buffer = 100
     var topLeft = bounds[0]
