@@ -109,18 +109,20 @@ L.CartoDBd3Layer = L.Class.extend({
     tile.onmouseenter = function () {
       for (var i = 0; i < this.children.length; i++) {
         var group = this.children[i]
-        d3.selectAll(group.children).on('mouseenter', self.renderers[i].events.featureOver)
-        d3.selectAll(group.children).on('mouseleave', self.renderers[i].events.featureOut)
-        d3.selectAll(group.children).on('mouseclick', self.renderers[i].events.featureClick)
+        for (var p = 0; p < group.children.length; p++) {
+          group.children[p].onmouseenter = self.renderers[i].events.featureOver
+          group.children[p].onmouseleave = self.renderers[i].events.featureOut
+          group.children[p].onmouseclick = self.renderers[i].events.featureClick
+        }
       }
     }
     tile.onmouseleave = function () {
       for (var i = 0; i < this.children.length; i++) {
         var group = this.children[i]
-        for (var f = 0; f < group.children.length; f++) {
-          d3.selectAll(group.children).on('mouseenter', null)
-          d3.selectAll(group.children).on('mouseleave', null)
-          d3.selectAll(group.children).on('mouseclick', null)
+        for (var p = 0; p < group.length; p++) {
+          group.children[p].onmouseenter = null
+          group.children[p].onmouseleave = null
+          group.children[p].onmouseclick = null
         }
       }
     }
