@@ -173,8 +173,6 @@ Renderer.prototype = {
   render: function (svg, collection, tilePoint, updating) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
-    this.currentPoint = tilePoint
-    var shader = this.shader
     var g, cached, styleLayers
     var svgSel = d3.select(svg)
     if (updating) {
@@ -187,14 +185,14 @@ Renderer.prototype = {
     }
     var path = this.generatePath(tilePoint)
 
-    if (!shader || !collection || collection.features.length === 0) return
+    if (!this.shader || !collection || collection.features.length === 0) return
     var bounds = path.bounds(collection)
     var buffer = 100
     var topLeft = bounds[0]
     topLeft[0] -= buffer
     topLeft[1] -= buffer
 
-    var layers = shader.getLayers()
+    var layers = this.shader.getLayers()
 
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
