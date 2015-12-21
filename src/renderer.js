@@ -200,10 +200,10 @@ Renderer.prototype = {
     styleLayers = g.data(layers)
 
     styleLayers.each(function (layer) {
-      var sym = self.getSymbolizer(layer)
+      var sym = self._getSymbolizer(layer)
       var features
       if (!updating) {
-        features = self.createFeatures(layer, collection, this)
+        features = self._createFeatures(layer, collection, this)
       } else {
         features = d3.select(this).selectAll('.' + sym)
       }
@@ -224,7 +224,7 @@ Renderer.prototype = {
       })
 
       if (sym === 'text') {
-        features = self.transformText(features)
+        features = self._transformText(features)
       } else {
         features.attr('d', path)
       }
@@ -238,8 +238,8 @@ Renderer.prototype = {
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
   },
 
-  createFeatures: function (layer, collection, group) {
-    var sym = this.getSymbolizer(layer)
+  _createFeatures: function (layer, collection, group) {
+    var sym = this._getSymbolizer(layer)
     var geometry = collection.features
     var transform = transformForSymbolizer(sym)
     if (transform) {
@@ -260,7 +260,7 @@ Renderer.prototype = {
     return features
   },
 
-  getSymbolizer: function (layer) {
+  _getSymbolizer: function (layer) {
     var symbolizers = layer.getSymbolizers()
     symbolizers = _.filter(symbolizers, function (f) {
       return f !== '*'
@@ -270,7 +270,7 @@ Renderer.prototype = {
     return symbolizers[0]
   },
 
-  transformText: function (feature) {
+  _transformText: function (feature) {
     feature.text(function (d) {
       return 'text' // d.shader['text-name']
     })
