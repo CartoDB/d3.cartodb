@@ -198,33 +198,18 @@ Renderer.prototype = {
     layers = this.processLayersRules(layers)
 
     styleLayers = g.data(layers)
-    
+
     styleLayers.each(function (layer) {
       var sym = self.getSymbolizer(layer)
+      var features
       if (!updating) {
-        var geometry = collection.features
-        var transform = transformForSymbolizer(sym)
-        if (transform) {
-          geometry = geometry.map(transform)
-        }
-
-        // select based on symbolizer
-        var feature = d3.select(this)
-          .selectAll('.' + sym)
-          .data(geometry)
-
-        if (sym === 'text') {
-          feature.enter().append('svg:text').attr('class', sym)
-        } else {
-          feature.enter().append('path').attr('class', sym)
-        }
-        feature.exit().remove()
+        features = self.createFeatures(layer, collection, this)
       } else {
-        feature = d3.select(this).selectAll('.' + sym)
+        features = d3.select(this).selectAll('.' + sym)
       }
 
       // calculate shader for each geometry
-      feature.each(function (d) {
+      features.each(function (d) {
         if (!d.properties) d.properties = {}
         d.properties.global = self.globalVariables
         d.shader = layer.getStyle(d.properties, {zoom: tilePoint.zoom, time: self.time})
@@ -239,18 +224,40 @@ Renderer.prototype = {
       })
 
       if (sym === 'text') {
-        feature = self.transformText(feature)
+        features = self.transformText(features)
       } else {
-        feature.attr('d', path)
+        features.attr('d', path)
       }
 
       // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
       if (cached) {
-        feature = feature.transition().duration(200)
+        features = features.transition().duration(200)
       }
-      feature.style(self.styleForSymbolizer(sym, 'shader'))
+      features.style(self.styleForSymbolizer(sym, 'shader'))
     })
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+  },
+
+  createFeatures: function (layer, collection, group) {
+    var sym = this.getSymbolizer(layer)
+    var geometry = collection.features
+    var transform = transformForSymbolizer(sym)
+    if (transform) {
+      geometry = geometry.map(transform)
+    }
+
+    // select based on symbolizer
+    var features = d3.select(group)
+      .selectAll('.' + sym)
+      .data(geometry)
+
+    if (sym === 'text') {
+      features.enter().append('svg:text').attr('class', sym)
+    } else {
+      features.enter().append('path').attr('class', sym)
+    }
+    features.exit().remove()
+    return features
   },
 
   getSymbolizer: function (layer) {
