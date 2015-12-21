@@ -250,21 +250,8 @@ Renderer.prototype = {
           return (d.shader['marker-width'] || 0) / 2.0
         })
 
-        // move this outsude
         if (sym === 'text') {
-          feature.text(function (d) {
-            return 'text' // d.shader['text-name']
-          })
-          feature.attr('dy', '.35em')
-          feature.attr('text-anchor', 'middle')
-          feature.attr('x', function (d) {
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-            return p.x
-          })
-          feature.attr('y', function (d) {
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-            return p.y
-          })
+          feature = self.transformText(feature)
         } else {
           feature.attr('d', path)
         }
@@ -277,6 +264,22 @@ Renderer.prototype = {
       })
       svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
     }
+  },
+
+  transformText: function (feature) {
+    feature.text(function (d) {
+      return 'text' // d.shader['text-name']
+    })
+    feature.attr('dy', '.35em')
+    feature.attr('text-anchor', 'middle')
+    feature.attr('x', function (d) {
+      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+      return p.x
+    })
+    feature.attr('y', function (d) {
+      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+      return p.y
+    })
   }
 }
 
