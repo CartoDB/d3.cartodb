@@ -251,6 +251,13 @@ Renderer.prototype = {
         if (layer.hover) {
           d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
           _.defaults(d.shader_hover, d.shader)
+          self.events.featureOver = function () {
+            this.style.cursor = "default"
+            d3.select(this).style(self.styleForSymbolizer(sym, 'shader_hover'))
+          }
+          self.events.featureOut = function () {
+            d3.select(this).style(self.styleForSymbolizer(sym, 'shader'))
+          }
         }
       })
 
