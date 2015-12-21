@@ -186,12 +186,6 @@ Renderer.prototype = {
     var path = this.generatePath(tilePoint)
 
     if (!this.shader || !collection || collection.features.length === 0) return
-    var bounds = path.bounds(collection)
-    var buffer = 100
-    var topLeft = bounds[0]
-    topLeft[0] -= buffer
-    topLeft[1] -= buffer
-
     var layers = this.shader.getLayers()
 
     // search for hovers and other special rules for the renderer
