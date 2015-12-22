@@ -9,6 +9,7 @@ function WindshaftProvider (options) {
   this.format = options.format
   this.options = options
   this.tileCache = {}
+  this._tileQueue = []
   this.initialize()
 }
 
@@ -21,6 +22,7 @@ WindshaftProvider.prototype = {
     cartodb.d3.net.jsonp(url + '&callback=mapconfig', function (data) {
       self.layergroup = data
       self.urlTemplate = self.tiler_template + '/api/v1/map/' + self.layergroup.layergroupid + '/0/{z}/{x}/{y}.geojson'
+      self._processQueue()
     })
   },
 
@@ -44,11 +46,20 @@ WindshaftProvider.prototype = {
           callback(tilePoint, geometry)
         })
       }
+    } else {
+      this._tileQueue.push([tilePoint, callback])
     }
   },
 
   getGeometry: function (url, callback) {
     d3.json(url, callback)
+  },
+
+  _processQueue: function () {
+    var item
+    while (item = this._tileQueue.pop()) {
+      this.getTile.apply(this, item)
+    }
   },
 
   _generateMapconfig: function (table) {
