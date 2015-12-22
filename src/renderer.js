@@ -21,7 +21,7 @@ var Renderer = function (options) {
   this.globalVariables = {}
   this.layer = options.layer
   this.filter = new Filter()
-  this.dimensions = {}
+  this.geometries = {}
 }
 
 Renderer.prototype = {
