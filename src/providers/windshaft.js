@@ -56,10 +56,9 @@ WindshaftProvider.prototype = {
   },
 
   _processQueue: function () {
-    var item
-    while (item = this._tileQueue.pop()) {
+    this._tileQueue.forEach(function (item) {
       this.getTile.apply(this, item)
-    }
+    })
   },
 
   _generateMapconfig: function (table) {
