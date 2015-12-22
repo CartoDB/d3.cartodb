@@ -151,6 +151,7 @@ Renderer.prototype = {
 
   generatePath: function (tilePoint) {
     var self = this
+    var corrected_x = geo.wrapX(tilePoint.x, tilePoint.zoom)
     return d3.geo.path().projection(d3.geo.transform({
       point: function (x, y) {
         // don't use leaflet projection since it's pretty slow
@@ -165,7 +166,7 @@ Renderer.prototype = {
         var pixelScale = 256 * (1 << tilePoint.zoom)
         x = pixelScale * (x + earthRadius2) * invEarth
         y = pixelScale * (-y + earthRadius2) * invEarth
-        this.stream.point(x - tilePoint.x * 256, y - tilePoint.y * 256)
+        this.stream.point(x - corrected_x * 256, y - tilePoint.y * 256)
       }
     }))
   },
