@@ -5,7 +5,7 @@ var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
 
-cartodb.d3 = d3 || {};
+cartodb.d3 = d3 || {}
 
 d3.selection.prototype.moveToFront = function () {
   return this.each(function () {
@@ -149,23 +149,10 @@ Renderer.prototype = {
     }
   },
 
-  render: function (svg, collection, tilePoint, updating) {
+  generatePath: function (tilePoint) {
     var self = this
-    collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
-    this.currentPoint = tilePoint
-    var shader = this.shader
-    var g, cached, styleLayers
-    var svgSel = d3.select(svg)
-    if (updating) {
-      collection = {features: d3.selectAll(svg.firstChild.children).data()}
-      g = d3.select(svg.firstChild)
-      styleLayers = g.data()
-      cached = true
-    } else {
-      g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
-    }
-
-    var transform = d3.geo.transform({
+    var corrected_x = geo.wrapX(tilePoint.x, tilePoint.zoom)
+    return d3.geo.path().projection(d3.geo.transform({
       point: function (x, y) {
         // don't use leaflet projection since it's pretty slow
         if (self.layer.provider.format === 'topojson') {
@@ -179,106 +166,113 @@ Renderer.prototype = {
         var pixelScale = 256 * (1 << tilePoint.zoom)
         x = pixelScale * (x + earthRadius2) * invEarth
         y = pixelScale * (-y + earthRadius2) * invEarth
-        var limit_x = Math.pow(2, self.currentPoint.zoom)
-        var corrected_x = ((tilePoint.x % limit_x) + limit_x) % limit_x
-        this.stream.point(x - corrected_x * 256, y - self.currentPoint.y * 256)
+        this.stream.point(x - corrected_x * 256, y - tilePoint.y * 256)
       }
-    })
-    var path = d3.geo.path().projection(transform)
+    }))
+  },
 
-    if (!shader) return
-    if (!collection || collection.features.length === 0) return
-    var bounds = path.bounds(collection)
-    var buffer = 100
-    var topLeft = bounds[0]
-    topLeft[0] -= buffer
-    topLeft[1] -= buffer
+  render: function (svg, collection, tilePoint, updating) {
+    var self = this
+    collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
+    var g, styleLayers
+    var svgSel = d3.select(svg)
+    if (updating) {
+      collection = {features: d3.selectAll(svg.firstChild.children).data()}
+      g = d3.select(svg.firstChild)
+      styleLayers = g.data()
+    } else {
+      g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
+    }
+    this.path = this.generatePath(tilePoint)
 
-    var layers = shader.getLayers()
+    if (!this.shader || !collection || collection.features.length === 0) return
+    var layers = this.shader.getLayers()
 
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
 
     styleLayers = g.data(layers)
 
-    //            polygon line point
-    // polygon       X     X     T
-    // line                X     T
-    // point               X     X
-    if (collection) {
-      styleLayers.each(function (layer) {
-        var symbolizers = layer.getSymbolizers()
-        symbolizers = _.filter(symbolizers, function (f) {
-          return f !== '*'
-        })
-        // merge line and polygon symbolizers
-        symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
-        var sym = symbolizers[0]
-        var geometry = collection.features
-        if (!updating) {
-          // transform the geometry according the symbolizer
-          var transform = transformForSymbolizer(sym)
-          if (transform) {
-            geometry = geometry.map(transform)
-          }
+    styleLayers.each(function (layer) {
+      var sym = self._getSymbolizer(layer)
+      var features
+      if (!updating) {
+        features = self._createFeatures(layer, collection, this)
+      } else {
+        features = d3.select(this).selectAll('.' + sym)
+      }
+      this.tilePoint = tilePoint
+      self._styleFeatures(layer, features, this)
+    })
+    svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+  },
 
-          // select based on symbolizer
-          var feature = d3.select(this)
-            .selectAll('.' + sym)
-            .data(geometry)
+  _styleFeatures: function (layer, features, group) {
+    var self = this
+    features.each(function (d) {
+      if (!d.properties) d.properties = {}
+      d.properties.global = self.globalVariables
+      d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
+      if (layer.hover) {
+        d.shader_hover = layer.hover.getStyle(d.properties, { zoom: group.tilePoint.zoom, time: self.time })
+        _.defaults(d.shader_hover, d.shader)
+      }
+    })
 
-          if (sym === 'text') {
-            feature.enter().append('svg:text').attr('class', sym)
-          } else {
-            feature.enter().append('path').attr('class', sym)
-          }
-          feature.exit().remove()
-        } else {
-          feature = d3.select(this).selectAll('.' + sym)
-        }
+    self.path.pointRadius(function (d) {
+      return (d.shader['marker-width'] || 0) / 2.0
+    })
+    features.style(self.styleForSymbolizer(this._getSymbolizer(layer), 'shader'))
+  },
 
-        // calculate shader for each geometry
-        feature.each(function (d) {
-          if (!d.properties) d.properties = {}
-          d.properties.global = self.globalVariables
-          d.shader = layer.getStyle(d.properties, {zoom: tilePoint.zoom, time: self.time})
-          if (layer.hover) {
-            d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
-            _.defaults(d.shader_hover, d.shader)
-          }
-        })
-
-        path.pointRadius(function (d) {
-          return (d.shader['marker-width'] || 0) / 2.0
-        })
-
-        // move this outsude
-        if (sym === 'text') {
-          feature.text(function (d) {
-            return 'text' // d.shader['text-name']
-          })
-          feature.attr('dy', '.35em')
-          feature.attr('text-anchor', 'middle')
-          feature.attr('x', function (d) {
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-            return p.x
-          })
-          feature.attr('y', function (d) {
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-            return p.y
-          })
-        } else {
-          feature.attr('d', path)
-        }
-
-        // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-        if (cached) {
-          feature = feature.transition().duration(200)
-        }
-        feature.style(self.styleForSymbolizer(sym, 'shader'))
-      })
-      svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+  _createFeatures: function (layer, collection, group) {
+    var sym = this._getSymbolizer(layer)
+    var geometry = collection.features
+    var transform = transformForSymbolizer(sym)
+    if (transform) {
+      geometry = geometry.map(transform)
     }
+
+    // select based on symbolizer
+    var features = d3.select(group)
+      .selectAll('.' + sym)
+      .data(geometry)
+
+    if (sym === 'text') {
+      features.enter().append('svg:text').attr('class', sym)
+      features = this._transformText(features)
+    } else {
+      features.enter().append('path').attr('class', sym)
+      features.attr('d', this.path)
+    }
+    features.exit().remove()
+    return features
+  },
+
+  _getSymbolizer: function (layer) {
+    var symbolizers = layer.getSymbolizers()
+    symbolizers = _.filter(symbolizers, function (f) {
+      return f !== '*'
+    })
+    // merge line and polygon symbolizers
+    symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
+    return symbolizers[0]
+  },
+
+  _transformText: function (feature) {
+    feature.text(function (d) {
+      return 'text' // d.shader['text-name']
+    })
+    feature.attr('dy', '.35em')
+    feature.attr('text-anchor', 'middle')
+    feature.attr('x', function (d) {
+      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+      return p.x
+    })
+    feature.attr('y', function (d) {
+      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+      return p.y
+    })
   }
 }
 
