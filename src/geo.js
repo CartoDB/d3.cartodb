@@ -17,5 +17,10 @@ module.exports = {
       var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
       return {x: x_mercator, y: y_mercator}
     }
+  },
+  wrapX: function (x, zoom) {
+    var limit_x = Math.pow(2, zoom)
+    var corrected_x = ((x % limit_x) + limit_x) % limit_x
+    return corrected_x
   }
 }
