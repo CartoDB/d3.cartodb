@@ -179,7 +179,9 @@ Renderer.prototype = {
         var pixelScale = 256 * (1 << tilePoint.zoom)
         x = pixelScale * (x + earthRadius2) * invEarth
         y = pixelScale * (-y + earthRadius2) * invEarth
-        this.stream.point(x - self.currentPoint.x * 256, y - self.currentPoint.y * 256)
+        var limit_x = Math.pow(2, self.currentPoint.zoom)
+        var corrected_x = ((tilePoint.x % limit_x) + limit_x) % limit_x
+        this.stream.point(x - corrected_x * 256, y - self.currentPoint.y * 256)
       }
     })
     var path = d3.geo.path().projection(transform)
