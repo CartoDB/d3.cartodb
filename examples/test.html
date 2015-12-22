@@ -28,35 +28,18 @@
 <script id="choropleth" type="text/cartocss">
 /** choropleth visualization */
 
-#ne_10m_populated_places_simple_6{
-  marker-fill-opacity: 0.8;
-  marker-line-color: #FFF;
-  marker-line-width: 1;
-  marker-line-opacity: 1;
-  marker-width: 10;
-  marker-fill: #FFFFB2;
-  marker-allow-overlap: true;
+/** category visualization */
+
+#ne_adm0_europe {
+   polygon-opacity: 1;
+   line-color: #FFF;
+   line-width: 0.5;
+   line-opacity: 1;
+   polygon-fill: #000;
 }
-#ne_10m_populated_places_simple_6 [ pop_max <= 35676000] {
-   marker-fill: #B10026;
-}
-#ne_10m_populated_places_simple_6 [ pop_max <= 534555] {
-   marker-fill: #E31A1C;
-}
-#ne_10m_populated_places_simple_6 [ pop_max <= 211138] {
-   marker-fill: #FC4E2A;
-}
-#ne_10m_populated_places_simple_6 [ pop_max <= 109023] {
-   marker-fill: #FD8D3C;
-}
-#ne_10m_populated_places_simple_6 [ pop_max <= 59575] {
-   marker-fill: #FEB24C;
-}
-#ne_10m_populated_places_simple_6 [ pop_max <= 31253] {
-   marker-fill: #FED976;
-}
-#ne_10m_populated_places_simple_6 [ pop_max <= 11739] {
-   marker-fill: #FFFFB2;
+
+#ne_adm0_europe::hover {
+   polygon-fill: #fff;
 }
 
 </script>
@@ -77,7 +60,7 @@
 
   var cartoDBd3Layer = new L.CartoDBd3Layer({
     user: 'fdansv',
-    table: 'ne_10m_populated_places_simple_6',
+    table: 'ne_adm0_europe',
     cartocss: document.getElementById('choropleth').innerHTML,
     tiler_template: "http://development.localhost.lan:8181"
   }).addTo(map);
