@@ -84,8 +84,8 @@ L.CartoDBd3Layer = L.Class.extend({
     var tile = this.svgTiles[tileKey]
     if (!tile) {
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      tile.style.padding = this.options.tileBuffer + 'px'
-      tile.style.margin = '-' + this.options.tileBuffer + 'px'
+      // tile.style.padding = this.options.tileBuffer + 'px'
+      // tile.style.margin = '-' + this.options.tileBuffer + 'px'
       tile.setAttribute('class', 'leaflet-tile')
       this.svgTiles[tileKey] = tile
       this._container.appendChild(tile)
