@@ -69,7 +69,9 @@ Renderer.prototype = {
       case 'featureOver':
         this.events.featureOver = function (f) {
           this.style.cursor = 'pointer'
-          callback(d3.select(this).data()[0], d3.select(this))
+          self.geometries[f.properties.cartodb_id].forEach(function (feature) {
+            callback(d3.select(feature).data()[0], d3.select(feature))
+          })
         }
         break
       case 'featureOut':
@@ -220,17 +222,23 @@ Renderer.prototype = {
     var self = this
     features.each(function (d) {
       if (!d.properties) d.properties = {}
+      if (!self.geometries[d.properties.cartodb_id]) self.geometries[d.properties.cartodb_id] = []
+      self.geometries[d.properties.cartodb_id].push(this)
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       if (layer.hover) {
         d.shader_hover = layer.hover.getStyle(d.properties, { zoom: group.tilePoint.zoom, time: self.time })
         _.defaults(d.shader_hover, d.shader)
-        self.events.featureOver = function () {
+        self.events.featureOver = function (f) {
           this.style.cursor = 'default'
-          d3.select(this).style(self.styleForSymbolizer(sym, 'shader_hover'))
+          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+            d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
+          })
         }
         self.events.featureOut = function () {
-          d3.select(this).style(self.styleForSymbolizer(sym, 'shader'))
+          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+            d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
+          })
         }
       }
     })
