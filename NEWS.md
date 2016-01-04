@@ -1,3 +1,10 @@
+### 0.3.1
+* Added interaction/mouse events
+* Rendering refactor
+* Fixed rendering outside bounds
+* Fixed windshaft provider, loading queued tiles after mapconfig is parsed
+* Geometries are now cut, so rendering is WAY faster and tiles WAY lighter
+
 ### 0.3.0
 * Added multi layer support in one tile
 * Added filtering via Crossfilter
