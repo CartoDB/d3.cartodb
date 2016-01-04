@@ -21890,6 +21890,11 @@ module.exports = {
       var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
       return {x: x_mercator, y: y_mercator}
     }
+  },
+  wrapX: function (x, zoom) {
+    var limit_x = Math.pow(2, zoom)
+    var corrected_x = ((x % limit_x) + limit_x) % limit_x
+    return corrected_x
   }
 }
 
@@ -21924,6 +21929,14 @@ L.CartoDBd3Layer = L.Class.extend({
     this.renderers = []
     this.svgTiles = {}
     L.Util.setOptions(this, options)
+  },
+
+  on: function (index, eventName, callback) {
+    if (eventName in this.renderers[index].events) {
+      this.renderers[index].on(eventName, callback)
+    } else {
+      L.Class.prototype.on.call(arguments.slice(1))
+    }
   },
 
   onAdd: function (map) {
@@ -21983,12 +21996,14 @@ L.CartoDBd3Layer = L.Class.extend({
     var tile = this.svgTiles[tileKey]
     if (!tile) {
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      tile.style.padding = this.options.tileBuffer + 'px'
-      tile.style.margin = '-' + this.options.tileBuffer + 'px'
+      // tile.style.padding = this.options.tileBuffer + 'px'
+      // tile.style.margin = '-' + this.options.tileBuffer + 'px'
       tile.setAttribute('class', 'leaflet-tile')
       this.svgTiles[tileKey] = tile
       this._container.appendChild(tile)
     }
+
+    this._initTileEvents(tile)
 
     for (var i = 0; i < self.renderers.length; i++) {
       var collection = self.renderers.length > 1 ? geometry.features[i] : geometry
@@ -21998,6 +22013,30 @@ L.CartoDBd3Layer = L.Class.extend({
     var tilePos = this._getTilePos(tilePoint)
     tile.style.width = tile.style.height = this._getTileSize() + 'px'
     L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome)
+  },
+
+  _initTileEvents: function (tile) {
+    var self = this
+    tile.onmouseenter = function () {
+      for (var i = 0; i < this.children.length; i++) {
+        var group = this.children[i]
+        for (var p = 0; p < group.children.length; p++) {
+          group.children[p].onmouseenter = self.renderers[i].events.featureOver
+          group.children[p].onmouseleave = self.renderers[i].events.featureOut
+          group.children[p].onmouseclick = self.renderers[i].events.featureClick
+        }
+      }
+    }
+    tile.onmouseleave = function () {
+      for (var i = 0; i < this.children.length; i++) {
+        var group = this.children[i]
+        for (var p = 0; p < group.length; p++) {
+          group.children[p].onmouseenter = null
+          group.children[p].onmouseleave = null
+          group.children[p].onmouseclick = null
+        }
+      }
+    }
   },
 
   _clearTile: function (data) {
@@ -22222,6 +22261,7 @@ function WindshaftProvider (options) {
   this.format = options.format
   this.options = options
   this.tileCache = {}
+  this._tileQueue = []
   this.initialize()
 }
 
@@ -22234,6 +22274,7 @@ WindshaftProvider.prototype = {
     cartodb.d3.net.jsonp(url + '&callback=mapconfig', function (data) {
       self.layergroup = data
       self.urlTemplate = self.tiler_template + '/api/v1/map/' + self.layergroup.layergroupid + '/0/{z}/{x}/{y}.geojson'
+      self._processQueue()
     })
   },
 
@@ -22257,11 +22298,20 @@ WindshaftProvider.prototype = {
           callback(tilePoint, geometry)
         })
       }
+    } else {
+      this._tileQueue.push([tilePoint, callback])
     }
   },
 
   getGeometry: function (url, callback) {
     d3.json(url, callback)
+  },
+
+  _processQueue: function () {
+    var self = this
+    this._tileQueue.forEach(function (item) {
+      self.getTile.apply(self, item)
+    })
   },
 
   _generateMapconfig: function (table) {
@@ -22350,7 +22400,7 @@ var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
 
-cartodb.d3 = {}
+cartodb.d3 = d3 || {}
 
 d3.selection.prototype.moveToFront = function () {
   return this.each(function () {
@@ -22366,10 +22416,16 @@ var Renderer = function (options) {
   this.globalVariables = {}
   this.layer = options.layer
   this.filter = new Filter()
-  this.dimensions = {}
+  this.geometries = {}
 }
 
 Renderer.prototype = {
+  events: {
+    featureOver: null,
+    featureOut: null,
+    featureClick: null
+  },
+
   /**
    * changes a global variable in cartocss
    * it can be used in carotcss in this way:
@@ -22402,6 +22458,36 @@ Renderer.prototype = {
     }
   },
 
+  on: function (eventName, callback) {
+    var self = this
+    switch (eventName) {
+      case 'featureOver':
+        this.events.featureOver = function (f) {
+          var selection = d3.select(this)
+          this.style.cursor = 'pointer'
+          self.geometries[selection.data()[0].properties.cartodb_id].forEach(function (feature) {
+            callback(selection.data()[0], d3.select(feature))
+          })
+        }
+        break
+      case 'featureOut':
+        this.events.featureOut = function (f) {
+          var selection = d3.select(this)
+          var sym = this.attributes['class'].value
+          selection.reset = function () {
+            selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
+          }
+          callback(selection.data()[0], selection)
+        }
+        break
+      case 'featureClick':
+        this.events.featureClick = function (f) {
+          callback(d3.select(this).data()[0], d3.select(this))
+        }
+        break
+    }
+  },
+
   redraw: function (updating) {
     if (this.layer) {
       for (var tileKey in this.layer.svgTiles) {
@@ -22413,10 +22499,17 @@ Renderer.prototype = {
     }
   },
 
+  // there are special rules for layers, for example "::hover", this function
+  // search for them and attach to the original layer, so if you have
+  // #test {}
+  // #test::hover {}
+  // this function will return an array with a single layer. That layer will contain a
+  // hover as an attribute
   processLayersRules: function (layers) {
     var specialAttachments = ['hover']
     var realLayers = []
     var attachments = []
+    // map layer names
     var layerByName = {}
     layers.forEach(function (layer) {
       if (specialAttachments.indexOf(layer.attachment()) !== -1) {
@@ -22438,37 +22531,6 @@ Renderer.prototype = {
     })
 
     return realLayers
-  },
-
-  onMouseover: function (sym, path) {
-    return function (d) {
-      var t = d3.select(this)
-      t.moveToFront()
-      var trans_time = d.shader_hover['transition-time']
-      if (trans_time) {
-        t = t.transition().duration(trans_time)
-      }
-      var old = path.pointRadius()
-      path.pointRadius(function (d) {
-        return (d.shader_hover['marker-width'] || 0) / 2.0
-      })
-
-      t.attr('d', path)
-        .style(this.styleForSymbolizer(sym, 'shader_hover'))
-      path.pointRadius(old)
-    }
-  },
-
-  onMouseout: function (sym, path) {
-    return function (d) {
-      var t = d3.select(this)
-      var trans_time = d.shader_hover['transition-time']
-      if (trans_time) {
-        t = t.transition().duration(trans_time)
-      }
-      t.attr('d', path)
-        .style(this.styleForSymbolizer(sym, 'shader'))
-    }
   },
 
   styleForSymbolizer: function (symbolyzer, shaderName) {
@@ -22494,23 +22556,10 @@ Renderer.prototype = {
     }
   },
 
-  render: function (svg, collection, tilePoint, updating) {
+  generatePath: function (tilePoint) {
     var self = this
-    collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
-    this.currentPoint = tilePoint
-    var shader = this.shader
-    var g, cached, styleLayers
-    var svgSel = d3.select(svg)
-    if (updating) {
-      collection = {features: d3.selectAll(svg.firstChild.children).data()}
-      g = d3.select(svg.firstChild)
-      styleLayers = g.data()
-      cached = true
-    } else {
-      g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
-    }
-
-    var transform = d3.geo.transform({
+    var corrected_x = geo.wrapX(tilePoint.x, tilePoint.zoom)
+    return d3.geo.path().projection(d3.geo.transform({
       point: function (x, y) {
         // don't use leaflet projection since it's pretty slow
         if (self.layer.provider.format === 'topojson') {
@@ -22524,104 +22573,127 @@ Renderer.prototype = {
         var pixelScale = 256 * (1 << tilePoint.zoom)
         x = pixelScale * (x + earthRadius2) * invEarth
         y = pixelScale * (-y + earthRadius2) * invEarth
-        this.stream.point(x - self.currentPoint.x * 256, y - self.currentPoint.y * 256)
+        this.stream.point(x - corrected_x * 256, y - tilePoint.y * 256)
       }
-    })
-    var path = d3.geo.path().projection(transform)
+    }))
+  },
 
-    if (!shader) return
-    if (!collection || collection.features.length === 0) return
-    var bounds = path.bounds(collection)
-    var buffer = 100
-    var topLeft = bounds[0]
-    topLeft[0] -= buffer
-    topLeft[1] -= buffer
+  render: function (svg, collection, tilePoint, updating) {
+    var self = this
+    collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
+    var g, styleLayers
+    var svgSel = d3.select(svg)
+    if (updating) {
+      collection = {features: d3.selectAll(svg.firstChild.children).data()}
+      g = d3.select(svg.firstChild)
+      styleLayers = g.data()
+    } else {
+      g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
+    }
+    this.path = this.generatePath(tilePoint)
 
-    var layers = shader.getLayers()
+    if (!this.shader || !collection || collection.features.length === 0) return
+    var layers = this.shader.getLayers()
 
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
 
     styleLayers = g.data(layers)
+    styleLayers.each(function (layer) {
+      var sym = self._getSymbolizer(layer)
+      var features
+      if (!updating) {
+        features = self._createFeatures(layer, collection, this)
+      } else {
+        features = d3.select(this).selectAll('.' + sym)
+      }
+      this.tilePoint = tilePoint
+      self._styleFeatures(layer, features, this)
+    })
+    svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+  },
 
-    //            polygon line point
-    // polygon       X     X     T
-    // line                X     T
-    // point               X     X
-    if (collection) {
-      styleLayers.each(function (layer) {
-        var symbolizers = layer.getSymbolizers()
-        symbolizers = _.filter(symbolizers, function (f) {
-          return f !== '*'
-        })
-        // merge line and polygon symbolizers
-        symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
-        var sym = symbolizers[0]
-        var geometry = collection.features
-        if (!updating) {
-          // transform the geometry according the symbolizer
-          var transform = transformForSymbolizer(sym)
-          if (transform) {
-            geometry = geometry.map(transform)
-          }
-
-          // select based on symbolizer
-          var feature = d3.select(this)
-            .selectAll('.' + sym)
-            .data(geometry)
-
-          if (sym === 'text') {
-            feature.enter().append('svg:text').attr('class', sym)
-          } else {
-            feature.enter().append('path').attr('class', sym)
-          }
-          feature.exit().remove()
-        } else {
-          feature = d3.select(this).selectAll('.' + sym)
-        }
-
-        // calculate shader for each geometry
-        feature.each(function (d) {
-          if (!d.properties) d.properties = {}
-          d.properties.global = self.globalVariables
-          d.shader = layer.getStyle(d.properties, {zoom: tilePoint.zoom, time: self.time})
-          if (layer.hover) {
-            d.shader_hover = layer.hover.getStyle(d.properties, { zoom: tilePoint.zoom, time: self.time })
-            _.defaults(d.shader_hover, d.shader)
-          }
-        })
-
-        path.pointRadius(function (d) {
-          return (d.shader['marker-width'] || 0) / 2.0
-        })
-
-        // move this outsude
-        if (sym === 'text') {
-          feature.text(function (d) {
-            return 'text' // d.shader['text-name']
+  _styleFeatures: function (layer, features, group) {
+    var sym = this._getSymbolizer(layer)
+    var self = this
+    features.each(function (d) {
+      if (!d.properties) d.properties = {}
+      if (!self.geometries[d.properties.cartodb_id]) self.geometries[d.properties.cartodb_id] = []
+      self.geometries[d.properties.cartodb_id].push(this)
+      d.properties.global = self.globalVariables
+      d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
+      if (layer.hover) {
+        d.shader_hover = layer.hover.getStyle(d.properties, { zoom: group.tilePoint.zoom, time: self.time })
+        _.defaults(d.shader_hover, d.shader)
+        self.events.featureOver = function (f) {
+          this.style.cursor = 'default'
+          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+            d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
           })
-          feature.attr('dy', '.35em')
-          feature.attr('text-anchor', 'middle')
-          feature.attr('x', function (d) {
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-            return p.x
-          })
-          feature.attr('y', function (d) {
-            var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-            return p.y
-          })
-        } else {
-          feature.attr('d', path)
         }
+        self.events.featureOut = function () {
+          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+            d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
+          })
+        }
+      }
+    })
 
-        // TODO: this is hacky, not sure if transition can be done per feature (and calculate it), check d3 doc
-        if (cached) {
-          feature = feature.transition().duration(200)
-        }
-        feature.style(self.styleForSymbolizer(sym, 'shader'))
-      })
-      svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
+    self.path.pointRadius(function (d) {
+      return (d.shader['marker-width'] || 0) / 2.0
+    })
+    features.style(self.styleForSymbolizer(this._getSymbolizer(layer), 'shader'))
+  },
+
+  _createFeatures: function (layer, collection, group) {
+    var sym = this._getSymbolizer(layer)
+    var geometry = collection.features
+    var transform = transformForSymbolizer(sym)
+    if (transform) {
+      geometry = geometry.map(transform)
     }
+
+    // select based on symbolizer
+    var features = d3.select(group)
+      .selectAll('.' + sym)
+      .data(geometry)
+
+    if (sym === 'text') {
+      features.enter().append('svg:text').attr('class', sym)
+      features = this._transformText(features)
+    } else {
+      features.enter().append('path').attr('class', sym)
+      features.attr('d', this.path)
+    }
+    features.exit().remove()
+    return features
+  },
+
+  _getSymbolizer: function (layer) {
+    var symbolizers = layer.getSymbolizers()
+    symbolizers = _.filter(symbolizers, function (f) {
+      return f !== '*'
+    })
+    // merge line and polygon symbolizers
+    symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
+    return symbolizers[0]
+  },
+
+  _transformText: function (feature) {
+    feature.text(function (d) {
+      return 'text' // d.shader['text-name']
+    })
+    feature.attr('dy', '.35em')
+    feature.attr('text-anchor', 'middle')
+    feature.attr('x', function (d) {
+      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+      return p.x
+    })
+    feature.attr('y', function (d) {
+      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
+      return p.y
+    })
+    return feature
   }
 }
 
