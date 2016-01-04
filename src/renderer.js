@@ -68,9 +68,10 @@ Renderer.prototype = {
     switch (eventName) {
       case 'featureOver':
         this.events.featureOver = function (f) {
+          var selection = d3.select(this)
           this.style.cursor = 'pointer'
-          self.geometries[f.properties.cartodb_id].forEach(function (feature) {
-            callback(d3.select(feature).data()[0], d3.select(feature))
+          self.geometries[selection.data()[0].properties.cartodb_id].forEach(function (feature) {
+            callback(selection.data()[0], d3.select(feature))
           })
         }
         break
@@ -81,7 +82,7 @@ Renderer.prototype = {
           selection.reset = function () {
             selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
           }
-          callback(d3.select(this).data()[0], selection)
+          callback(selection.data()[0], selection)
         }
         break
       case 'featureClick':
