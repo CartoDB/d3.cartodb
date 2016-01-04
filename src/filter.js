@@ -111,7 +111,7 @@ Filter.reject = function (terms) {
     termsDict[t] = true
   })
   return function (f) {
-    if (termsDict[f]) {
+    if (!termsDict[f]) {
       return true
     }
   }
