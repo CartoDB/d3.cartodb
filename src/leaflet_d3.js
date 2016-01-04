@@ -19,6 +19,14 @@ L.CartoDBd3Layer = L.Class.extend({
     L.Util.setOptions(this, options)
   },
 
+  on: function (index, eventName, callback) {
+    if (eventName in this.renderers[index].events) {
+      this.renderers[index].on(eventName, callback)
+    } else {
+      L.Class.prototype.on.call(arguments.slice(1))
+    }
+  },
+
   onAdd: function (map) {
     this._map = map
     this.options.map = map
@@ -76,12 +84,14 @@ L.CartoDBd3Layer = L.Class.extend({
     var tile = this.svgTiles[tileKey]
     if (!tile) {
       tile = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      tile.style.padding = this.options.tileBuffer + 'px'
-      tile.style.margin = '-' + this.options.tileBuffer + 'px'
+      // tile.style.padding = this.options.tileBuffer + 'px'
+      // tile.style.margin = '-' + this.options.tileBuffer + 'px'
       tile.setAttribute('class', 'leaflet-tile')
       this.svgTiles[tileKey] = tile
       this._container.appendChild(tile)
     }
+
+    this._initTileEvents(tile)
 
     for (var i = 0; i < self.renderers.length; i++) {
       var collection = self.renderers.length > 1 ? geometry.features[i] : geometry
@@ -91,6 +101,30 @@ L.CartoDBd3Layer = L.Class.extend({
     var tilePos = this._getTilePos(tilePoint)
     tile.style.width = tile.style.height = this._getTileSize() + 'px'
     L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome)
+  },
+
+  _initTileEvents: function (tile) {
+    var self = this
+    tile.onmouseenter = function () {
+      for (var i = 0; i < this.children.length; i++) {
+        var group = this.children[i]
+        for (var p = 0; p < group.children.length; p++) {
+          group.children[p].onmouseenter = self.renderers[i].events.featureOver
+          group.children[p].onmouseleave = self.renderers[i].events.featureOut
+          group.children[p].onmouseclick = self.renderers[i].events.featureClick
+        }
+      }
+    }
+    tile.onmouseleave = function () {
+      for (var i = 0; i < this.children.length; i++) {
+        var group = this.children[i]
+        for (var p = 0; p < group.length; p++) {
+          group.children[p].onmouseenter = null
+          group.children[p].onmouseleave = null
+          group.children[p].onmouseclick = null
+        }
+      }
+    }
   },
 
   _clearTile: function (data) {

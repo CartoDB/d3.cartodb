@@ -21,10 +21,16 @@ var Renderer = function (options) {
   this.globalVariables = {}
   this.layer = options.layer
   this.filter = new Filter()
-  this.dimensions = {}
+  this.geometries = {}
 }
 
 Renderer.prototype = {
+  events: {
+    featureOver: null,
+    featureOut: null,
+    featureClick: null
+  },
+
   /**
    * changes a global variable in cartocss
    * it can be used in carotcss in this way:
@@ -57,6 +63,35 @@ Renderer.prototype = {
     }
   },
 
+  on: function (eventName, callback) {
+    var self = this
+    switch (eventName) {
+      case 'featureOver':
+        this.events.featureOver = function (f) {
+          this.style.cursor = 'pointer'
+          self.geometries[f.properties.cartodb_id].forEach(function (feature) {
+            callback(d3.select(feature).data()[0], d3.select(feature))
+          })
+        }
+        break
+      case 'featureOut':
+        this.events.featureOut = function (f) {
+          var selection = d3.select(this)
+          var sym = this.attributes['class'].value
+          selection.reset = function () {
+            selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
+          }
+          callback(d3.select(this).data()[0], selection)
+        }
+        break
+      case 'featureClick':
+        this.events.featureClick = function (f) {
+          callback(d3.select(this).data()[0], d3.select(this))
+        }
+        break
+    }
+  },
+
   redraw: function (updating) {
     if (this.layer) {
       for (var tileKey in this.layer.svgTiles) {
@@ -68,10 +103,17 @@ Renderer.prototype = {
     }
   },
 
+  // there are special rules for layers, for example "::hover", this function
+  // search for them and attach to the original layer, so if you have
+  // #test {}
+  // #test::hover {}
+  // this function will return an array with a single layer. That layer will contain a
+  // hover as an attribute
   processLayersRules: function (layers) {
     var specialAttachments = ['hover']
     var realLayers = []
     var attachments = []
+    // map layer names
     var layerByName = {}
     layers.forEach(function (layer) {
       if (specialAttachments.indexOf(layer.attachment()) !== -1) {
@@ -93,37 +135,6 @@ Renderer.prototype = {
     })
 
     return realLayers
-  },
-
-  onMouseover: function (sym, path) {
-    return function (d) {
-      var t = d3.select(this)
-      t.moveToFront()
-      var trans_time = d.shader_hover['transition-time']
-      if (trans_time) {
-        t = t.transition().duration(trans_time)
-      }
-      var old = path.pointRadius()
-      path.pointRadius(function (d) {
-        return (d.shader_hover['marker-width'] || 0) / 2.0
-      })
-
-      t.attr('d', path)
-        .style(this.styleForSymbolizer(sym, 'shader_hover'))
-      path.pointRadius(old)
-    }
-  },
-
-  onMouseout: function (sym, path) {
-    return function (d) {
-      var t = d3.select(this)
-      var trans_time = d.shader_hover['transition-time']
-      if (trans_time) {
-        t = t.transition().duration(trans_time)
-      }
-      t.attr('d', path)
-        .style(this.styleForSymbolizer(sym, 'shader'))
-    }
   },
 
   styleForSymbolizer: function (symbolyzer, shaderName) {
@@ -192,7 +203,6 @@ Renderer.prototype = {
     layers = this.processLayersRules(layers)
 
     styleLayers = g.data(layers)
-
     styleLayers.each(function (layer) {
       var sym = self._getSymbolizer(layer)
       var features
@@ -208,14 +218,28 @@ Renderer.prototype = {
   },
 
   _styleFeatures: function (layer, features, group) {
+    var sym = this._getSymbolizer(layer)
     var self = this
     features.each(function (d) {
       if (!d.properties) d.properties = {}
+      if (!self.geometries[d.properties.cartodb_id]) self.geometries[d.properties.cartodb_id] = []
+      self.geometries[d.properties.cartodb_id].push(this)
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       if (layer.hover) {
         d.shader_hover = layer.hover.getStyle(d.properties, { zoom: group.tilePoint.zoom, time: self.time })
         _.defaults(d.shader_hover, d.shader)
+        self.events.featureOver = function (f) {
+          this.style.cursor = 'default'
+          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+            d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
+          })
+        }
+        self.events.featureOut = function () {
+          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+            d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
+          })
+        }
       }
     })
 
@@ -273,6 +297,7 @@ Renderer.prototype = {
       var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
       return p.y
     })
+    return feature
   }
 }
 

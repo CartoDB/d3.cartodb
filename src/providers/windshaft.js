@@ -56,8 +56,9 @@ WindshaftProvider.prototype = {
   },
 
   _processQueue: function () {
+    var self = this
     this._tileQueue.forEach(function (item) {
-      this.getTile.apply(this, item)
+      self.getTile.apply(self, item)
     })
   },
 
