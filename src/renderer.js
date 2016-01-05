@@ -80,7 +80,7 @@ Renderer.prototype = {
           var selection = d3.select(this)
           var sym = this.attributes['class'].value
           selection.reset = function () {
-            selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
+            selection.style(self.styleForSymbolizer(sym, 'shader'))
           }
           callback(selection.data()[0], selection)
         }
