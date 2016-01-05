@@ -1,3 +1,6 @@
+### 0.3.2
+* Supports individual marker widths
+
 ### 0.3.1
 * Added interaction/mouse events
 * Rendering refactor

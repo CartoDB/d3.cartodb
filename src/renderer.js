@@ -80,7 +80,7 @@ Renderer.prototype = {
           var selection = d3.select(this)
           var sym = this.attributes['class'].value
           selection.reset = function () {
-            selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
+            selection.style(self.styleForSymbolizer(sym, 'shader'))
           }
           callback(selection.data()[0], selection)
         }
@@ -152,7 +152,10 @@ Renderer.prototype = {
         'fill': function (d) { return d[shaderName]['marker-fill'] || 'none' },
         'fill-opacity': function (d) { return d[shaderName]['marker-fill-opacity'] },
         'stroke': function (d) { return d[shaderName]['marker-line-color'] },
-        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] }
+        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] },
+        'radius': function (d) {
+          return d[shaderName]['marker-width'] / 2
+        }
       }
     } else if (symbolyzer === 'text') {
       return {
@@ -161,26 +164,21 @@ Renderer.prototype = {
     }
   },
 
-  generatePath: function (tilePoint) {
-    var self = this
+  generateProjection: function (tilePoint) {
     var corrected_x = geo.wrapX(tilePoint.x, tilePoint.zoom)
-    return d3.geo.path().projection(d3.geo.transform({
-      point: function (x, y) {
-        // don't use leaflet projection since it's pretty slow
-        if (self.layer.provider.format === 'topojson') {
-          var webm = geo.geo2Webmercator(x, y)
-          x = webm.x
-          y = webm.y
-        }
-        var earthRadius = 6378137 * 2 * Math.PI
-        var earthRadius2 = earthRadius / 2
-        var invEarth = 1.0 / earthRadius
-        var pixelScale = 256 * (1 << tilePoint.zoom)
-        x = pixelScale * (x + earthRadius2) * invEarth
-        y = pixelScale * (-y + earthRadius2) * invEarth
+    return function (x, y) {
+      var earthRadius = 6378137 * 2 * Math.PI
+      var earthRadius2 = earthRadius / 2
+      var invEarth = 1.0 / earthRadius
+      var pixelScale = 256 * (1 << tilePoint.zoom)
+      x = pixelScale * (x + earthRadius2) * invEarth
+      y = pixelScale * (-y + earthRadius2) * invEarth
+      if (this.stream) {
         this.stream.point(x - corrected_x * 256, y - tilePoint.y * 256)
+      } else {
+        return { x: x - corrected_x * 256, y: y - tilePoint.y * 256 }
       }
-    }))
+    }
   },
 
   render: function (svg, collection, tilePoint, updating) {
@@ -195,7 +193,8 @@ Renderer.prototype = {
     } else {
       g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
     }
-    this.path = this.generatePath(tilePoint)
+    this.projection = this.generateProjection(tilePoint)
+    this.path = d3.geo.path().projection(d3.geo.transform({ point: this.projection }))
 
     if (!this.shader || !collection || collection.features.length === 0) return
     var layers = this.shader.getLayers()
@@ -243,14 +242,12 @@ Renderer.prototype = {
         }
       }
     })
-
-    self.path.pointRadius(function (d) {
-      return (d.shader['marker-width'] || 0) / 2.0
-    })
+    features.attr('r', self.styleForSymbolizer(this._getSymbolizer(layer), 'shader').radius)
     features.style(self.styleForSymbolizer(this._getSymbolizer(layer), 'shader'))
   },
 
   _createFeatures: function (layer, collection, group) {
+    var self = this
     var sym = this._getSymbolizer(layer)
     var geometry = collection.features
     var transform = transformForSymbolizer(sym)
@@ -266,6 +263,14 @@ Renderer.prototype = {
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
       features = this._transformText(features)
+    } else if (sym === 'markers') {
+      features.enter().append('circle').attr('class', sym)
+      features.attr('cx', function (f) {
+        return self.projection.apply(this, f.coordinates).x
+      })
+      features.attr('cy', function (f) {
+        return self.projection.apply(this, f.coordinates).y
+      })
     } else {
       features.enter().append('path').attr('class', sym)
       features.attr('d', this.path)
