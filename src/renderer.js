@@ -263,7 +263,7 @@ Renderer.prototype = {
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
       features = this._transformText(features)
-    } else {
+    } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
       features.attr('cx', function (f) {
         return self.projection.apply(this, f.coordinates).x
@@ -271,7 +271,9 @@ Renderer.prototype = {
       features.attr('cy', function (f) {
         return self.projection.apply(this, f.coordinates).y
       })
-      features.attr('r', 10)
+    } else {
+      features.enter().append('path').attr('class', sym)
+      features.attr('d', this.path)
     }
     features.exit().remove()
     return features
