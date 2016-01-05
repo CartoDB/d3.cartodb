@@ -165,6 +165,7 @@ Renderer.prototype = {
   },
 
   generateProjection: function (tilePoint) {
+    var corrected_x = geo.wrapX(tilePoint.x, tilePoint.zoom)
     return function (x, y) {
       var earthRadius = 6378137 * 2 * Math.PI
       var earthRadius2 = earthRadius / 2
@@ -173,9 +174,9 @@ Renderer.prototype = {
       x = pixelScale * (x + earthRadius2) * invEarth
       y = pixelScale * (-y + earthRadius2) * invEarth
       if (this.stream) {
-        this.stream.point(x % 256, y % 256)
+        this.stream.point(x - corrected_x * 256, y - tilePoint.y * 256)
       } else {
-        return { x: x % 256, y: y % 256 }
+        return { x: x - corrected_x * 256, y: y - tilePoint.y * 256 }
       }
     }
   },
