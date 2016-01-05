@@ -242,10 +242,7 @@ Renderer.prototype = {
         }
       }
     })
-
-    self.path.pointRadius(function (d) {
-      return (d.shader['marker-width'] || 0) / 2.0
-    })
+    features.attr('r', self.styleForSymbolizer(this._getSymbolizer(layer), 'shader').radius)
     features.style(self.styleForSymbolizer(this._getSymbolizer(layer), 'shader'))
   },
 
