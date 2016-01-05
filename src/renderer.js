@@ -152,7 +152,10 @@ Renderer.prototype = {
         'fill': function (d) { return d[shaderName]['marker-fill'] || 'none' },
         'fill-opacity': function (d) { return d[shaderName]['marker-fill-opacity'] },
         'stroke': function (d) { return d[shaderName]['marker-line-color'] },
-        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] }
+        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] },
+        'radius': function (d) {
+          return d[shaderName]['marker-width'] / 2
+        }
       }
     } else if (symbolyzer === 'text') {
       return {
