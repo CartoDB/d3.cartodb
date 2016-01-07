@@ -68,7 +68,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   onRemove: function (map) {
-    this._container.parentNode.removeChild(this._container)
+    this._tileContainer.parentNode.removeChild(this._tileContainer)
     this.tileLoader.unbindAndClearTiles()
   },
 
@@ -89,7 +89,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       // tile.style.margin = '-' + this.options.tileBuffer + 'px'
       tile.setAttribute('class', 'leaflet-tile')
       this.svgTiles[tileKey] = tile
-      this._container.appendChild(tile)
+      this._tileContainer.appendChild(tile)
     }
 
     this._initTileEvents(tile)
@@ -130,7 +130,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
   _clearTile: function (data) {
     var svg = this.svgTiles[data.tileKey]
-    this._container.removeChild(svg)
+    this._tileContainer.removeChild(svg)
     var split = data.tileKey.split(':')
     var tilePoint = {x: split[0], y: split[1], zoom: split[2]}
     this.renderers.forEach(function (r) {
