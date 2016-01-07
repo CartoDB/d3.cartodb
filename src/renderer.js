@@ -70,7 +70,8 @@ Renderer.prototype = {
         this.events.featureOver = function (f) {
           var selection = d3.select(this)
           this.style.cursor = 'pointer'
-          self.geometries[selection.data()[0].properties.cartodb_id].forEach(function (feature) {
+          var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          self.geometries[featureHash].forEach(function (feature) {
             callback(selection.data()[0], d3.select(feature))
           })
         }
@@ -222,8 +223,9 @@ Renderer.prototype = {
     var self = this
     features.each(function (d) {
       if (!d.properties) d.properties = {}
-      if (!self.geometries[d.properties.cartodb_id]) self.geometries[d.properties.cartodb_id] = []
-      self.geometries[d.properties.cartodb_id].push(this)
+      var featureHash = geo.hashFeature(d.properties.cartodb_id, group.tilePoint)
+      if (!self.geometries[featureHash]) self.geometries[featureHash] = []
+      self.geometries[featureHash].push(this)
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       if (layer.hover) {
@@ -231,12 +233,12 @@ Renderer.prototype = {
         _.defaults(d.shader_hover, d.shader)
         self.events.featureOver = function (f) {
           this.style.cursor = 'default'
-          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+          self.geometries[featureHash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
           })
         }
         self.events.featureOut = function () {
-          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+          self.geometries[featureHash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
           })
         }
