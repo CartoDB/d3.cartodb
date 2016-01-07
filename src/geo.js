@@ -24,6 +24,7 @@ module.exports = {
     return corrected_x
   },
   hashFeature: function (id, tilePoint) {
-    return [id, tilePoint.zoom, tilePoint.x, tilePoint.y].join(':')
+    var pane = Math.floor(tilePoint.x / Math.pow(2, tilePoint.zoom))
+    return [id, pane].join(':')
   }
 }
