@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Torque + Vector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <style>
+        @import url(../vendor/leaflet.css);
+        html, body {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            overflow:hidden;
+        }
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+
+    </style>
+
+<script id="choropleth" type="text/cartocss">
+/** choropleth visualization */
+
+/** category visualization */
+
+#ne_adm0_europe {
+   polygon-opacity: 1;
+   line-color: #FFF;
+   line-width: 0.5;
+   line-opacity: 1;
+   polygon-fill: #000;
+}
+
+#ne_adm0_europe::hover {
+   polygon-fill: #f00;
+}
+
+</script>
+
+</head>
+<body>
+<div id="map">
+</div>
+  <script src="../vendor/leaflet.js"></script>
+  <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+  <script src="../dist/d3.cartodb.full.js"></script>
+  <script src="../vendor/torque.full.uncompressed.js"></script>
+  <script>
+  var c = [40.71512685201709, -74.00201797485352]
+  var map = new L.Map("map", {center: c, zoom: 3})
+
+  L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+  }).addTo(map)
+
+  var CARTOCSS = [
+    'Map {',
+    '-torque-frame-count:256;',
+    '-torque-animation-duration:2;',
+    '-torque-time-attribute:"cartodb_id";',
+    '-torque-aggregation-function:"count(cartodb_id)";',
+    '-torque-resolution:2;',
+    '-torque-data-aggregation:linear;',
+    '}',
+    '#map_2{',
+    '  comp-op: lighter;',
+    '  marker-fill-opacity: 0;',
+    '  marker-line-color: #FFF;',
+    '  marker-line-width: 0;',
+    '  marker-line-opacity: 1;',
+    '  marker-type: ellipse;',
+    '  marker-width: 6;',
+    '  marker-fill: #0F3B82;',
+    '}'
+  ].join('\n');
+
+  var cartoDBd3Layer = new L.CartoDBd3Layer({
+    user: 'fdansv',
+    table: 'ne_adm0_europe',
+    cartocss: document.getElementById('choropleth').innerHTML,
+    tiler_template: "http://development.localhost.lan:8181"
+  }).addTo(map)
+
+  var torqueLayer = new L.TorqueLayer({
+    user       : 'fdansv',
+    table      : 'map_2',
+    cartocss: CARTOCSS
+  })
+  torqueLayer.addTo(map)
+  torqueLayer.play()
+
+  torqueLayer.renderer.on("pointAdded", function(point){
+    $(document.elementFromPoint(point.x, point.y)).mouseenter()
+  })
+  torqueLayer.on("change:time", function(point){
+    cartoDBd3Layer.renderers[0].redraw()
+  })
+
+
+  </script>
+</body>
+</html>
