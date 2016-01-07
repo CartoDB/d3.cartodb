@@ -60,6 +60,10 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     })
     this.tileLoader.on('tileAdded', this._renderTile, this)
     this.tileLoader.on('tileRemoved', this._clearTile, this)
+    this._map.on({
+      'zoomanim': this._animateZoom,
+      'zoomend': this._endZoomAnim
+    }, this)
     this.tileLoader.loadTiles()
   },
 
@@ -162,5 +166,31 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
   setCartoCSS: function (index, cartocss) {
     this.renderers[index].setCartoCSS(cartocss)
+  },
+
+  _getLoadedTilesPercentage: function (container) {
+    var tiles = container.getElementsByTagName('svg'),
+        i, len, count = 0;
+
+    for (i = 0, len = tiles.length; i < len; i++) {
+      if (tiles[i].complete) {
+        count++;
+      }
+    }
+    return count / len;
+  },
+
+  _endZoomAnim: function () {
+    var front = this._tileContainer,
+        bg = this._bgBuffer;
+
+    front.style.visibility = '';
+    front.parentNode.appendChild(front); // Bring to fore
+    bg.style.transform = ''
+    // bg.innerHTML = ''
+    // force reflow
+    L.Util.falseFn(bg.offsetWidth);
+
+    this._animating = false;
   }
 })
