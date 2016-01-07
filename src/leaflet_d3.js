@@ -3,7 +3,7 @@ var providers = require('./providers')
 var TileLoader = require('./tileloader')
 var L = window.L
 
-L.CartoDBd3Layer = L.Class.extend({
+L.CartoDBd3Layer = L.TileLayer.extend({
   options: {
     minZoom: 0,
     maxZoom: 28,
@@ -16,14 +16,15 @@ L.CartoDBd3Layer = L.Class.extend({
     options = options || {}
     this.renderers = []
     this.svgTiles = {}
+    this._animated = true
     L.Util.setOptions(this, options)
   },
 
   on: function (index, eventName, callback) {
-    if (eventName in this.renderers[index].events) {
+    if (this.renderers.length > 0 && eventName in this.renderers[index].events) {
       this.renderers[index].on(eventName, callback)
     } else {
-      L.Class.prototype.on.call(arguments.slice(1))
+      L.TileLayer.prototype.on.call(this, arguments[0], arguments[1])
     }
   },
 
