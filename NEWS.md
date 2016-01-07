@@ -1,5 +1,6 @@
 ### 0.3.2
-* Supports individual marker widths
+* Added support for individual marker widths
+* Fixed issue where events would be replicated across points out of bounds
 
 ### 0.3.1
 * Added interaction/mouse events
