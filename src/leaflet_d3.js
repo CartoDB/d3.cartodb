@@ -49,11 +49,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       }))
     }
     var tilePane = this._map._panes.tilePane
-    var layer = L.DomUtil.create('div', 'leaflet-layer')
-    var _container = layer.appendChild(L.DomUtil.create('div', 'leaflet-tile-container leaflet-zoom-animated'))
-    layer.appendChild(_container)
-    tilePane.appendChild(layer)
-    this._container = _container
+    this._initContainer()
 
     this.tileLoader = new TileLoader({
       tileSize: this.options.tileSize,
