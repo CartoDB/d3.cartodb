@@ -3,7 +3,7 @@ var providers = require('./providers')
 var TileLoader = require('./tileloader')
 var L = window.L
 
-L.CartoDBd3Layer = L.Class.extend({
+L.CartoDBd3Layer = L.TileLayer.extend({
   options: {
     minZoom: 0,
     maxZoom: 28,
@@ -16,14 +16,15 @@ L.CartoDBd3Layer = L.Class.extend({
     options = options || {}
     this.renderers = []
     this.svgTiles = {}
+    this._animated = true
     L.Util.setOptions(this, options)
   },
 
   on: function (index, eventName, callback) {
-    if (eventName in this.renderers[index].events) {
+    if (this.renderers.length > 0 && eventName in this.renderers[index].events) {
       this.renderers[index].on(eventName, callback)
     } else {
-      L.Class.prototype.on.call(arguments.slice(1))
+      L.TileLayer.prototype.on.call(this, arguments[0], arguments[1])
     }
   },
 
@@ -48,11 +49,7 @@ L.CartoDBd3Layer = L.Class.extend({
       }))
     }
     var tilePane = this._map._panes.tilePane
-    var layer = L.DomUtil.create('div', 'leaflet-layer')
-    var _container = layer.appendChild(L.DomUtil.create('div', 'leaflet-tile-container leaflet-zoom-animated'))
-    layer.appendChild(_container)
-    tilePane.appendChild(layer)
-    this._container = _container
+    this._initContainer()
 
     this.tileLoader = new TileLoader({
       tileSize: this.options.tileSize,
@@ -61,8 +58,14 @@ L.CartoDBd3Layer = L.Class.extend({
       provider: this.provider,
       map: map
     })
+    this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+    this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
     this.tileLoader.on('tileAdded', this._renderTile, this)
     this.tileLoader.on('tileRemoved', this._clearTile, this)
+    this._map.on({
+      'zoomanim': this._animateZoom,
+      'zoomend': this._endZoomAnim
+    }, this)
     this.tileLoader.loadTiles()
   },
 
@@ -88,7 +91,7 @@ L.CartoDBd3Layer = L.Class.extend({
       // tile.style.margin = '-' + this.options.tileBuffer + 'px'
       tile.setAttribute('class', 'leaflet-tile')
       this.svgTiles[tileKey] = tile
-      this._container.appendChild(tile)
+      this._tileContainer.appendChild(tile)
     }
 
     this._initTileEvents(tile)
@@ -129,7 +132,6 @@ L.CartoDBd3Layer = L.Class.extend({
 
   _clearTile: function (data) {
     var svg = this.svgTiles[data.tileKey]
-    this._container.removeChild(svg)
     var split = data.tileKey.split(':')
     var tilePoint = {x: split[0], y: split[1], zoom: split[2]}
     this.renderers.forEach(function (r) {
@@ -165,5 +167,31 @@ L.CartoDBd3Layer = L.Class.extend({
 
   setCartoCSS: function (index, cartocss) {
     this.renderers[index].setCartoCSS(cartocss)
+  },
+
+  _getLoadedTilesPercentage: function (container) {
+    var tiles = container.getElementsByTagName('svg'),
+        i, len, count = 0;
+
+    for (i = 0, len = tiles.length; i < len; i++) {
+      if (tiles[i].complete) {
+        count++;
+      }
+    }
+    return count / len;
+  },
+
+  _endZoomAnim: function () {
+    var front = this._tileContainer,
+        bg = this._bgBuffer;
+
+    front.style.visibility = '';
+    front.parentNode.appendChild(front); // Bring to fore
+    bg.style.transform = ''
+    bg.innerHTML = ''
+    // force reflow
+    L.Util.falseFn(bg.offsetWidth);
+
+    this._animating = false;
   }
 })

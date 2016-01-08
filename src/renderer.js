@@ -192,7 +192,7 @@ Renderer.prototype = {
       g = d3.select(svg.firstChild)
       styleLayers = g.data()
     } else {
-      g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
+      g = svgSel.append('g')
     }
     this.projection = this.generateProjection(tilePoint)
     this.path = d3.geo.path().projection(d3.geo.transform({ point: this.projection }))
