@@ -132,7 +132,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
   _clearTile: function (data) {
     var svg = this.svgTiles[data.tileKey]
-    this._container.removeChild(svg)
     var split = data.tileKey.split(':')
     var tilePoint = {x: split[0], y: split[1], zoom: split[2]}
     this.renderers.forEach(function (r) {
