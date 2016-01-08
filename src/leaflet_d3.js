@@ -91,7 +91,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       // tile.style.margin = '-' + this.options.tileBuffer + 'px'
       tile.setAttribute('class', 'leaflet-tile')
       this.svgTiles[tileKey] = tile
-      this._container.appendChild(tile)
+      this._tileContainer.appendChild(tile)
     }
 
     this._initTileEvents(tile)
