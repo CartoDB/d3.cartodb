@@ -58,6 +58,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       provider: this.provider,
       map: map
     })
+    this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+    this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
     this.tileLoader.on('tileAdded', this._renderTile, this)
     this.tileLoader.on('tileRemoved', this._clearTile, this)
     this._map.on({
