@@ -189,7 +189,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     front.style.visibility = '';
     front.parentNode.appendChild(front); // Bring to fore
     bg.style.transform = ''
-    // bg.innerHTML = ''
+    bg.innerHTML = ''
     // force reflow
     L.Util.falseFn(bg.offsetWidth);
 
