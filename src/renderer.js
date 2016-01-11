@@ -269,6 +269,7 @@ Renderer.prototype = {
       features = this._transformText(features)
     } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
+      features.enter().append('circle').style({'mix-blend-mode': 'color-dodge'})
       features.attr('cx', function (f) {
         return self.projection.apply(this, f.coordinates).x
       })
