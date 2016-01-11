@@ -146,7 +146,8 @@ Renderer.prototype = {
         'fill-opacity': function (d) { return d[shaderName]['polygon-opacity'] },
         'stroke': function (d) { return d[shaderName]['line-color'] },
         'stroke-width': function (d) { return d[shaderName]['line-width'] },
-        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] }
+        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     } else if (symbolyzer === 'markers') {
       return {
@@ -156,11 +157,13 @@ Renderer.prototype = {
         'stroke-width': function (d) { return d[shaderName]['marker-line-width'] },
         'radius': function (d) {
           return d[shaderName]['marker-width'] / 2
-        }
+        },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     } else if (symbolyzer === 'text') {
       return {
-        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' }
+        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     }
   },
@@ -246,8 +249,10 @@ Renderer.prototype = {
         }
       }
     })
-    features.attr('r', self.styleForSymbolizer(this._getSymbolizer(layer), 'shader').radius)
-    features.style(self.styleForSymbolizer(this._getSymbolizer(layer), 'shader'))
+    var styleFn = self.styleForSymbolizer(this._getSymbolizer(layer), 'shader')
+    features.attr('r', styleFn.radius)
+    features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
+    features.style(styleFn)
   },
 
   _createFeatures: function (layer, collection, group) {
@@ -269,7 +274,6 @@ Renderer.prototype = {
       features = this._transformText(features)
     } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
-      features.enter().append('circle').style({'mix-blend-mode': 'color-dodge'})
       features.attr('cx', function (f) {
         return self.projection.apply(this, f.coordinates).x
       })
