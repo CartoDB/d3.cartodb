@@ -171,28 +171,45 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _getLoadedTilesPercentage: function (container) {
-    var tiles = container.getElementsByTagName('svg'),
-        i, len, count = 0;
+    var tiles = container.getElementsByTagName('svg')
+    var i, len
+    var count = 0
 
     for (i = 0, len = tiles.length; i < len; i++) {
       if (tiles[i].complete) {
-        count++;
+        count++
       }
     }
-    return count / len;
+    return count / len
   },
 
   _endZoomAnim: function () {
-    var front = this._tileContainer,
-        bg = this._bgBuffer;
-
-    front.style.visibility = '';
-    front.parentNode.appendChild(front); // Bring to fore
+    var front = this._tileContainer
+    var bg = this._bgBuffer
+    front.style.visibility = ''
+    front.parentNode.appendChild(front) // Bring to fore
     bg.style.transform = ''
     bg.innerHTML = ''
     // force reflow
-    L.Util.falseFn(bg.offsetWidth);
+    L.Util.falseFn(bg.offsetWidth)
 
-    this._animating = false;
+    this._animating = false
+  },
+
+  _stopLoadingImages: function (container) {
+    var tiles = Array.prototype.slice.call(container.getElementsByTagName('svg'))
+    var i, len, tile
+
+    for (i = 0, len = tiles.length; i < len; i++) {
+      tile = tiles[i]
+
+      if (!tile.complete) {
+        tile.onload = L.Util.falseFn
+        tile.onerror = L.Util.falseFn
+        tile.src = L.Util.emptyImageUrl
+
+        tile.parentNode.removeChild(tile)
+      }
+    }
   }
 })
