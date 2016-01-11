@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Styling with different marker widths</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <style>
+        @import url(../vendor/leaflet.css);
+        html, body {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            overflow:hidden;
+        }
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+
+        #info {
+          position: absolute;
+            width: 300px;
+            height: 200px;
+            top: 20px;
+            right: 20px;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            background-color: #fff;
+        }
+        #altstyle {
+          position: absolute;
+            width: 300px;
+            height: 80px;
+            top: 400px;
+            right: 20px;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            background-color: #00f;
+        }
+
+    </style>
+
+<script id="choropleth" type="text/cartocss">
+/** choropleth visualization */
+
+/** simple visualization */
+
+#ne_10m_populated_places_simple_6{
+  marker-fill-opacity: 0.05;
+  marker-line-color: #FFF;
+  marker-line-width: 0;
+  marker-line-opacity: 1;
+  marker-width: 10;
+  marker-fill: #FFFFB2;
+  marker-allow-overlap: true;
+  comp-op: screen;
+}
+#ne_10m_populated_places_simple_6 [ pop_max <= 35676000] {
+   marker-fill: #FFFFB2;
+   marker-width: 4;
+   marker-fill-opacity: 0.3;
+}
+#ne_10m_populated_places_simple_6 [ pop_max <= 534555] {
+   marker-fill: #FED976;
+   marker-width: 4;
+}
+#ne_10m_populated_places_simple_6 [ pop_max <= 211138] {
+   marker-fill: #FEB24C;
+   marker-width: 16;
+}
+#ne_10m_populated_places_simple_6 [ pop_max <= 109023] {
+   marker-fill: #FD8D3C;
+   marker-width: 32;
+}
+#ne_10m_populated_places_simple_6 [ pop_max <= 59575] {
+   marker-fill: #FC4E2A;
+   marker-width: 32;
+}
+#ne_10m_populated_places_simple_6 [ pop_max <= 31253] {
+   marker-fill: #E31A1C;
+   marker-width: 48;
+}
+#ne_10m_populated_places_simple_6 [ pop_max <= 11739] {
+   marker-fill: #B10026;
+   marker-width: 64;
+}
+
+</script>
+
+</head>
+<body>
+<div id="map">
+</div>
+<script src="../vendor/leaflet.js"></script>
+<script src="../vendor/d3.v3.js"></script>
+<script src="../dist/d3.cartodb.full.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+  <script>
+  var c = [37.00255267215955, -90.8349609375]
+  var map = new L.Map("map", {center: c, zoom: 3})
+
+  L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+  }).addTo(map);
+
+  var cartoDBd3Layer = new L.CartoDBd3Layer({
+    user: 'development',
+    table: 'ne_10m_populated_places_simple_6',
+    cartocss: document.getElementById('choropleth').innerHTML,
+    tiler_template: "http://development.localhost.lan:8181"
+  }).addTo(map);
+
+  cartoDBd3Layer.on(0, "featureOut", function(f, d3selection){
+    d3selection.reset();
+  });
+
+  cartoDBd3Layer.on(0, "featureOver", function(f, d3selection){
+    d3selection.style({"fill": "black"});
+  });
+
+  </script>
+</body>
+</html>
