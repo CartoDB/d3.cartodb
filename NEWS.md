@@ -1,6 +1,9 @@
 ### 0.3.2
 * Added support for individual marker widths
 * Fixed issue where events would be replicated across points out of bounds
+* Fixed rendering of tiles with the wrong zoom level
+* Added tile overzooming
+* Added composite operations support
 
 ### 0.3.1
 * Added interaction/mouse events
