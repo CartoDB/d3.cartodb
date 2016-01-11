@@ -81,7 +81,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
   _renderTile: function (data) {
     var tilePoint = data.tilePoint
-    if (tilePoint.zoom !== this._map.getZoom()) return
     var geometry = data.geometry
     var self = this
     var tileKey = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
