@@ -66,7 +66,7 @@
     '-torque-frame-count:256;',
     '-torque-animation-duration:2;',
     '-torque-time-attribute:"cartodb_id";',
-    '-torque-aggregation-function:"count(cartodb_id)";',
+    '-torque-aggregation-function:"sum(cartodb_id)";',
     '-torque-resolution:2;',
     '-torque-data-aggregation:linear;',
     '}',
@@ -98,10 +98,14 @@
   torqueLayer.play()
 
   torqueLayer.renderer.on("pointAdded", function(point){
-    $(document.elementFromPoint(point.x, point.y)).mouseenter()
-  })
-  torqueLayer.on("change:time", function(point){
-    cartoDBd3Layer.renderers[0].redraw()
+    var element = document.elementFromPoint(point.x, point.y)
+    if (element && element.tagName === "path"){
+      var data = d3.select(element).data()[0]
+      var geometries = cartoDBd3Layer.renderers[0].geometries[data.properties.cartodb_id + ":0"]
+      for (var e in geometries){
+        d3.select(geometries[e]).style({fill: "rgb(0,0,"+20*point.value+")"}).transition().delay(100).style({fill: "black"})
+      }
+    }
   })
 
 
