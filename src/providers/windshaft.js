@@ -23,21 +23,13 @@ WindshaftProvider.prototype = {
       this.layergroup = data
       this.ready = true
       this.urlTemplate = this.tiler_template + '/api/v1/map/' + this.layergroup.layergroupid + '/0/{z}/{x}/{y}.geojson'
-      this._processQueue()
+      XYZProvider.prototype._processQueue.apply(this)
     }.bind(this))
   },
 
-  getTile: function (tilePoint, callback) {
-    XYZProvider.prototype.getTile.apply(this, arguments)
-  },
+  getTile: XYZProvider.prototype.getTile,
 
-  getGeometry: function (tilePoint, callback) {
-    XYZProvider.prototype.getGeometry.apply(this, arguments)
-  },
-
-  _processQueue: function () {
-    XYZProvider.prototype._processQueue.apply(this, arguments)
-  },
+  getGeometry: XYZProvider.prototype.getGeometry,
 
   _generateMapconfig: function (table) {
     var mapconfig = {
