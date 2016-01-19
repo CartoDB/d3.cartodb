@@ -6,6 +6,7 @@ function XYZProvider (options) {
   this.tileCache = {}
   this.urlTemplate = options.urlTemplate
   this.tilejson = options.tilejson
+  this._tileQueue = []
   if (!this.urlTemplate) {
     this.urlTemplate = this.tilejson.tiles[0]
   }
@@ -14,21 +15,25 @@ function XYZProvider (options) {
 XYZProvider.prototype = {
 
   getTile: function (tilePoint, callback) {
-    var self = this
-    var tileKey = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
-    var tileData = this.tileCache[tileKey]
-    if (tileData) {
-      callback(tilePoint, tileData)
+    if (this.ready) {
+      var self = this
+      var tileKey = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+      var tileData = this.tileCache[tileKey]
+      if (tileData) {
+        callback(tilePoint, tileData)
+      } else {
+        this.getGeometry(tilePoint, function (err, geometry) {
+          if (err) return
+          if (geometry.type === 'Topology') {
+            self.format = 'topojson'
+            geometry = topojson.feature(geometry, geometry.objects.vectile)
+          }
+          this.tileCache[tileKey] = geometry
+          callback(tilePoint, geometry)
+        }.bind(this))
+      }
     } else {
-      this.getGeometry(tilePoint, function (err, geometry) {
-        if (err) return
-        if (geometry.type === 'Topology') {
-          self.format = 'topojson'
-          geometry = topojson.feature(geometry, geometry.objects.vectile)
-        }
-        this.tileCache[tileKey] = geometry
-        callback(tilePoint, geometry)
-      }.bind(this))
+      this._tileQueue.push([tilePoint, callback])
     }
   },
 
@@ -45,6 +50,22 @@ XYZProvider.prototype = {
 
   invalidateCache: function () {
     this.tileCache = {}
+  },
+
+  setReady: function () {
+    this._processQueue()
+  },
+
+  setURL: function (url) {
+    this.urlTemplate = url
+    this.setReady()
+  },
+
+  _processQueue: function () {
+    var self = this
+    this._tileQueue.forEach(function (item) {
+      self.getTile.apply(self, item)
+    })
   }
 }
 
