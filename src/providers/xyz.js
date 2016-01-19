@@ -8,6 +8,9 @@ function XYZProvider (options) {
   this.tilejson = options.tilejson
   this._tileQueue = []
   if (!this.urlTemplate) {
+    if (!this.tilejson) {
+      this.ready = false
+    }
     this.urlTemplate = this.tilejson.tiles[0]
   }
 }
