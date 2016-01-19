@@ -1,6 +1,8 @@
 var d3 = require('d3')
 var topojson = require('topojson')
 var cartodb = require('../')
+var _ = require('underscore')
+var XYZProvider = require('./xyz')
 
 function WindshaftProvider (options) {
   this.tiler_template = options.tiler_template || 'http://{user}.cartodb.com'
@@ -13,7 +15,7 @@ function WindshaftProvider (options) {
   this.initialize()
 }
 
-WindshaftProvider.prototype = {
+WindshaftProvider.prototype = _.extend({
   initialize: function () {
     var self = this
     this.tiler_template = this.tiler_template.replace('{user}', this.user)
@@ -82,6 +84,6 @@ WindshaftProvider.prototype = {
   invalidateCache: function () {
     this.tileCache = {}
   }
-}
+}, XYZProvider)
 
 module.exports = WindshaftProvider
