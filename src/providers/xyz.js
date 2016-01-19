@@ -3,7 +3,6 @@ var topojson = require('topojson')
 
 function XYZProvider (options) {
   this.format = options.format
-  this.tileCache = {}
   this.urlTemplate = options.urlTemplate
   this.tilejson = options.tilejson
   this._tileQueue = []
@@ -20,21 +19,14 @@ XYZProvider.prototype = {
   getTile: function (tilePoint, callback) {
     if (this.ready) {
       var self = this
-      var tileKey = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
-      var tileData = this.tileCache[tileKey]
-      if (tileData) {
-        callback(tilePoint, tileData)
-      } else {
-        this.getGeometry(tilePoint, function (err, geometry) {
-          if (err) return
-          if (geometry.type === 'Topology') {
-            self.format = 'topojson'
-            geometry = topojson.feature(geometry, geometry.objects.vectile)
-          }
-          this.tileCache[tileKey] = geometry
-          callback(tilePoint, geometry)
-        }.bind(this))
-      }
+      this.getGeometry(tilePoint, function (err, geometry) {
+        if (err) return
+        if (geometry.type === 'Topology') {
+          self.format = 'topojson'
+          geometry = topojson.feature(geometry, geometry.objects.vectile)
+        }
+        callback(tilePoint, geometry)
+      })
     } else {
       this._tileQueue.push([tilePoint, callback])
     }
@@ -49,10 +41,6 @@ XYZProvider.prototype = {
       .replace('.png', '.geojson')
 
     d3.json(url, callback)
-  },
-
-  invalidateCache: function () {
-    this.tileCache = {}
   },
 
   setReady: function () {
