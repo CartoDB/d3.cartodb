@@ -45,7 +45,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     } else {
       this.provider = this.options.provider
     }
-    if (this.provider) {
+    this.on('providerAdded', function () {
       for (var i = 0; i < styles.length; i++) {
         this.renderers.push(new Renderer({
           cartocss: styles[i],
@@ -72,7 +72,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       if (this.provider.ready) {
         this.tileLoader.loadTiles()
       }
-    }
+    })
   },
 
   onRemove: function (map) {
