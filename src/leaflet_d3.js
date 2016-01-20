@@ -37,35 +37,42 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       styles = [this.options.cartocss]
       this.options.styles = styles
     }
-    if (this.options.urlTemplate || this.options.tilejson) {
+
+    if (this.options.table && this.options.user) {
+      this.provider = new providers.WindshaftProvider(this.options)
+    } else if (this.options.urlTemplate || this.options.tilejson) {
       this.provider = new providers.XYZProvider(this.options)
     } else {
-      this.provider = this.options.provider || new providers.WindshaftProvider(this.options)
+      this.provider = this.options.provider
     }
-    for (var i = 0; i < styles.length; i++) {
-      this.renderers.push(new Renderer({
-        cartocss: styles[i],
-        layer: this
-      }))
-    }
-    this._initContainer()
+    if (this.provider) {
+      for (var i = 0; i < styles.length; i++) {
+        this.renderers.push(new Renderer({
+          cartocss: styles[i],
+          layer: this
+        }))
+      }
+      this._initContainer()
 
-    this.tileLoader = new TileLoader({
-      tileSize: this.options.tileSize,
-      maxZoom: this.options.maxZoom,
-      minZoom: this.options.minZoom,
-      provider: this.provider,
-      map: map
-    })
-    this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
-    this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
-    this.tileLoader.on('tileAdded', this._renderTile, this)
-    this.tileLoader.on('tileRemoved', this._clearTile, this)
-    this._map.on({
-      'zoomanim': this._animateZoom,
-      'zoomend': this._endZoomAnim
-    }, this)
-    this.tileLoader.loadTiles()
+      this.tileLoader = new TileLoader({
+        tileSize: this.options.tileSize,
+        maxZoom: this.options.maxZoom,
+        minZoom: this.options.minZoom,
+        provider: this.provider,
+        map: map
+      })
+      this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+      this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+      this.tileLoader.on('tileAdded', this._renderTile, this)
+      this.tileLoader.on('tileRemoved', this._clearTile, this)
+      this._map.on({
+        'zoomanim': this._animateZoom,
+        'zoomend': this._endZoomAnim
+      }, this)
+      if (this.provider.ready) {
+        this.tileLoader.loadTiles()
+      }
+    }
   },
 
   onRemove: function (map) {
