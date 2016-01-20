@@ -48,7 +48,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         layer: this
       }))
     }
-    var tilePane = this._map._panes.tilePane
     this._initContainer()
 
     this.tileLoader = new TileLoader({
