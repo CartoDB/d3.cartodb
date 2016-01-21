@@ -15,6 +15,7 @@ d3.selection.prototype.moveToFront = function () {
 
 var Renderer = function (options) {
   this.options = options
+  this.index = options.index
   if (options.cartocss) {
     this.setCartoCSS(options.cartocss)
   }
