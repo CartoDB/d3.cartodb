@@ -77,9 +77,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         'zoomanim': this._animateZoom,
         'zoomend': this._endZoomAnim
       }, this)
-      if (this.provider.ready) {
-        this.tileLoader.loadTiles()
-      }
     })
   },
 
