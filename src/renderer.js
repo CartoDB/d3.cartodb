@@ -191,8 +191,7 @@ Renderer.prototype = {
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
     var g, styleLayers
     var svgSel = d3.select(svg)
-    if (updating) {
-      collection = {features: d3.selectAll(svg.firstChild.children).data()}
+    if (svg.children[this.index]) {
       g = d3.select(svg.firstChild)
       styleLayers = g.data()
     } else {
