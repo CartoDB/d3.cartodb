@@ -46,6 +46,8 @@ XYZProvider.prototype = {
   },
 
   setReady: function () {
+    this.ready = true
+    this.layer.fire('ready')
     this._processQueue()
   },
 
