@@ -142,12 +142,14 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _clearTile: function (data) {
-    var svg = this.svgTiles[data.tileKey]
     var split = data.tileKey.split(':')
     var tilePoint = {x: split[0], y: split[1], zoom: split[2]}
     this.renderers.forEach(function (r) {
       r.filter.removeTile(tilePoint)
     })
+    if (this._map.getZoom() === tilePoint.zoom) {
+      this.svgTiles[data.tileKey].parentNode.removeChild(this.svgTiles[data.tileKey])
+    }
     delete this.svgTiles[data.tileKey]
   },
 
