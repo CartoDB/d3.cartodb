@@ -2,6 +2,7 @@ var d3 = require('d3')
 var topojson = require('topojson')
 
 function XYZProvider (options) {
+  this.layer = options.layer
   this.format = options.format
   this.urlTemplate = options.urlTemplate
   this.tilejson = options.tilejson
@@ -9,8 +10,9 @@ function XYZProvider (options) {
   if (!this.urlTemplate) {
     if (!this.tilejson) {
       this.ready = false
+    } else {
+      this.urlTemplate = this.tilejson.tiles[0]
     }
-    this.urlTemplate = this.tilejson.tiles[0]
   }
 }
 
