@@ -22,6 +22,7 @@ WindshaftProvider.prototype = {
       this.ready = true
       this.urlTemplate = this.tiler_template + '/api/v1/map/' + this.layergroup.layergroupid + '/0/{z}/{x}/{y}.geojson'
       XYZProvider.prototype._processQueue.apply(this)
+      this.options.layer.fire('ready')
     }.bind(this))
   },
 
