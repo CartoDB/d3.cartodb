@@ -40,27 +40,35 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
     if (this.options.table && this.options.user) {
       this.provider = new providers.WindshaftProvider(this.options)
-    } else if (this.options.urlTemplate || this.options.tilejson) {
-      this.provider = new providers.XYZProvider(this.options)
     } else {
-      this.provider = this.options.provider
+      this.provider = new providers.XYZProvider(this.options)
     }
-    this.on('providerAdded', function () {
-      for (var i = 0; i < styles.length; i++) {
+    this._initContainer()
+
+    this.tileLoader = new TileLoader({
+      tileSize: this.options.tileSize,
+      maxZoom: this.options.maxZoom,
+      minZoom: this.options.minZoom,
+      provider: this.provider,
+      map: map
+    })
+    this.tileLoader.loadTiles()
+    this.on('ready', function () {
+      if (styles.length > 0) {
+        for (var i = 0; i < styles.length; i++) {
+          this.renderers.push(new Renderer({
+            cartocss: styles[i],
+            layer: this,
+            index: i
+          }))
+        }
+      } else {
         this.renderers.push(new Renderer({
-          cartocss: styles[i],
-          layer: this
+          cartocss: '',
+          layer: this,
+          index: 0
         }))
       }
-      this._initContainer()
-
-      this.tileLoader = new TileLoader({
-        tileSize: this.options.tileSize,
-        maxZoom: this.options.maxZoom,
-        minZoom: this.options.minZoom,
-        provider: this.provider,
-        map: map
-      })
       this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
       this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
       this.tileLoader.on('tileAdded', this._renderTile, this)
