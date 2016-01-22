@@ -112,7 +112,7 @@ Filter.reject = function (terms) {
     termsDict[t] = true
   })
   return function (f) {
-    if (termsDict[f]) {
+    if (!termsDict[f]) {
       return true
     }
   }
@@ -145,6 +145,10 @@ module.exports = {
     var limit_x = Math.pow(2, zoom)
     var corrected_x = ((x % limit_x) + limit_x) % limit_x
     return corrected_x
+  },
+  hashFeature: function (id, tilePoint) {
+    var pane = Math.floor(tilePoint.x / Math.pow(2, tilePoint.zoom))
+    return [id, pane].join(':')
   }
 }
 
@@ -165,7 +169,7 @@ var providers = require('./providers')
 var TileLoader = require('./tileloader')
 var L = window.L
 
-L.CartoDBd3Layer = L.Class.extend({
+L.CartoDBd3Layer = L.TileLayer.extend({
   options: {
     minZoom: 0,
     maxZoom: 28,
@@ -178,14 +182,15 @@ L.CartoDBd3Layer = L.Class.extend({
     options = options || {}
     this.renderers = []
     this.svgTiles = {}
+    this._animated = true
     L.Util.setOptions(this, options)
   },
 
   on: function (index, eventName, callback) {
-    if (eventName in this.renderers[index].events) {
+    if (this.renderers.length > 0 && eventName in this.renderers[index].events) {
       this.renderers[index].on(eventName, callback)
     } else {
-      L.Class.prototype.on.call(arguments.slice(1))
+      L.TileLayer.prototype.on.call(this, arguments[0], arguments[1])
     }
   },
 
@@ -210,11 +215,7 @@ L.CartoDBd3Layer = L.Class.extend({
       }))
     }
     var tilePane = this._map._panes.tilePane
-    var layer = L.DomUtil.create('div', 'leaflet-layer')
-    var _container = layer.appendChild(L.DomUtil.create('div', 'leaflet-tile-container leaflet-zoom-animated'))
-    layer.appendChild(_container)
-    tilePane.appendChild(layer)
-    this._container = _container
+    this._initContainer()
 
     this.tileLoader = new TileLoader({
       tileSize: this.options.tileSize,
@@ -223,8 +224,14 @@ L.CartoDBd3Layer = L.Class.extend({
       provider: this.provider,
       map: map
     })
+    this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+    this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
     this.tileLoader.on('tileAdded', this._renderTile, this)
     this.tileLoader.on('tileRemoved', this._clearTile, this)
+    this._map.on({
+      'zoomanim': this._animateZoom,
+      'zoomend': this._endZoomAnim
+    }, this)
     this.tileLoader.loadTiles()
   },
 
@@ -250,7 +257,7 @@ L.CartoDBd3Layer = L.Class.extend({
       // tile.style.margin = '-' + this.options.tileBuffer + 'px'
       tile.setAttribute('class', 'leaflet-tile')
       this.svgTiles[tileKey] = tile
-      this._container.appendChild(tile)
+      this._tileContainer.appendChild(tile)
     }
 
     this._initTileEvents(tile)
@@ -291,7 +298,6 @@ L.CartoDBd3Layer = L.Class.extend({
 
   _clearTile: function (data) {
     var svg = this.svgTiles[data.tileKey]
-    this._container.removeChild(svg)
     var split = data.tileKey.split(':')
     var tilePoint = {x: split[0], y: split[1], zoom: split[2]}
     this.renderers.forEach(function (r) {
@@ -327,6 +333,32 @@ L.CartoDBd3Layer = L.Class.extend({
 
   setCartoCSS: function (index, cartocss) {
     this.renderers[index].setCartoCSS(cartocss)
+  },
+
+  _getLoadedTilesPercentage: function (container) {
+    var tiles = container.getElementsByTagName('svg'),
+        i, len, count = 0;
+
+    for (i = 0, len = tiles.length; i < len; i++) {
+      if (tiles[i].complete) {
+        count++;
+      }
+    }
+    return count / len;
+  },
+
+  _endZoomAnim: function () {
+    var front = this._tileContainer,
+        bg = this._bgBuffer;
+
+    front.style.visibility = '';
+    front.parentNode.appendChild(front); // Bring to fore
+    bg.style.transform = ''
+    bg.innerHTML = ''
+    // force reflow
+    L.Util.falseFn(bg.offsetWidth);
+
+    this._animating = false;
   }
 })
 
@@ -715,7 +747,8 @@ Renderer.prototype = {
         this.events.featureOver = function (f) {
           var selection = d3.select(this)
           this.style.cursor = 'pointer'
-          self.geometries[selection.data()[0].properties.cartodb_id].forEach(function (feature) {
+          var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          self.geometries[featureHash].forEach(function (feature) {
             callback(selection.data()[0], d3.select(feature))
           })
         }
@@ -725,7 +758,7 @@ Renderer.prototype = {
           var selection = d3.select(this)
           var sym = this.attributes['class'].value
           selection.reset = function () {
-            selection.transition().duration(200).style(self.styleForSymbolizer(sym, 'shader'))
+            selection.style(self.styleForSymbolizer(sym, 'shader'))
           }
           callback(selection.data()[0], selection)
         }
@@ -790,42 +823,43 @@ Renderer.prototype = {
         'fill-opacity': function (d) { return d[shaderName]['polygon-opacity'] },
         'stroke': function (d) { return d[shaderName]['line-color'] },
         'stroke-width': function (d) { return d[shaderName]['line-width'] },
-        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] }
+        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     } else if (symbolyzer === 'markers') {
       return {
         'fill': function (d) { return d[shaderName]['marker-fill'] || 'none' },
         'fill-opacity': function (d) { return d[shaderName]['marker-fill-opacity'] },
         'stroke': function (d) { return d[shaderName]['marker-line-color'] },
-        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] }
+        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] },
+        'radius': function (d) {
+          return d[shaderName]['marker-width'] / 2
+        },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     } else if (symbolyzer === 'text') {
       return {
-        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' }
+        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     }
   },
 
-  generatePath: function (tilePoint) {
-    var self = this
+  generateProjection: function (tilePoint) {
     var corrected_x = geo.wrapX(tilePoint.x, tilePoint.zoom)
-    return d3.geo.path().projection(d3.geo.transform({
-      point: function (x, y) {
-        // don't use leaflet projection since it's pretty slow
-        if (self.layer.provider.format === 'topojson') {
-          var webm = geo.geo2Webmercator(x, y)
-          x = webm.x
-          y = webm.y
-        }
-        var earthRadius = 6378137 * 2 * Math.PI
-        var earthRadius2 = earthRadius / 2
-        var invEarth = 1.0 / earthRadius
-        var pixelScale = 256 * (1 << tilePoint.zoom)
-        x = pixelScale * (x + earthRadius2) * invEarth
-        y = pixelScale * (-y + earthRadius2) * invEarth
+    return function (x, y) {
+      var earthRadius = 6378137 * 2 * Math.PI
+      var earthRadius2 = earthRadius / 2
+      var invEarth = 1.0 / earthRadius
+      var pixelScale = 256 * (1 << tilePoint.zoom)
+      x = pixelScale * (x + earthRadius2) * invEarth
+      y = pixelScale * (-y + earthRadius2) * invEarth
+      if (this.stream) {
         this.stream.point(x - corrected_x * 256, y - tilePoint.y * 256)
+      } else {
+        return { x: x - corrected_x * 256, y: y - tilePoint.y * 256 }
       }
-    }))
+    }
   },
 
   render: function (svg, collection, tilePoint, updating) {
@@ -838,9 +872,10 @@ Renderer.prototype = {
       g = d3.select(svg.firstChild)
       styleLayers = g.data()
     } else {
-      g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
+      g = svgSel.append('g')
     }
-    this.path = this.generatePath(tilePoint)
+    this.projection = this.generateProjection(tilePoint)
+    this.path = d3.geo.path().projection(d3.geo.transform({ point: this.projection }))
 
     if (!this.shader || !collection || collection.features.length === 0) return
     var layers = this.shader.getLayers()
@@ -868,8 +903,9 @@ Renderer.prototype = {
     var self = this
     features.each(function (d) {
       if (!d.properties) d.properties = {}
-      if (!self.geometries[d.properties.cartodb_id]) self.geometries[d.properties.cartodb_id] = []
-      self.geometries[d.properties.cartodb_id].push(this)
+      var featureHash = geo.hashFeature(d.properties.cartodb_id, group.tilePoint)
+      if (!self.geometries[featureHash]) self.geometries[featureHash] = []
+      self.geometries[featureHash].push(this)
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       if (layer.hover) {
@@ -877,25 +913,27 @@ Renderer.prototype = {
         _.defaults(d.shader_hover, d.shader)
         self.events.featureOver = function (f) {
           this.style.cursor = 'default'
-          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+          var hash = geo.hashFeature(d3.select(this).data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
           })
         }
         self.events.featureOut = function () {
-          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+          var hash = geo.hashFeature(d3.select(this).data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
           })
         }
       }
     })
-
-    self.path.pointRadius(function (d) {
-      return (d.shader['marker-width'] || 0) / 2.0
-    })
-    features.style(self.styleForSymbolizer(this._getSymbolizer(layer), 'shader'))
+    var styleFn = self.styleForSymbolizer(this._getSymbolizer(layer), 'shader')
+    features.attr('r', styleFn.radius)
+    features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
+    features.style(styleFn)
   },
 
   _createFeatures: function (layer, collection, group) {
+    var self = this
     var sym = this._getSymbolizer(layer)
     var geometry = collection.features
     var transform = transformForSymbolizer(sym)
@@ -911,6 +949,14 @@ Renderer.prototype = {
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
       features = this._transformText(features)
+    } else if (sym === 'markers') {
+      features.enter().append('circle').attr('class', sym)
+      features.attr('cx', function (f) {
+        return self.projection.apply(this, f.coordinates).x
+      })
+      features.attr('cy', function (f) {
+        return self.projection.apply(this, f.coordinates).y
+      })
     } else {
       features.enter().append('path').attr('class', sym)
       features.attr('d', this.path)

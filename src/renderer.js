@@ -70,7 +70,8 @@ Renderer.prototype = {
         this.events.featureOver = function (f) {
           var selection = d3.select(this)
           this.style.cursor = 'pointer'
-          self.geometries[selection.data()[0].properties.cartodb_id].forEach(function (feature) {
+          var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          self.geometries[featureHash].forEach(function (feature) {
             callback(selection.data()[0], d3.select(feature))
           })
         }
@@ -145,7 +146,8 @@ Renderer.prototype = {
         'fill-opacity': function (d) { return d[shaderName]['polygon-opacity'] },
         'stroke': function (d) { return d[shaderName]['line-color'] },
         'stroke-width': function (d) { return d[shaderName]['line-width'] },
-        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] }
+        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     } else if (symbolyzer === 'markers') {
       return {
@@ -155,11 +157,13 @@ Renderer.prototype = {
         'stroke-width': function (d) { return d[shaderName]['marker-line-width'] },
         'radius': function (d) {
           return d[shaderName]['marker-width'] / 2
-        }
+        },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     } else if (symbolyzer === 'text') {
       return {
-        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' }
+        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     }
   },
@@ -191,7 +195,7 @@ Renderer.prototype = {
       g = d3.select(svg.firstChild)
       styleLayers = g.data()
     } else {
-      g = svgSel.append('g').attr('class', 'leaflet-zoom-hide')
+      g = svgSel.append('g')
     }
     this.projection = this.generateProjection(tilePoint)
     this.path = d3.geo.path().projection(d3.geo.transform({ point: this.projection }))
@@ -222,8 +226,9 @@ Renderer.prototype = {
     var self = this
     features.each(function (d) {
       if (!d.properties) d.properties = {}
-      if (!self.geometries[d.properties.cartodb_id]) self.geometries[d.properties.cartodb_id] = []
-      self.geometries[d.properties.cartodb_id].push(this)
+      var featureHash = geo.hashFeature(d.properties.cartodb_id, group.tilePoint)
+      if (!self.geometries[featureHash]) self.geometries[featureHash] = []
+      self.geometries[featureHash].push(this)
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       if (layer.hover) {
@@ -231,19 +236,23 @@ Renderer.prototype = {
         _.defaults(d.shader_hover, d.shader)
         self.events.featureOver = function (f) {
           this.style.cursor = 'default'
-          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+          var hash = geo.hashFeature(d3.select(this).data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
           })
         }
         self.events.featureOut = function () {
-          self.geometries[d3.select(this).data()[0].properties.cartodb_id].forEach(function (feature) {
+          var hash = geo.hashFeature(d3.select(this).data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
           })
         }
       }
     })
-    features.attr('r', self.styleForSymbolizer(this._getSymbolizer(layer), 'shader').radius)
-    features.style(self.styleForSymbolizer(this._getSymbolizer(layer), 'shader'))
+    var styleFn = self.styleForSymbolizer(this._getSymbolizer(layer), 'shader')
+    features.attr('r', styleFn.radius)
+    features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
+    features.style(styleFn)
   },
 
   _createFeatures: function (layer, collection, group) {

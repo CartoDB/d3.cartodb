@@ -85,6 +85,7 @@ module.exports = L.Class.extend({
     var tileKey = this._tileKey(tilePoint)
     this._tilesLoading[tileKey] = tilePoint
     this.provider.getTile(tilePoint, function (tilePoint, geometry) {
+      if (tilePoint.zoom !== this._map.getZoom()) return
       this._tiles[tileKey] = true
       delete this._tilesLoading[tileKey]
       this._tilesToLoad--

@@ -22,5 +22,9 @@ module.exports = {
     var limit_x = Math.pow(2, zoom)
     var corrected_x = ((x % limit_x) + limit_x) % limit_x
     return corrected_x
+  },
+  hashFeature: function (id, tilePoint) {
+    var pane = Math.floor(tilePoint.x / Math.pow(2, tilePoint.zoom))
+    return [id, pane].join(':')
   }
 }
