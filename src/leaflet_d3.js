@@ -81,7 +81,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   onRemove: function (map) {
-    this._container.parentNode.removeChild(this._container)
     this.tileLoader.unbindAndClearTiles()
   },
 
