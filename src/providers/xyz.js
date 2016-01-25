@@ -1,8 +1,8 @@
 var d3 = require('d3')
 var topojson = require('topojson')
+var cartodb = require('../')
 
 function XYZProvider (options) {
-  this.layer = options.layer
   this.format = options.format
   this.urlTemplate = options.urlTemplate
   this.tilejson = options.tilejson
@@ -16,7 +16,7 @@ function XYZProvider (options) {
   }
 }
 
-XYZProvider.prototype = {
+cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
 
   getTile: function (tilePoint, callback) {
     if (this._ready) {
@@ -47,7 +47,7 @@ XYZProvider.prototype = {
 
   _setReady: function () {
     this._ready = true
-    this.layer.fire('ready')
+    this.fire('ready')
     this._processQueue()
   },
 
@@ -62,6 +62,6 @@ XYZProvider.prototype = {
       self.getTile.apply(self, item)
     })
   }
-}
+})
 
 module.exports = XYZProvider
