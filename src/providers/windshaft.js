@@ -12,7 +12,7 @@ function WindshaftProvider (options) {
   this._ready = false
 }
 
-WindshaftProvider.prototype = {
+cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
   initialize: function () {
     this.tiler_template = this.tiler_template.replace('{user}', this.user)
     var mapconfig = this._generateMapconfig(this.table)
@@ -22,7 +22,7 @@ WindshaftProvider.prototype = {
       this._ready = true
       this.urlTemplate = this.tiler_template + '/api/v1/map/' + this.layergroup.layergroupid + '/0/{z}/{x}/{y}.geojson'
       XYZProvider.prototype._processQueue.apply(this)
-      this.options.layer.fire('ready')
+      this.fire('ready')
     }.bind(this))
   },
 
@@ -46,6 +46,6 @@ WindshaftProvider.prototype = {
     }
     return mapconfig
   }
-}
+})
 
 module.exports = WindshaftProvider
