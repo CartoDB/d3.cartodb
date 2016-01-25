@@ -7,11 +7,11 @@ function XYZProvider (options) {
   this.urlTemplate = options.urlTemplate
   this.tilejson = options.tilejson
   this._tileQueue = []
+  this._ready = false
   if (!this.urlTemplate) {
-    if (!this.tilejson) {
-      this._ready = false
-    } else {
+    if (this.tilejson) {
       this.urlTemplate = this.tilejson.tiles[0]
+      this._ready = true
     }
   }
 }
