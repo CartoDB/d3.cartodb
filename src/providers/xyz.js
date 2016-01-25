@@ -9,7 +9,7 @@ function XYZProvider (options) {
   this._tileQueue = []
   if (!this.urlTemplate) {
     if (!this.tilejson) {
-      this.ready = false
+      this._ready = false
     } else {
       this.urlTemplate = this.tilejson.tiles[0]
     }
@@ -19,7 +19,7 @@ function XYZProvider (options) {
 XYZProvider.prototype = {
 
   getTile: function (tilePoint, callback) {
-    if (this.ready) {
+    if (this._ready) {
       var self = this
       this.getGeometry(tilePoint, function (err, geometry) {
         if (err) return
@@ -45,15 +45,15 @@ XYZProvider.prototype = {
     d3.json(url, callback)
   },
 
-  setReady: function () {
-    this.ready = true
+  _setReady: function () {
+    this._ready = true
     this.layer.fire('ready')
     this._processQueue()
   },
 
   setURL: function (url) {
     this.urlTemplate = url
-    this.setReady()
+    this._setReady()
   },
 
   _processQueue: function () {
