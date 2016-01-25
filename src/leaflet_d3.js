@@ -29,6 +29,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   onAdd: function (map) {
+    var self = this
     this._map = map
     this.options.map = map
     this.options.layer = this
@@ -56,27 +57,27 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.provider.on('ready', function () {
       if (styles.length > 0) {
         for (var i = 0; i < styles.length; i++) {
-          this.renderers.push(new Renderer({
+          self.renderers.push(new Renderer({
             cartocss: styles[i],
-            layer: this,
+            layer: self,
             index: i
           }))
         }
       } else {
-        this.renderers.push(new Renderer({
+        self.renderers.push(new Renderer({
           cartocss: '',
-          layer: this,
+          layer: self,
           index: 0
         }))
       }
-      this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
-      this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
-      this.tileLoader.on('tileAdded', this._renderTile, this)
-      this.tileLoader.on('tileRemoved', this._clearTile, this)
-      this._map.on({
+      self._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+      self._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+      self.tileLoader.on('tileAdded', self._renderTile, self)
+      self.tileLoader.on('tileRemoved', self._clearTile, self)
+      self._map.on({
         'zoomanim': this._animateZoom,
         'zoomend': this._endZoomAnim
-      }, this)
+      })
     })
   },
 
