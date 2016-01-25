@@ -9,7 +9,7 @@ function WindshaftProvider (options) {
   this.options = options
   this._tileQueue = []
   this.initialize()
-  this.ready = false
+  this._ready = false
 }
 
 WindshaftProvider.prototype = {
@@ -19,7 +19,7 @@ WindshaftProvider.prototype = {
     var url = this.tiler_template + '/api/v1/map?config=' + encodeURIComponent(JSON.stringify(mapconfig))
     cartodb.d3.net.jsonp(url + '&callback=mapconfig', function (data) {
       this.layergroup = data
-      this.ready = true
+      this._ready = true
       this.urlTemplate = this.tiler_template + '/api/v1/map/' + this.layergroup.layergroupid + '/0/{z}/{x}/{y}.geojson'
       XYZProvider.prototype._processQueue.apply(this)
       this.options.layer.fire('ready')
