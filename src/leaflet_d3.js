@@ -53,7 +53,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       map: map
     })
     this.tileLoader.loadTiles()
-    this.on('ready', function () {
+    this.provider.on('ready', function () {
       if (styles.length > 0) {
         for (var i = 0; i < styles.length; i++) {
           this.renderers.push(new Renderer({
