@@ -55,7 +55,7 @@
   <script src="../vendor/d3.v3.js"></script>
   <script>
   var c = [40.71512685201709, -74.00201797485352]
-  var map = new L.Map("map", {center: c, zoom: 3})
+  var map = new L.Map("map", {center: c, zoom: 7})
 
   L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
   attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
@@ -84,14 +84,14 @@
 
   var cartoDBd3Layer = new L.CartoDBd3Layer({
     user: 'fdansv',
-    table: 'ne_adm0_europe',
+    table: 'cb_2013_us_county_500k',
     cartocss: document.getElementById('choropleth').innerHTML,
     tiler_template: "http://development.localhost.lan:8181"
   }).addTo(map)
 
   var torqueLayer = new L.TorqueLayer({
     user       : 'fdansv',
-    table      : 'map_2',
+    table      : 'snow',
     cartocss: CARTOCSS
   })
   torqueLayer.addTo(map)
