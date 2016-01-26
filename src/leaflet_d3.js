@@ -77,6 +77,24 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     return this
   },
 
+  _resetRenderers: function () {
+    this.renderers = []
+    var styles = this.options.styles
+    if (styles.length > 0) {
+      for (var i = 0; i < styles.length; i++) {
+        this.renderers.push(new Renderer({
+          cartocss: styles[i],
+          index: i
+        }))
+      }
+    } else {
+      this.renderers.push(new Renderer({
+        cartocss: '',
+        index: 0
+      }))
+    }
+  },
+
   _renderTile: function (data) {
     var tilePoint = data.tilePoint
     var geometry = data.geometry
