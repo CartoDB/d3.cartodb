@@ -18,6 +18,17 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.svgTiles = {}
     this._animated = true
     L.Util.setOptions(this, options)
+    var styles = this.options.styles
+    if (!styles) {
+      styles = [this.options.cartocss]
+      this.options.styles = styles
+    }
+    if (this.options.table && this.options.user) {
+      this.provider = new providers.WindshaftProvider(this.options)
+    } else {
+      this.provider = new providers.XYZProvider(this.options)
+    }
+    this.provider.on('ready', this._resetRenderers.bind(this))
   },
 
   on: function (index, eventName, callback) {
@@ -28,22 +39,15 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     }
   },
 
+  setProvider: function (options) {
+    this.styles = options.styles
+    this.provider.setURL(options.urlTemplate)
+  },
+
   onAdd: function (map) {
-    var self = this
     this._map = map
     this.options.map = map
     this.options.layer = this
-    var styles = this.options.styles
-    if (!styles) {
-      styles = [this.options.cartocss]
-      this.options.styles = styles
-    }
-
-    if (this.options.table && this.options.user) {
-      this.provider = new providers.WindshaftProvider(this.options)
-    } else {
-      this.provider = new providers.XYZProvider(this.options)
-    }
     this._initContainer()
 
     this.tileLoader = new TileLoader({
