@@ -58,31 +58,14 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       map: map
     })
     this.tileLoader.loadTiles()
-    this.provider.on('ready', function () {
-      if (styles.length > 0) {
-        for (var i = 0; i < styles.length; i++) {
-          self.renderers.push(new Renderer({
-            cartocss: styles[i],
-            layer: self,
-            index: i
-          }))
-        }
-      } else {
-        self.renderers.push(new Renderer({
-          cartocss: '',
-          layer: self,
-          index: 0
-        }))
-      }
-      self._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
-      self._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
-      self.tileLoader.on('tileAdded', self._renderTile, self)
-      self.tileLoader.on('tileRemoved', self._clearTile, self)
-      self._map.on({
-        'zoomanim': this._animateZoom,
-        'zoomend': this._endZoomAnim
-      })
-    })
+    this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+    this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+    this.tileLoader.on('tileAdded', this._renderTile, this)
+    this.tileLoader.on('tileRemoved', this._clearTile, this)
+    this._map.on({
+      'zoomanim': this._animateZoom,
+      'zoomend': this._endZoomAnim
+    }, this)
   },
 
   onRemove: function (map) {
