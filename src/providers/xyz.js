@@ -13,8 +13,7 @@ function XYZProvider (options) {
       this.urlTemplate = this.tilejson.tiles[0]
       this._setReady()
     }
-  }
-  else {
+  } else {
     this._setReady()
   }
 }
