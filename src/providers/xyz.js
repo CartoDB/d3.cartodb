@@ -50,8 +50,10 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
 
   _setReady: function () {
     this._ready = true
-    this.fire('ready')
-    this._processQueue()
+    window.setTimeout(function () {
+      this.fire('ready')
+      this._processQueue()
+    }.bind(this), 0)
   },
 
   setURL: function (url) {
