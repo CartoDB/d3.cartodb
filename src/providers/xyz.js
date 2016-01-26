@@ -11,8 +11,11 @@ function XYZProvider (options) {
   if (!this.urlTemplate) {
     if (this.tilejson) {
       this.urlTemplate = this.tilejson.tiles[0]
-      this._ready = true
+      this._setReady()
     }
+  }
+  else {
+    this._setReady()
   }
 }
 
