@@ -78,20 +78,34 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _resetRenderers: function () {
-    this.renderers = []
+    if (this.renderers.length > 0) {
+      this.renderers = []
+      initial = false
+    }
     var styles = this.options.styles
     if (styles.length > 0) {
       for (var i = 0; i < styles.length; i++) {
         this.renderers.push(new Renderer({
           cartocss: styles[i],
-          index: i
+          index: i,
+          layer: this
         }))
       }
     } else {
       this.renderers.push(new Renderer({
         cartocss: '',
-        index: 0
+        index: 0,
+        layer: this
       }))
+    }
+    for (var tileKey in this.svgTiles) {
+      var split = tileKey.split(':')
+      var tilePoint = {
+        x: parseInt(split[0]),
+        y: parseInt(split[1]),
+        zoom: parseInt(split[2])
+      }
+      this.tileLoader._loadTile(tilePoint)
     }
   },
 
