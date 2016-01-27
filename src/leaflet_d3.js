@@ -130,6 +130,11 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this._initTileEvents(tile)
 
     for (var i = 0; i < self.renderers.length; i++) {
+      if (geometry.features.length > 1 && geometry.features[0].type === 'FeatureCollection') { // This means there's more than one layer
+        if (geometry.features.length !== this.renderers.length) return
+      } else {
+        if (this.renderers.length > 1) return
+      }
       var collection = self.renderers.length > 1 ? geometry.features[i] : geometry
       self.renderers[i].render(tile, collection, tilePoint)
     }
