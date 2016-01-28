@@ -236,7 +236,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   _stopLoadingImages: function (container) {
     var tiles = Array.prototype.slice.call(container.getElementsByTagName('svg'))
     var i, len, tile
-
+    this.tileLoader._tilesLoading = {}
     for (i = 0, len = tiles.length; i < len; i++) {
       tile = tiles[i]
 
@@ -244,9 +244,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         tile.onload = L.Util.falseFn
         tile.onerror = L.Util.falseFn
         tile.src = L.Util.emptyImageUrl
-
-        tile.parentNode.removeChild(tile)
       }
+      tile.parentNode.removeChild(tile)
     }
   }
 })
