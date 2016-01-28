@@ -11,7 +11,6 @@ module.exports = L.Class.extend({
     this._tilesLoading = {}
     this._tilesToLoad = 0
     this._map.on('moveend', this._reloadTiles, this)
-    this._map.on('zoomstart', this._invalidateProviderCache, this)
   },
 
   loadTiles: function () {
@@ -113,10 +112,6 @@ module.exports = L.Class.extend({
         }
       }
     }
-  },
-
-  _invalidateProviderCache: function () {
-    this.provider.invalidateCache()
   },
 
   unbindAndClearTiles: function () {
