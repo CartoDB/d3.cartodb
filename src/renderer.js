@@ -192,7 +192,7 @@ Renderer.prototype = {
     var g, styleLayers
     var svgSel = d3.select(svg)
     if (svg.children[this.index]) {
-      g = d3.select(svg.firstChild)
+      g = d3.select(svg.children[this.index])
       styleLayers = g.data()
     } else {
       g = svgSel.append('g')
