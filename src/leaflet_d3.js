@@ -44,7 +44,10 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.provider.setURL(options.urlTemplate)
   },
   setUrl: function (url) {
-    this.provider.setURL(url)
+    this.setProvider({
+      styles: this.options.styles,
+      urlTemplate: url
+    })
   },
 
   onAdd: function (map) {
