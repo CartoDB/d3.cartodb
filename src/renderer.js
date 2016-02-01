@@ -23,6 +23,9 @@ var Renderer = function (options) {
   this.layer = options.layer
   this.filter = new Filter()
   this.geometries = {}
+  this.filter.on('featuresChanged', function(){
+    console.log("Features have changed")
+  })
 }
 
 Renderer.prototype = {
@@ -92,6 +95,8 @@ Renderer.prototype = {
           callback(d3.select(this).data()[0], d3.select(this))
         }
         break
+      case 'featuresChange':
+        this.filter.on('featuresChange', callback)
     }
   },
 
