@@ -8,6 +8,7 @@ function XYZProvider (options) {
   this.tilejson = options.tilejson
   this._tileQueue = []
   this._ready = false
+  this.requests = {}
   if (!this.urlTemplate) {
     if (this.tilejson) {
       this.urlTemplate = this.tilejson.tiles[0]
@@ -44,7 +45,7 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
       .replace('{s}', 'abcd'[(tilePoint.x * tilePoint.y) % 4])
       .replace('.png', '.geojson')
 
-    d3.json(url, callback)
+    this.requests[[tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')] = d3.json(url, callback)
   },
 
   _setReady: function () {
