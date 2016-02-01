@@ -61,6 +61,13 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
     this._setReady()
   },
 
+  abortPending: function () {
+    for (var tileKey in this.requests) {
+      this.requests[tileKey].abort()
+    }
+    this.requests = {}
+  },
+
   _processQueue: function () {
     var self = this
     this._tileQueue.forEach(function (item) {

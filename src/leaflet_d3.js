@@ -244,9 +244,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       tile = tiles[i]
       tile.parentNode.removeChild(tile)
     }
-    for (var tileKey in this.provider.requests){
-      this.provider.requests[tileKey].abort()
-    }
-    this.provider.requests = {}
+    this.provider.abortPending()
   }
 })
