@@ -15,6 +15,7 @@ d3.selection.prototype.moveToFront = function () {
 
 var Renderer = function (options) {
   this.options = options
+  this.index = options.index
   if (options.cartocss) {
     this.setCartoCSS(options.cartocss)
   }
@@ -190,9 +191,8 @@ Renderer.prototype = {
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
     var g, styleLayers
     var svgSel = d3.select(svg)
-    if (updating) {
-      collection = {features: d3.selectAll(svg.firstChild.children).data()}
-      g = d3.select(svg.firstChild)
+    if (svg.children[this.index]) {
+      g = d3.select(svg.children[this.index])
       styleLayers = g.data()
     } else {
       g = svgSel.append('g')

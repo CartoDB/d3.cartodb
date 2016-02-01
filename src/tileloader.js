@@ -122,10 +122,6 @@ module.exports = L.Class.extend({
     }
   },
 
-  _invalidateProviderCache: function () {
-    this.provider.invalidateCache()
-  },
-
   unbindAndClearTiles: function () {
     this._map.off('moveend', this._reloadTiles, this)
     this._map.off('zoomstart', this._invalidateProviderCache, this)

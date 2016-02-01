@@ -18,6 +18,17 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.svgTiles = {}
     this._animated = true
     L.Util.setOptions(this, options)
+    var styles = this.options.styles
+    if (!styles) {
+      styles = [this.options.cartocss]
+      this.options.styles = styles
+    }
+    if (this.options.table && this.options.user) {
+      this.provider = new providers.WindshaftProvider(this.options)
+    } else {
+      this.provider = new providers.XYZProvider(this.options)
+    }
+    this.provider.on('ready', this._resetRenderers.bind(this))
   },
 
   on: function (index, eventName, callback) {
@@ -28,27 +39,21 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     }
   },
 
+  setProvider: function (options) {
+    this.styles = options.styles
+    this.provider.setURL(options.urlTemplate)
+  },
+  setUrl: function (url) {
+    this.setProvider({
+      styles: this.options.styles,
+      urlTemplate: url
+    })
+  },
+
   onAdd: function (map) {
     this._map = map
     this.options.map = map
     this.options.layer = this
-    var styles = this.options.styles
-    if (!styles) {
-      styles = [this.options.cartocss]
-      this.options.styles = styles
-    }
-    if (this.options.urlTemplate || this.options.tilejson) {
-      this.provider = new providers.XYZProvider(this.options)
-    } else {
-      this.provider = this.options.provider || new providers.WindshaftProvider(this.options)
-    }
-    for (var i = 0; i < styles.length; i++) {
-      this.renderers.push(new Renderer({
-        cartocss: styles[i],
-        layer: this
-      }))
-    }
-    var tilePane = this._map._panes.tilePane
     this._initContainer()
 
     this.tileLoader = new TileLoader({
@@ -58,6 +63,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       provider: this.provider,
       map: map
     })
+    this.tileLoader.loadTiles()
     this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
     this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
     this.tileLoader.on('tileAdded', this._renderTile, this)
@@ -66,17 +72,47 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       'zoomanim': this._animateZoom,
       'zoomend': this._endZoomAnim
     }, this)
-    this.tileLoader.loadTiles()
   },
 
   onRemove: function (map) {
-    this._container.parentNode.removeChild(this._container)
     this.tileLoader.unbindAndClearTiles()
   },
 
   addTo: function (map) {
     map.addLayer(this)
     return this
+  },
+
+  _resetRenderers: function () {
+    if (this.renderers.length > 0) {
+      this.renderers = []
+      initial = false
+    }
+    var styles = this.options.styles
+    if (styles.length > 0) {
+      for (var i = 0; i < styles.length; i++) {
+        this.renderers.push(new Renderer({
+          cartocss: styles[i],
+          index: i,
+          layer: this
+        }))
+      }
+    } else {
+      this.renderers.push(new Renderer({
+        cartocss: '',
+        index: 0,
+        layer: this
+      }))
+    }
+    for (var tileKey in this.svgTiles) {
+      var split = tileKey.split(':')
+      var tilePoint = {
+        x: parseInt(split[0]),
+        y: parseInt(split[1]),
+        zoom: parseInt(split[2])
+      }
+      this.tileLoader._loadTile(tilePoint)
+    }
   },
 
   _renderTile: function (data) {
@@ -97,6 +133,11 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this._initTileEvents(tile)
 
     for (var i = 0; i < self.renderers.length; i++) {
+      if (geometry.features.length > 1 && geometry.features[0].type === 'FeatureCollection') { // This means there's more than one layer
+        if (geometry.features.length !== this.renderers.length) return
+      } else {
+        if (this.renderers.length > 1) return
+      }
       var collection = self.renderers.length > 1 ? geometry.features[i] : geometry
       self.renderers[i].render(tile, collection, tilePoint)
     }
@@ -131,7 +172,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _clearTile: function (data) {
-    var svg = this.svgTiles[data.tileKey]
     var split = data.tileKey.split(':')
     var tilePoint = {x: split[0], y: split[1], zoom: split[2]}
     this.renderers.forEach(function (r) {
@@ -166,6 +206,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   setCartoCSS: function (index, cartocss) {
+    this.options.styles[index] = cartocss
     this.renderers[index].setCartoCSS(cartocss)
   },
 
@@ -198,7 +239,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   _stopLoadingImages: function (container) {
     var tiles = Array.prototype.slice.call(container.getElementsByTagName('svg'))
     var i, len, tile
-
+    this.tileLoader._tilesLoading = {}
     for (i = 0, len = tiles.length; i < len; i++) {
       tile = tiles[i]
 
@@ -206,9 +247,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         tile.onload = L.Util.falseFn
         tile.onerror = L.Util.falseFn
         tile.src = L.Util.emptyImageUrl
-
-        tile.parentNode.removeChild(tile)
       }
+      tile.parentNode.removeChild(tile)
     }
   }
 })

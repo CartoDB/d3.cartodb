@@ -38,8 +38,8 @@ describe('The layer', function () {
 
   it("'s container should have leaflet-specific classnames", function () {
     this.layer.addTo(this.map)
-    expect(this.layer._container.attributes['class'].value).toEqual('leaflet-tile-container leaflet-zoom-animated')
-    expect(this.layer._container.parentNode.attributes['class'].value).toEqual('leaflet-layer')
+    expect(this.layer._tileContainer.attributes['class'].value).toEqual('leaflet-tile-container')
+    expect(this.layer._tileContainer.parentNode.attributes['class'].value).toEqual('leaflet-layer')
   })
 
   it('should run onRemove when layer is removed from map', function () {
