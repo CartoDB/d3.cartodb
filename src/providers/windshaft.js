@@ -10,6 +10,7 @@ function WindshaftProvider (options) {
   this._tileQueue = []
   this.initialize()
   this._ready = false
+  this.requests = {}
 }
 
 cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
@@ -29,6 +30,8 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
   getTile: XYZProvider.prototype.getTile,
 
   getGeometry: XYZProvider.prototype.getGeometry,
+
+  abortPending: XYZProvider.prototype.abortPending,
 
   _generateMapconfig: function (table) {
     var mapconfig = {

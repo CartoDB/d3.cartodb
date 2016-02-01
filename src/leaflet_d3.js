@@ -242,13 +242,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.tileLoader._tilesLoading = {}
     for (i = 0, len = tiles.length; i < len; i++) {
       tile = tiles[i]
-
-      if (!tile.complete) {
-        tile.onload = L.Util.falseFn
-        tile.onerror = L.Util.falseFn
-        tile.src = L.Util.emptyImageUrl
-      }
       tile.parentNode.removeChild(tile)
     }
+    this.provider.abortPending()
   }
 })
