@@ -4,13 +4,21 @@ module.exports = L.Class.extend({
   includes: L.Mixin.Events,
 
   initialize: function (options) {
+    var self = this
     this.options = options
     this.provider = options.provider
     this._map = options.map
     this._tiles = {}
     this._tilesLoading = {}
     this._tilesToLoad = 0
+    this.lastDrag = 0
     this._map.on('moveend', this._reloadTiles, this)
+    this._map.on('drag', function () {
+      if ((this.dragging._lastTime - self.lastDrag) > 500) {
+        self.lastDrag = this.dragging._lastTime
+        self._reloadTiles()
+      }
+    })
   },
 
   loadTiles: function () {
