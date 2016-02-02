@@ -18,8 +18,8 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       return f
     }))
     this.tiles[tilePointString] = true
+    this.fire('featuresChanged', this.getValues())
     return this.getTile(tilePoint)
-    this.fire('featuresChanged')
   },
 
   removeTile: function (tilePoint) {
@@ -31,7 +31,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     this.crossfilter.remove()
     this.dimensions.tiles.filterAll()
     delete this.tiles[tilePointString]
-    this.fire('featuresChanged')
+    this.fire('featuresChanged', this.getValues())
   },
 
   getTile: function (tilePoint) {
@@ -55,7 +55,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
     }
     this.dimensions[column].filter(filterfn)
-    this.fire('featuresChanged')
+    this.fire('featuresChanged', this.getValues())
   },
 
   filterAccept: function (column, terms) {
