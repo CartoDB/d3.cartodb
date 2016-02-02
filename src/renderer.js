@@ -23,8 +23,8 @@ var Renderer = function (options) {
   this.layer = options.layer
   this.filter = new Filter()
   this.geometries = {}
-  this.filter.on('featuresChanged', function(){
-    console.log("Features have changed")
+  this.filter.on('featuresChanged', function(features){
+    console.log("There are " + features.length + " features on the map")
   })
 }
 
