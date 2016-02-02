@@ -97,7 +97,7 @@ module.exports = L.Class.extend({
       delete this._tilesLoading[tileKey]
       this._tilesToLoad--
       this.fire('tileAdded', {tilePoint: tilePoint, geometry: geometry})
-      if (this._tilesToLoad === 0) {
+      if (this.provider.allTilesLoaded()) {
         this.fire('tilesLoaded')
       }
     }.bind(this))
