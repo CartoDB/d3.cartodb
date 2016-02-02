@@ -70,16 +70,17 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     for (var column in this.dimensions) {
       this.dimensions[column].filterAll()
     }
-    this.fire('featuresChanged')
+    this.fire('featuresChanged', this.getValues())
   },
 
   clearFilter: function (column) {
     this.dimensions[column].filterAll()
-    this.fire('featuresChanged')
+    this.fire('featuresChanged', this.getValues())
   },
 
-  getValues: function (column) {
-    return this.dimensions[column].top(Infinity)
+  getValues: function () {
+    if (!this.dimensions['tiles']) return []
+    return this.dimensions['tiles'].top(Infinity)
   },
 
   setBoundingBox: function (north, east, south, west) {
@@ -95,7 +96,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         g.coordinates[1] > south &&
         g.coordinates[0] > west
       }.bind(arguments))
-      this.fire('featuresChanged')
+      this.fire('featuresChanged', this.getValues())
     }
   }
 })
