@@ -1,4 +1,5 @@
 var Crossfilter = require('crossfilter')
+var cartodb = require('./')
 
 function Filter () {
   this.crossfilter = new Crossfilter()
@@ -8,7 +9,7 @@ function Filter () {
   this.expressions = {}
 }
 
-Filter.prototype = {
+cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   addTile: function (tilePoint, collection) {
     var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
@@ -17,6 +18,7 @@ Filter.prototype = {
       return f
     }))
     this.tiles[tilePointString] = true
+    this.fire('featuresChanged', this.getValues())
     return this.getTile(tilePoint)
   },
 
@@ -29,6 +31,7 @@ Filter.prototype = {
     this.crossfilter.remove()
     this.dimensions.tiles.filterAll()
     delete this.tiles[tilePointString]
+    this.fire('featuresChanged', this.getValues())
   },
 
   getTile: function (tilePoint) {
@@ -52,6 +55,7 @@ Filter.prototype = {
       this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
     }
     this.dimensions[column].filter(filterfn)
+    this.fire('featuresChanged', this.getValues())
   },
 
   filterAccept: function (column, terms) {
@@ -66,14 +70,17 @@ Filter.prototype = {
     for (var column in this.dimensions) {
       this.dimensions[column].filterAll()
     }
+    this.fire('featuresChanged', this.getValues())
   },
 
   clearFilter: function (column) {
     this.dimensions[column].filterAll()
+    this.fire('featuresChanged', this.getValues())
   },
 
   getValues: function (column) {
-    var values = this.dimensions[column].top(Infinity)
+    if (!this.dimensions['tiles']) return []
+    var values = this.dimensions['tiles'].top(Infinity)
     var uniqueValues = []
     var ids = {}
     for (var i = 0; i < values.length; i++) {
@@ -84,6 +91,7 @@ Filter.prototype = {
     }
     return uniqueValues
   },
+
 
   setBoundingBox: function (north, east, south, west) {
     if (!this.dimensions.bbox) {
@@ -98,9 +106,10 @@ Filter.prototype = {
         g.coordinates[1] > south &&
         g.coordinates[0] > west
       }.bind(arguments))
+      this.fire('featuresChanged', this.getValues())
     }
   }
-}
+})
 
 Filter.accept = function (terms) {
   var termsDict = {}
