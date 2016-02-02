@@ -73,7 +73,16 @@ Filter.prototype = {
   },
 
   getValues: function (column) {
-    return this.dimensions[column].top(Infinity)
+    var values = this.dimensions[column].top(Infinity)
+    var uniqueValues = []
+    var ids = {}
+    for (var i = 0; i < values.length; i++) {
+      if (!(values[i].properties.cartodb_id in ids)) {
+        uniqueValues += values[i]
+        ids[values[i].properties.cartodb_id] = true
+      }
+    }
+    return uniqueValues
   },
 
   setBoundingBox: function (north, east, south, west) {
