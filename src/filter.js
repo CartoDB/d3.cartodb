@@ -18,7 +18,6 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       return f
     }))
     this.tiles[tilePointString] = true
-    this.fire('featuresChanged', this.getValues())
     return this.getTile(tilePoint)
   },
 
@@ -31,7 +30,6 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     this.crossfilter.remove()
     this.dimensions.tiles.filterAll()
     delete this.tiles[tilePointString]
-    this.fire('featuresChanged', this.getValues())
   },
 
   getTile: function (tilePoint) {
@@ -55,7 +53,6 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
     }
     this.dimensions[column].filter(filterfn)
-    this.fire('featuresChanged', this.getValues())
   },
 
   filterAccept: function (column, terms) {
@@ -70,12 +67,10 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     for (var column in this.dimensions) {
       this.dimensions[column].filterAll()
     }
-    this.fire('featuresChanged', this.getValues())
   },
 
   clearFilter: function (column) {
     this.dimensions[column].filterAll()
-    this.fire('featuresChanged', this.getValues())
   },
 
   getValues: function () {
@@ -96,7 +91,6 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         g.coordinates[1] > south &&
         g.coordinates[0] > west
       }.bind(arguments))
-      this.fire('featuresChanged', this.getValues())
     }
   }
 })
