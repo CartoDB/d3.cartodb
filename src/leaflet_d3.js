@@ -50,7 +50,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     })
   },
 
-  allTilesLoaded: function() {
+  featuresLoaded: function() {
     if (!this.provider) return false
     return this.provider.allTilesLoaded()
   },
