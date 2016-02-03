@@ -85,7 +85,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     var ids = {}
     for (var i = 0; i < values.length; i++) {
       if (!(values[i].properties.cartodb_id in ids)) {
-        uniqueValues += values[i]
+        uniqueValues.push(values[i])
         ids[values[i].properties.cartodb_id] = true
       }
     }
