@@ -50,6 +50,21 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     })
   },
 
+  allTilesLoaded: function() {
+    if (!this.provider) return false
+    return this.provider.allTilesLoaded()
+  },
+
+  getFeatures: function () {
+    var features = []
+    if (this.renderers.length > 0) {
+      this.renderers.forEach(function(r) {
+        features.push(r.filter.getValues())
+      })
+    }
+    return features
+  },
+
   onAdd: function (map) {
     this._map = map
     this.options.map = map
