@@ -92,6 +92,8 @@ Renderer.prototype = {
           callback(d3.select(this).data()[0], d3.select(this))
         }
         break
+      case 'featuresChanged':
+        this.filter.on('featuresChanged', callback)
     }
   },
 

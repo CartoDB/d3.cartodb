@@ -1,4 +1,5 @@
 var Crossfilter = require('crossfilter')
+var cartodb = require('./')
 
 function Filter () {
   this.crossfilter = new Crossfilter()
@@ -8,7 +9,7 @@ function Filter () {
   this.expressions = {}
 }
 
-Filter.prototype = {
+cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   addTile: function (tilePoint, collection) {
     var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
@@ -72,8 +73,9 @@ Filter.prototype = {
     this.dimensions[column].filterAll()
   },
 
-  getValues: function (column) {
-    return this.dimensions[column].top(Infinity)
+  getValues: function () {
+    if (!this.dimensions['tiles']) return []
+    return this.dimensions['tiles'].top(Infinity)
   },
 
   setBoundingBox: function (north, east, south, west) {
@@ -91,7 +93,7 @@ Filter.prototype = {
       }.bind(arguments))
     }
   }
-}
+})
 
 Filter.accept = function (terms) {
   var termsDict = {}
