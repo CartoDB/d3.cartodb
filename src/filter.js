@@ -102,6 +102,9 @@ Filter.accept = function (terms) {
   if (terms === 'all') {
     return function () { return true }
   }
+  else if (terms = 'none'){
+    return function () { return false }
+  }
   var termsDict = {}
   terms.forEach(function (t) {
     termsDict[t] = true
@@ -117,6 +120,9 @@ Filter.accept = function (terms) {
 Filter.reject = function (terms) {
   if (terms === 'all') {
     return function () { return false }
+  }
+  else if (terms = 'none'){
+    return function () { return true }
   }
   var termsDict = {}
   terms.forEach(function (t) {
