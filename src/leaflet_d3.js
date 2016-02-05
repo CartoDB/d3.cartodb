@@ -50,6 +50,21 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     })
   },
 
+  featuresLoaded: function() {
+    if (!this.provider) return false
+    return this.provider.allTilesLoaded()
+  },
+
+  getFeatures: function () {
+    var features = []
+    if (this.renderers.length > 0) {
+      this.renderers.forEach(function(r) {
+        features.push(r.filter.getValues())
+      })
+    }
+    return features
+  },
+
   onAdd: function (map) {
     this._map = map
     this.options.map = map
@@ -68,6 +83,9 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
     this.tileLoader.on('tileAdded', this._renderTile, this)
     this.tileLoader.on('tileRemoved', this._clearTile, this)
+    this.tileLoader.on('tilesLoaded', function() {
+      this.fire('featuresChanged', this.getFeatures())
+    }, this)
     this._map.on({
       'zoomanim': this._animateZoom,
       'zoomend': this._endZoomAnim

@@ -33,6 +33,8 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
 
   abortPending: XYZProvider.prototype.abortPending,
 
+  allTilesLoaded: XYZProvider.prototype.allTilesLoaded,
+
   _generateMapconfig: function (table) {
     var mapconfig = {
       'version': '1.0.1',

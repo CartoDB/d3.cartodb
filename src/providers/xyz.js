@@ -30,6 +30,7 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
           self.format = 'topojson'
           geometry = topojson.feature(geometry, geometry.objects.vectile)
         }
+        self.requests[[tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')].complete = true
         callback(tilePoint, geometry)
       })
     } else {
@@ -38,14 +39,16 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
   },
 
   getGeometry: function (tilePoint, callback) {
+    var self = this
     var url = this.urlTemplate
       .replace('{x}', tilePoint.x)
       .replace('{y}', tilePoint.y)
       .replace('{z}', tilePoint.zoom)
       .replace('{s}', 'abcd'[(tilePoint.x * tilePoint.y) % 4])
       .replace('.png', '.geojson')
-
-    this.requests[[tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')] = d3.json(url, callback)
+    var tilePointString = [tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')
+    var request = d3.json(url, callback)
+    this.requests[tilePointString] = request
   },
 
   _setReady: function () {
@@ -66,6 +69,13 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
       this.requests[tileKey].abort()
     }
     this.requests = {}
+  },
+
+  allTilesLoaded: function () {
+    for (var request in this.requests) {
+      if (!this.requests[request].complete) return false
+    }
+    return true
   },
 
   _processQueue: function () {
