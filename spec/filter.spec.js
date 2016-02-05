@@ -79,8 +79,8 @@ describe('The filter', function () {
   })
 
   it ('shouldn\'t return more than one feature with the same cartodb_id', function () {
-    dump(this.filter.getValues().length)
+    var initialLength = this.filter.getValues().length
     this.filter.addTile({x: 2, y: 1, zoom: 3}, this.tile)
-    dump(this.filter.getValues().length)
+    expect(initialLength).toEqual(this.filter.getValues().length)
   })
 })
