@@ -118,6 +118,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _resetRenderers: function () {
+    var self = this
     if (this.renderers.length > 0) {
       this.renderers = []
     }
@@ -146,6 +147,11 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       }
       this.tileLoader._loadTile(tilePoint)
     }
+    this.renderers.forEach(function (r) {
+      r.filter.on('filterApplied', function () {
+        self.fire('featuresChanged', self.getFeatures())
+      })
+    })
   },
 
   _renderTile: function (data) {
