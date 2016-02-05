@@ -53,6 +53,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
     }
     this.dimensions[column].filter(filterfn)
+    this.fire('filterApplied')
   },
 
   filterAccept: function (column, terms) {
@@ -67,10 +68,12 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     for (var column in this.dimensions) {
       this.dimensions[column].filterAll()
     }
+    this.fire('filterApplied')
   },
 
   clearFilter: function (column) {
     this.dimensions[column].filterAll()
+    this.fire('filterApplied')
   },
 
   getValues: function () {
