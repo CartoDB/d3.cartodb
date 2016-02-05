@@ -96,6 +96,9 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 })
 
 Filter.accept = function (terms) {
+  if (terms === 'all') {
+    return function () { return true }
+  }
   var termsDict = {}
   terms.forEach(function (t) {
     termsDict[t] = true
@@ -104,10 +107,14 @@ Filter.accept = function (terms) {
     if (termsDict[f]) {
       return true
     }
+    return false
   }
 }
 
 Filter.reject = function (terms) {
+  if (terms === 'all') {
+    return function () { return false }
+  }
   var termsDict = {}
   terms.forEach(function (t) {
     termsDict[t] = true
@@ -116,6 +123,7 @@ Filter.reject = function (terms) {
     if (!termsDict[f]) {
       return true
     }
+    return false
   }
 }
 
