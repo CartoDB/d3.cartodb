@@ -101,8 +101,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 Filter.accept = function (terms) {
   if (terms === 'all') {
     return function () { return true }
-  }
-  else if (terms = 'none'){
+  } else if (terms === 'none') {
     return function () { return false }
   }
   var termsDict = {}
@@ -120,8 +119,7 @@ Filter.accept = function (terms) {
 Filter.reject = function (terms) {
   if (terms === 'all') {
     return function () { return false }
-  }
-  else if (terms = 'none'){
+  } else if (terms === 'none') {
     return function () { return true }
   }
   var termsDict = {}
