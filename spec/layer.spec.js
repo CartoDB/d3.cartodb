@@ -38,7 +38,7 @@ describe('The layer', function () {
 
   it("'s container should have leaflet-specific classnames", function () {
     this.layer.addTo(this.map)
-    expect(this.layer._tileContainer.attributes['class'].value).toEqual('leaflet-tile-container')
+    expect(this.layer._tileContainer.attributes['class'].value).toEqual('leaflet-zoom-animated leaflet-tile-container')
     expect(this.layer._tileContainer.parentNode.attributes['class'].value).toEqual('leaflet-layer')
   })
 

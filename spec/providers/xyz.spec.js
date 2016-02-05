@@ -25,6 +25,9 @@ describe('The XYZ provider', function () {
     asyncLayer.addTo(this.map)
     spyOn(asyncLayer.provider, 'getGeometry')
     asyncLayer.provider.setURL('doesnt.really.matter')
-    expect(asyncLayer.provider.getGeometry).toHaveBeenCalled()
+    setTimeout(function () {
+      expect(asyncLayer.provider.getGeometry).toHaveBeenCalled()
+      done()
+    }, 0)
   })
 })

@@ -53,6 +53,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
     }
     this.dimensions[column].filter(filterfn)
+    this.fire('filterApplied')
   },
 
   filterAccept: function (column, terms) {
@@ -67,10 +68,12 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     for (var column in this.dimensions) {
       this.dimensions[column].filterAll()
     }
+    this.fire('filterApplied')
   },
 
   clearFilter: function (column) {
     this.dimensions[column].filterAll()
+    this.fire('filterApplied')
   },
 
   getValues: function () {
@@ -96,6 +99,11 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 })
 
 Filter.accept = function (terms) {
+  if (terms === 'all') {
+    return function () { return true }
+  } else if (terms === 'none') {
+    return function () { return false }
+  }
   var termsDict = {}
   terms.forEach(function (t) {
     termsDict[t] = true
@@ -104,10 +112,16 @@ Filter.accept = function (terms) {
     if (termsDict[f]) {
       return true
     }
+    return false
   }
 }
 
 Filter.reject = function (terms) {
+  if (terms === 'all') {
+    return function () { return false }
+  } else if (terms === 'none') {
+    return function () { return true }
+  }
   var termsDict = {}
   terms.forEach(function (t) {
     termsDict[t] = true
@@ -116,6 +130,7 @@ Filter.reject = function (terms) {
     if (!termsDict[f]) {
       return true
     }
+    return false
   }
 }
 
