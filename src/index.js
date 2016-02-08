@@ -1,6 +1,6 @@
 var LeafletCartoDBd3Layer = require('./leaflet_d3.js')
 module.exports = {
-  Leaflet = {
+  Leaflet: {
     CartoDBd3Layer: LeafletCartoDBd3Layer
   }
 }
