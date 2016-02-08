@@ -81,6 +81,13 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     return this.dimensions['tiles'].top(Infinity)
   },
 
+  getColumnValues: function (column, numberOfValues) {
+    if (!this.dimensions[column]) {
+      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
+    }
+    return this.dimensions[column].group().top(numberOfValues ? numberOfValues : Infinity)
+  },
+
   setBoundingBox: function (north, east, south, west) {
     if (!this.dimensions.bbox) {
       this.dimensions.bbox = this.crossfilter.dimension(function (f) { return f.geometry })
