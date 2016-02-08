@@ -286,3 +286,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.provider.abortPending()
   }
 })
+
+module.exports = L.CartoDBd3Layer
+
