@@ -1,5 +1,13 @@
+var LeafletCartoDBd3Layer = require('./leaflet_d3.js')
+module.exports = {
+  Leaflet: {
+    CartoDBd3Layer: LeafletCartoDBd3Layer
+  }
+}
+
+// TODO: There's no need to export all the modules below
+// right now, so we should remove them from here.
 module.exports.d3 = require('./core')
-require('./leaflet_d3.js')
 var elements = {
   Util: require('./util.js'),
   geo: require('./geo.js'),
