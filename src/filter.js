@@ -49,9 +49,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   filter: function (column, filterfn) {
-    if (!this.dimensions[column]) {
-      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
-    }
+    this._createDimension(column)
     this.dimensions[column].filter(filterfn)
     this.fire('filterApplied')
   },
@@ -81,6 +79,11 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     return this.dimensions['tiles'].top(Infinity)
   },
 
+  getColumnValues: function (column, numberOfValues) {
+    this._createDimension(column)
+    return this.dimensions[column].group().top(numberOfValues ? numberOfValues : Infinity)
+  },
+
   setBoundingBox: function (north, east, south, west) {
     if (!this.dimensions.bbox) {
       this.dimensions.bbox = this.crossfilter.dimension(function (f) { return f.geometry })
@@ -94,6 +97,27 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         g.coordinates[1] > south &&
         g.coordinates[0] > west
       }.bind(arguments))
+    }
+  },
+
+  getMax: function (column) { 
+    this._createDimension(column)
+    return this.dimensions[column].top(1)[0].properties[column]
+  },
+
+  getMin: function (column) { 
+    this._createDimension(column)
+    return this.dimensions[column].bottom(1)[0].properties[column]
+  },
+
+  getCount: function (column) {
+    this._createDimension(column)
+    return this.dimensions[column].groupAll().value()
+  },
+
+  _createDimension: function (column) {
+    if (!this.dimensions[column]) {
+      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
     }
   }
 })

@@ -71,6 +71,10 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     return this.provider.allTilesLoaded()
   },
 
+  getFilter: function (layerIndex) {
+    return this.renderers[layerIndex].filter
+  },
+
   getFeatures: function () {
     var features = []
     if (this.renderers.length > 0) {
