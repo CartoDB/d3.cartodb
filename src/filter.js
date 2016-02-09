@@ -102,6 +102,27 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         g.coordinates[0] > west
       }.bind(arguments))
     }
+  },
+
+  getMax: function (column) { 
+    this.createDimension(column)
+    return filter.dimensions[column].top(1)[0].properties[column]
+  },
+
+  getMin: function (column) { 
+    this.createDimension(column)
+    return filter.dimensions[column].bottom(1)[0].properties[column]
+  },
+
+  getCount: function (column) {
+    this.createDimension(column)
+    return filter.dimensions[columnName].groupAll().value()
+  },
+
+  createDimension: function (column) {
+    if (!this.dimensions[column]) {
+      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
+    }
   }
 })
 
