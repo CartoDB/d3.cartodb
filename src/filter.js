@@ -49,9 +49,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   filter: function (column, filterfn) {
-    if (!this.dimensions[column]) {
-      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
-    }
+    this._createDimension(column)
     this.dimensions[column].filter(filterfn)
     this.fire('filterApplied')
   },
@@ -82,9 +80,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   getColumnValues: function (column, numberOfValues) {
-    if (!this.dimensions[column]) {
-      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
-    }
+    this._createDimension(column)
     return this.dimensions[column].group().top(numberOfValues ? numberOfValues : Infinity)
   },
 
@@ -105,21 +101,21 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   getMax: function (column) { 
-    this.createDimension(column)
+    this._createDimension(column)
     return this.dimensions[column].top(1)[0].properties[column]
   },
 
   getMin: function (column) { 
-    this.createDimension(column)
+    this._createDimension(column)
     return this.dimensions[column].bottom(1)[0].properties[column]
   },
 
   getCount: function (column) {
-    this.createDimension(column)
+    this._createDimension(column)
     return this.dimensions[column].groupAll().value()
   },
 
-  createDimension: function (column) {
+  _createDimension: function (column) {
     if (!this.dimensions[column]) {
       this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
     }
