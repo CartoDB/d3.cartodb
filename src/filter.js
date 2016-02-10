@@ -113,12 +113,22 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 
   getMax: function (column) { 
     this._createDimension(column)
-    return this.dimensions[column].top(1)[0].properties[column]
+    try {
+      return this.dimensions[column].top(1)[0].properties[column]
+    }
+    catch(e) {
+      return null
+    }
   },
 
   getMin: function (column) { 
     this._createDimension(column)
-    return this.dimensions[column].bottom(1)[0].properties[column]
+    try {
+      return this.dimensions[column].bottom(1)[0].properties[column]
+    }
+    catch(e) {
+      return null
+    }
   },
 
   getCount: function (column) {
