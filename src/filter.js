@@ -76,9 +76,18 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     this.fire('filterApplied')
   },
 
-  getValues: function () {
+  getValues: function (ownFilter, column) {
     if (!this.dimensions['tiles']) return []
-    return this.dimensions['tiles'].top(Infinity)
+    if (typeof ownFilter === 'undefined' || ownFilter){
+      return this.dimensions['tiles'].top(Infinity)
+    }
+    else {
+      this._createDimension(column)
+      this.dimensions[column].filterAll()
+      var values = this.dimensions[column].top(Infinity)
+      this.dimensions[column].filter(this.filters[column])
+      return values
+    }
   },
 
   getColumnValues: function (column, numberOfValues) {
