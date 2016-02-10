@@ -5,8 +5,7 @@ function Filter () {
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
-  this.report = {}
-  this.expressions = {}
+  this.filters = {}
 }
 
 cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
