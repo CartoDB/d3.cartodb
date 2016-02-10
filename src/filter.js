@@ -50,6 +50,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   filter: function (column, filterfn) {
     this._createDimension(column)
     this.dimensions[column].filter(filterfn)
+    this.filters[column] = filterfn
     this.fire('filterApplied')
   },
 
@@ -64,12 +65,14 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   clearFilters: function () {
     for (var column in this.dimensions) {
       this.dimensions[column].filterAll()
+      delete this.filters[column]
     }
     this.fire('filterApplied')
   },
 
   clearFilter: function (column) {
     this.dimensions[column].filterAll()
+    delete this.filters[column]
     this.fire('filterApplied')
   },
 
