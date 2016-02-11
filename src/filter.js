@@ -5,8 +5,7 @@ function Filter () {
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
-  this.report = {}
-  this.expressions = {}
+  this.filters = {}
 }
 
 cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
@@ -51,6 +50,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   filter: function (column, filterfn) {
     this._createDimension(column)
     this.dimensions[column].filter(filterfn)
+    this.filters[column] = filterfn
     this.fire('filterApplied')
   },
 
@@ -65,18 +65,29 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   clearFilters: function () {
     for (var column in this.dimensions) {
       this.dimensions[column].filterAll()
+      delete this.filters[column]
     }
     this.fire('filterApplied')
   },
 
   clearFilter: function (column) {
     this.dimensions[column].filterAll()
+    delete this.filters[column]
     this.fire('filterApplied')
   },
 
-  getValues: function () {
+  getValues: function (ownFilter, column) {
     if (!this.dimensions['tiles']) return []
-    return this.dimensions['tiles'].top(Infinity)
+    if (typeof ownFilter === 'undefined' || ownFilter){
+      return this.dimensions['tiles'].top(Infinity)
+    }
+    else {
+      this._createDimension(column)
+      this.dimensions[column].filterAll()
+      var values = this.dimensions[column].top(Infinity)
+      this.dimensions[column].filter(this.filters[column])
+      return values
+    }
   },
 
   getColumnValues: function (column, numberOfValues) {
@@ -102,12 +113,22 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 
   getMax: function (column) { 
     this._createDimension(column)
-    return this.dimensions[column].top(1)[0].properties[column]
+    try {
+      return this.dimensions[column].top(1)[0].properties[column]
+    }
+    catch(e) {
+      return null
+    }
   },
 
   getMin: function (column) { 
     this._createDimension(column)
-    return this.dimensions[column].bottom(1)[0].properties[column]
+    try {
+      return this.dimensions[column].bottom(1)[0].properties[column]
+    }
+    catch(e) {
+      return null
+    }
   },
 
   getCount: function (column) {
