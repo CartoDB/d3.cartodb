@@ -119,6 +119,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         g.coordinates[1] > south &&
         g.coordinates[0] > west
     }.bind(arguments))
+    this.fire('filterApplied')
   },
 
   getMax: function (column) { 
