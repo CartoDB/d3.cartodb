@@ -76,7 +76,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     this.fire('filterApplied')
   },
 
-  getValues: function (ownFilter, column, uniques) {
+  getValues: function (ownFilter, column) {
     if (!this.dimensions['tiles']) return []
     var values = []
     if (typeof ownFilter === 'undefined' || ownFilter){
@@ -87,7 +87,6 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       this.dimensions[column].filterAll()
       var values = this.dimensions[column].top(Infinity)
       this.dimensions[column].filter(this.filters[column])
-      values = values
     }
     var uniqueValues = []
     var ids = {}
@@ -97,8 +96,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         ids[values[i].properties.cartodb_id] = true
       }
     }
-    values = uniqueValues
-    return values
+    return uniqueValues
   },
 
   getColumnValues: function (column, numberOfValues) {
