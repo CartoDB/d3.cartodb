@@ -1,7 +1,6 @@
 module.exports.d3 = require('./core')
 require('./leaflet_d3.js')
 var elements = {
-	Layer: require('./leaflet_d3.js'),
   Util: require('./util.js'),
   geo: require('./geo.js'),
   Renderer: require('./renderer.js'),
