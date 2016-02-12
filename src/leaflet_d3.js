@@ -39,6 +39,22 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     }
   },
 
+  applyFilter: function (sublayerIndex, filterType, filterOptions) {
+    var sublayer = this.renderers[sublayerIndex]
+    switch (filterType) {
+      case 'accept':
+        sublayer.filter.filterAccept(filterOptions.column, filterOptions.values)
+        break
+      case 'reject':
+        sublayer.filter.filterReject(filterOptions.column, filterOptions.values)
+        break
+      case 'range':
+        sublayer.filter.filterRange(filterOptions.column, [filterOptions.min, filterOptions.max])
+        break
+    }
+    sublayer.redraw()
+  },
+
   setProvider: function (options) {
     this.styles = options.styles
     this.provider.setURL(options.urlTemplate)
@@ -50,15 +66,19 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     })
   },
 
-  featuresLoaded: function() {
+  featuresLoaded: function () {
     if (!this.provider) return false
     return this.provider.allTilesLoaded()
+  },
+
+  getFilter: function (layerIndex) {
+    return this.renderers[layerIndex].filter
   },
 
   getFeatures: function () {
     var features = []
     if (this.renderers.length > 0) {
-      this.renderers.forEach(function(r) {
+      this.renderers.forEach(function (r) {
         features.push(r.filter.getValues())
       })
     }
@@ -83,7 +103,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
     this.tileLoader.on('tileAdded', this._renderTile, this)
     this.tileLoader.on('tileRemoved', this._clearTile, this)
-    this.tileLoader.on('tilesLoaded', function() {
+    this.tileLoader.on('tilesLoaded', function () {
       this.fire('featuresChanged', this.getFeatures())
     }, this)
     this._map.on({
@@ -102,9 +122,9 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _resetRenderers: function () {
+    var self = this
     if (this.renderers.length > 0) {
       this.renderers = []
-      initial = false
     }
     var styles = this.options.styles
     if (styles.length > 0) {
@@ -125,12 +145,17 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     for (var tileKey in this.svgTiles) {
       var split = tileKey.split(':')
       var tilePoint = {
-        x: parseInt(split[0]),
-        y: parseInt(split[1]),
-        zoom: parseInt(split[2])
+        x: parseInt(split[0], 10),
+        y: parseInt(split[1], 10),
+        zoom: parseInt(split[2], 10)
       }
       this.tileLoader._loadTile(tilePoint)
     }
+    this.renderers.forEach(function (r) {
+      r.filter.on('filterApplied', function () {
+        self.fire('featuresChanged', self.getFeatures())
+      })
+    })
   },
 
   _renderTile: function (data) {

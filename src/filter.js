@@ -5,8 +5,7 @@ function Filter () {
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
-  this.report = {}
-  this.expressions = {}
+  this.filters = {}
 }
 
 cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
@@ -49,10 +48,10 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   filter: function (column, filterfn) {
-    if (!this.dimensions[column]) {
-      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
-    }
+    this._createDimension(column)
     this.dimensions[column].filter(filterfn)
+    this.filters[column] = filterfn
+    this.fire('filterApplied')
   },
 
   filterAccept: function (column, terms) {
@@ -66,16 +65,30 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   clearFilters: function () {
     for (var column in this.dimensions) {
       this.dimensions[column].filterAll()
+      delete this.filters[column]
     }
+    this.fire('filterApplied')
   },
 
   clearFilter: function (column) {
     this.dimensions[column].filterAll()
+    delete this.filters[column]
+    this.fire('filterApplied')
   },
 
-  getValues: function (column) {
+  getValues: function (ownFilter, column, uniques) {
     if (!this.dimensions['tiles']) return []
-    var values = this.dimensions['tiles'].top(Infinity)
+    var values = []
+    if (typeof ownFilter === 'undefined' || ownFilter){
+      values = this.dimensions['tiles'].top(Infinity)
+    }
+    else {
+      this._createDimension(column)
+      this.dimensions[column].filterAll()
+      var values = this.dimensions[column].top(Infinity)
+      this.dimensions[column].filter(this.filters[column])
+      values = values
+    }
     var uniqueValues = []
     var ids = {}
     for (var i = 0; i < values.length; i++) {
@@ -84,7 +97,13 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         ids[values[i].properties.cartodb_id] = true
       }
     }
-    return uniqueValues
+    values = uniqueValues
+    return values
+  },
+
+  getColumnValues: function (column, numberOfValues) {
+    this._createDimension(column)
+    return this.dimensions[column].group().top(numberOfValues ? numberOfValues : Infinity)
   },
 
 
@@ -102,10 +121,46 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         g.coordinates[0] > west
       }.bind(arguments))
     }
+  },
+
+  getMax: function (column) { 
+    this._createDimension(column)
+    try {
+      return this.dimensions[column].top(1)[0].properties[column]
+    }
+    catch(e) {
+      return null
+    }
+  },
+
+  getMin: function (column) { 
+    this._createDimension(column)
+    try {
+      return this.dimensions[column].bottom(1)[0].properties[column]
+    }
+    catch(e) {
+      return null
+    }
+  },
+
+  getCount: function (column) {
+    this._createDimension(column)
+    return this.dimensions[column].groupAll().value()
+  },
+
+  _createDimension: function (column) {
+    if (!this.dimensions[column]) {
+      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
+    }
   }
 })
 
 Filter.accept = function (terms) {
+  if (terms === 'all') {
+    return function () { return true }
+  } else if (terms === 'none') {
+    return function () { return false }
+  }
   var termsDict = {}
   terms.forEach(function (t) {
     termsDict[t] = true
@@ -114,10 +169,16 @@ Filter.accept = function (terms) {
     if (termsDict[f]) {
       return true
     }
+    return false
   }
 }
 
 Filter.reject = function (terms) {
+  if (terms === 'all') {
+    return function () { return false }
+  } else if (terms === 'none') {
+    return function () { return true }
+  }
   var termsDict = {}
   terms.forEach(function (t) {
     termsDict[t] = true
@@ -126,6 +187,7 @@ Filter.reject = function (terms) {
     if (!termsDict[f]) {
       return true
     }
+    return false
   }
 }
 
