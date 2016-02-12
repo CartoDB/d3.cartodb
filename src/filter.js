@@ -78,22 +78,32 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 
   getValues: function (ownFilter, column) {
     if (!this.dimensions['tiles']) return []
+    var values = []
     if (typeof ownFilter === 'undefined' || ownFilter){
-      return this.dimensions['tiles'].top(Infinity)
+      values = this.dimensions['tiles'].top(Infinity)
     }
     else {
       this._createDimension(column)
       this.dimensions[column].filterAll()
       var values = this.dimensions[column].top(Infinity)
       this.dimensions[column].filter(this.filters[column])
-      return values
     }
+    var uniqueValues = []
+    var ids = {}
+    for (var i = 0; i < values.length; i++) {
+      if (!(values[i].properties.cartodb_id in ids)) {
+        uniqueValues.push(values[i])
+        ids[values[i].properties.cartodb_id] = true
+      }
+    }
+    return uniqueValues
   },
 
   getColumnValues: function (column, numberOfValues) {
     this._createDimension(column)
     return this.dimensions[column].group().top(numberOfValues ? numberOfValues : Infinity)
   },
+
 
   setBoundingBox: function (north, east, south, west) {
     if (!this.dimensions.bbox) {

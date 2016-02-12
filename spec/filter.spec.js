@@ -78,4 +78,9 @@ describe('The filter', function () {
     expect(this.filter.crossfilter.size() === 15).toBe(true)
   })
 
+  it ('shouldn\'t return more than one feature with the same cartodb_id', function () {
+    var initialLength = this.filter.getValues().length
+    this.filter.addTile({x: 2, y: 1, zoom: 3}, this.tile)
+    expect(initialLength).toEqual(this.filter.getValues().length)
+  })
 })

@@ -14,7 +14,7 @@ clean:
 test: lint
 	./node_modules/.bin/karma start --single-run --browsers Firefox
 
-testDebug: lint
+testDebug:
 	./node_modules/karma/bin/karma start
 
 lint:
