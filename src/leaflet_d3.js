@@ -139,11 +139,9 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _setBoundingBox: function () {
-    var bounds = this._map.getBounds()
+    var tiles = this._getVisibleTiles()
     this.renderers.forEach(function (renderer) {
-      var ne = geo.geo2Webmercator(bounds._northEast.lng, bounds._northEast.lat)
-      var sw = geo.geo2Webmercator(bounds._southWest.lng, bounds._southWest.lat)
-      renderer.filter.setBoundingBox(ne.y, ne.x, sw.y, sw.x)
+      renderer.filter.setBoundingBox(tiles)
       renderer.redraw()
     })
   },
