@@ -40,6 +40,20 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     }
   },
 
+  _getVisibleTiles: function () {
+    var bounds = this._map.getBounds()
+    var zoom = this._map.getZoom()
+    var nwTile = geo.latLng2Tile(bounds.getNorthWest().lat, bounds.getNorthWest().lng, zoom)
+    var seTile = geo.latLng2Tile(bounds.getSouthEast().lat, bounds.getSouthEast().lng, zoom)
+    var tiles = []
+    for(var y = nwTile.y; y<=seTile.y; y++) {
+      for(var x = nwTile.x; x<=seTile.x; x++) {
+        tiles.push([x,y,zoom].join(':'))
+      }
+    }
+    return tiles
+  },
+
   applyFilter: function (sublayerIndex, filterType, filterOptions) {
     var sublayer = this.renderers[sublayerIndex]
     switch (filterType) {
