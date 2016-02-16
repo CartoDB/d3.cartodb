@@ -97,6 +97,13 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         ids[values[i].properties.cartodb_id] = true
       }
     }
+    var boundingBox = this.tilesWithin
+    if (this.tilesWithin.length > 0) {
+      uniqueValues = uniqueValues.filter(function(feature){
+        return boundingBox.indexOf(feature.properties.tilePoint) > -1
+      })
+    }
+
     return uniqueValues
   },
 
