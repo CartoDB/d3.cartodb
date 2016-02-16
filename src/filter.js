@@ -106,10 +106,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 
 
   setBoundingBox: function (tiles) {
-    if (!this.dimensions.bbox) {
-      this.dimensions.bbox = this.crossfilter.dimension(function (f) { return f.properties.tilePoint })
-    }
-    this.dimensions.bbox.filter(function (g) {
+    this.dimensions.tiles.filter(function (g) {
       return this.indexOf(g) > -1
     }.bind(tiles))
     this.fire('filterApplied')
