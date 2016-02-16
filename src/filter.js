@@ -107,10 +107,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 
 
   setBoundingBox: function (tiles) {
-    this.dimensions.tiles.filter(function (g) {
-      return this.indexOf(g) > -1
-    }.bind(tiles))
-    this.fire('filterApplied')
+    this.tilesWithin = tiles
   },
 
   getMax: function (column) { 
