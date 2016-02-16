@@ -5,6 +5,7 @@ function Filter () {
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
+  this.tilesWithin = []
   this.filters = {}
 }
 
