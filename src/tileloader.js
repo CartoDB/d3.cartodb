@@ -13,12 +13,12 @@ module.exports = L.Class.extend({
     this._tilesToLoad = 0
     this.lastDrag = 0
     this._map.on('moveend', this._reloadTiles, this)
-    this._map.on('drag', function () {
-      if ((this.dragging._lastTime - self.lastDrag) > 500) {
-        self.lastDrag = this.dragging._lastTime
-        self._reloadTiles()
-      }
-    })
+    // this._map.on('drag', function () {
+    //   if ((this.dragging._lastTime - self.lastDrag) > 500) {
+    //     self.lastDrag = this.dragging._lastTime
+    //     self._reloadTiles()
+    //   }
+    // })
   },
 
   loadTiles: function () {
