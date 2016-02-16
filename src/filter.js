@@ -11,10 +11,10 @@ function Filter () {
 
 cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   addTile: function (tilePoint, collection) {
-    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
     this.crossfilter.add(collection.features.map(function (f) {
-      f.properties.tilePoint = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+      f.properties.tilePoint = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
       return f
     }))
     this.tiles[tilePointString] = true
@@ -22,7 +22,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   removeTile: function (tilePoint) {
-    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (!this.dimensions.tiles) {
       return
     }
@@ -33,7 +33,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   getTile: function (tilePoint) {
-    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (!this.dimensions.tiles) {
       this.dimensions.tiles = this.crossfilter.dimension(function (f) { return f.properties.tilePoint })
     }
