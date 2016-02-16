@@ -142,7 +142,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     var tiles = this._getVisibleTiles()
     this.renderers.forEach(function (renderer) {
       renderer.filter.setBoundingBox(tiles)
-      renderer.redraw()
     })
   },
 
