@@ -26,5 +26,13 @@ module.exports = {
   hashFeature: function (id, tilePoint) {
     var pane = Math.floor(tilePoint.x / Math.pow(2, tilePoint.zoom))
     return [id, pane].join(':')
+  },
+  lng2tile: function (lon,zoom) { return (Math.floor((lon+180)/360*Math.pow(2,zoom))); },
+  lat2tile: function (lat,zoom) { return (Math.floor((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom))); },
+
+  latLng2Tile: function (lat, lng, zoom) {
+    return {x: this.lng2tile(lng, zoom),
+            y: this.lat2tile(lat, zoom),
+            zoom: zoom}
   }
 }

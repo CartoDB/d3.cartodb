@@ -1,6 +1,7 @@
 var Renderer = require('./renderer')
 var providers = require('./providers')
 var TileLoader = require('./tileloader')
+var geo = require('./geo')
 var L = window.L
 
 L.CartoDBd3Layer = L.TileLayer.extend({
@@ -37,6 +38,20 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     } else {
       L.TileLayer.prototype.on.call(this, arguments[0], arguments[1])
     }
+  },
+
+  _getVisibleTiles: function () {
+    var bounds = this._map.getBounds()
+    var zoom = this._map.getZoom()
+    var nwTile = geo.latLng2Tile(bounds.getNorthWest().lat, bounds.getNorthWest().lng, zoom)
+    var seTile = geo.latLng2Tile(bounds.getSouthEast().lat, bounds.getSouthEast().lng, zoom)
+    var tiles = []
+    for(var y = nwTile.y; y<=seTile.y; y++) {
+      for(var x = nwTile.x; x<=seTile.x; x++) {
+        tiles.push([x,y,zoom].join(':'))
+      }
+    }
+    return tiles
   },
 
   applyFilter: function (sublayerIndex, filterType, filterOptions) {
@@ -104,11 +119,13 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.tileLoader.on('tileAdded', this._renderTile, this)
     this.tileLoader.on('tileRemoved', this._clearTile, this)
     this.tileLoader.on('tilesLoaded', function () {
+      this._setBoundingBox()
       this.fire('featuresChanged', this.getFeatures())
     }, this)
     this._map.on({
       'zoomanim': this._animateZoom,
-      'zoomend': this._endZoomAnim
+      'zoomend': this._endZoomAnim,
+      'moveend': this._setBoundingBox
     }, this)
   },
 
@@ -119,6 +136,13 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   addTo: function (map) {
     map.addLayer(this)
     return this
+  },
+
+  _setBoundingBox: function () {
+    var tiles = this._getVisibleTiles()
+    this.renderers.forEach(function (renderer) {
+      renderer.filter.setBoundingBox(tiles)
+    })
   },
 
   _resetRenderers: function () {

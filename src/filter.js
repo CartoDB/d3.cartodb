@@ -5,15 +5,16 @@ function Filter () {
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
+  this.tilesWithin = []
   this.filters = {}
 }
 
 cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   addTile: function (tilePoint, collection) {
-    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
     this.crossfilter.add(collection.features.map(function (f) {
-      f.properties.tilePoint = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+      f.properties.tilePoint = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
       return f
     }))
     this.tiles[tilePointString] = true
@@ -21,7 +22,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   removeTile: function (tilePoint) {
-    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (!this.dimensions.tiles) {
       return
     }
@@ -32,7 +33,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   getTile: function (tilePoint) {
-    var tilePointString = tilePoint.zoom + ':' + tilePoint.x + ':' + tilePoint.y
+    var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (!this.dimensions.tiles) {
       this.dimensions.tiles = this.crossfilter.dimension(function (f) { return f.properties.tilePoint })
     }
@@ -96,6 +97,13 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         ids[values[i].properties.cartodb_id] = true
       }
     }
+    var boundingBox = this.tilesWithin
+    if (this.tilesWithin.length > 0) {
+      uniqueValues = uniqueValues.filter(function(feature){
+        return boundingBox.indexOf(feature.properties.tilePoint) > -1
+      })
+    }
+
     return uniqueValues
   },
 
@@ -105,20 +113,8 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
 
-  setBoundingBox: function (north, east, south, west) {
-    if (!this.dimensions.bbox) {
-      this.dimensions.bbox = this.crossfilter.dimension(function (f) { return f.geometry })
-      this.dimensions.bbox.filter(function (g) {
-        var north = this[0]
-        var east = this[1]
-        var south = this[2]
-        var west = this[3]
-        return g.coordinates[1] < north &&
-        g.coordinates[0] < east &&
-        g.coordinates[1] > south &&
-        g.coordinates[0] > west
-      }.bind(arguments))
-    }
+  setBoundingBox: function (tiles) {
+    this.tilesWithin = tiles
   },
 
   getMax: function (column) { 
