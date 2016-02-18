@@ -101,7 +101,7 @@ Renderer.prototype = {
     if (this.layer) {
       for (var tileKey in this.layer.svgTiles) {
         var tilePoint = tileKey.split(':')
-        this.layer.svgTiles[tileKey].innerHTML = ''
+        this.layer.svgTiles[tileKey].children[this.index].innerHTML = ''
         tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
         this.render(this.layer.svgTiles[tileKey], null, tilePoint, false)
       }
