@@ -276,11 +276,12 @@ Renderer.prototype = {
       features = this._transformText(features)
     } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
-      features.attr('cx', function (f) {
-        return self.projection.apply(this, f.coordinates).x
-      })
-      features.attr('cy', function (f) {
-        return self.projection.apply(this, f.coordinates).y
+      features.each(function(f) {
+        if (f.coordinates[0]){
+          var coords = self.projection.apply(this, f.coordinates)
+          this.setAttribute('cx', coords.x)
+          this.setAttribute('cy', coords.y)
+        }
       })
     } else {
       features.enter().append('path').attr('class', sym)
