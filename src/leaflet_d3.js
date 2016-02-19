@@ -244,7 +244,9 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.renderers.forEach(function (r) {
       r.filter.removeTile(tilePoint)
     })
-    this._tileContainer.removeChild(this.svgTiles[data.tileKey])
+    if (this._tileContainer.hasChildNodes(this.svgTiles[data.tileKey])){
+      this._tileContainer.removeChild(this.svgTiles[data.tileKey])
+    }
     delete this.svgTiles[data.tileKey]
   },
 
