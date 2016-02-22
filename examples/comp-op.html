@@ -110,11 +110,15 @@
   attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
   }).addTo(map);
 
+  var layers = [{
+      sql: 'select * from ne_10m_populated_places_simple_3',
+      cartocss: document.getElementById('choropleth').innerHTML,
+  }];
   var cartoDBd3Layer = new L.CartoDBd3Layer({
     user: 'development',
-    table: 'ne_10m_populated_places_simple_6',
-    cartocss: document.getElementById('choropleth').innerHTML,
-    tiler_template: "http://development.localhost.lan:8181"
+    layers: layers,
+    styles: layers.map(function(l) { return l.cartocss }),
+    tiler_template: "http://documentation.cartodb.com"
   }).addTo(map);
 
   cartoDBd3Layer.on(0, "featureOut", function(f, d3selection){

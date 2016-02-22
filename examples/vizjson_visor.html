@@ -78,6 +78,7 @@
 </div>
     <!--<input id="time_slider" value = 0 type="range" min="0" max="1000" step="1" />-->
   <script src="../vendor/leaflet.js"></script>
+  <script src="../vendor/d3.v3.js"></script>
   <script src="../dist/d3.cartodb.full.js"></script>
   <script>
 
@@ -97,9 +98,12 @@
   //layer.setCartoCSS('#test { marker-fill: red; marker-width: quantile([pop2005], 3, 20); }');
   //viz('https://docker4data.cartodb.com/api/v2/viz/9dfc25e8-315d-11e5-80a0-0e6e1df11cbf/viz.json', map);
   */
-  var vizjsonUrl = 'https://docker4data.cartodb.com/api/v2/viz/9dfc25e8-315d-11e5-80a0-0e6e1df11cbf/viz.json';
-  cartodb.d3.Util.viz(vizjsonUrl, map, function(err, lyrs) {
+  vizjsonUrl = location.hash.slice(1)
+  var layer;
+  var vizjsonUrl = vizjsonUrl || 'https://team.cartodb.com/u/javi/api/v2/viz/09a6d098-5fbe-11e5-b577-0e853d047bba/viz.json';
+  cartodb.d3.Util.viz(vizjsonUrl, map, function(err, lyr, lyrs) {
       layers = lyrs;
+      layer = lyr;
       document.getElementById('css_text').value = layers[0].cartocss 
       document.getElementById('layers').innerHTML= layers.map(function(l, i) {
         return "<a href='#{i}'>{i}</a>".replace(/{i}/g, i);
@@ -111,14 +115,9 @@
       });
    });
 
-  /*
-  var layer = new L.D3CartoDBLayer({ user: 'z' }).addTo(map);
-  layer.setSQL('select * from tm_world_borders_s_2');
-  layer._requestGeometry();
-  */
   function applyShader() {
     var cartocss = document.getElementById('css_text').value;
-    layers[selectedLayer].mapLayer.setCartoCSS(cartocss);
+    layer.setCartoCSS(selectedLayer, cartocss);
   }
   document.getElementById('update_css').onclick = applyShader
 
