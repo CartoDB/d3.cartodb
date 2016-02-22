@@ -21,21 +21,17 @@ module.exports = {
           return {
             // fix the \n in sql
             sql: layer.options.sql.replace(/\n/g, ' '),
-            cartocss: layer.options.cartocss,
-            table: layer.options.layer_name
+            cartocss: layer.options.cartocss
           }
         })
 
-        // for each layer generate a d3 layer
-        layers.forEach(function (layer) {
-          var lyr = new L.CartoDBd3Layer({
-            user: cartodbLayer.options.user_name,
-            table: layer.table,
-            cartocss: layer.cartocss
-          }).addTo(map)
-          layer.mapLayer = lyr
-        })
-        done(null, layers)
+        var lyr = new L.CartoDBd3Layer({
+          user: cartodbLayer.options.user_name,
+          layers: layers,
+          styles: layers.map(function(l) { return l.cartocss })
+        }).addTo(map)
+
+        done(null, lyr, layers)
       } else {
         done(new Error('named maps not supported'))
       }

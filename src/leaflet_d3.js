@@ -24,7 +24,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       styles = [this.options.cartocss]
       this.options.styles = styles
     }
-    if (this.options.table && this.options.user) {
+    if (this.options.layers && this.options.user) {
       this.provider = new providers.WindshaftProvider(this.options)
     } else {
       this.provider = new providers.XYZProvider(this.options)
