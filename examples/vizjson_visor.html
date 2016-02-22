@@ -115,11 +115,6 @@
       });
    });
 
-  /*
-  var layer = new L.D3CartoDBLayer({ user: 'z' }).addTo(map);
-  layer.setSQL('select * from tm_world_borders_s_2');
-  layer._requestGeometry();
-  */
   function applyShader() {
     var cartocss = document.getElementById('css_text').value;
     layer.setCartoCSS(selectedLayer, cartocss);
