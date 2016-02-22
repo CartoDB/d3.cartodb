@@ -5,7 +5,7 @@ function Filter () {
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
-  this.tilesWithin = []
+  this.visibleTiles = []
   this.filters = {}
 }
 
@@ -78,6 +78,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   getValues: function (ownFilter, column) {
+    var self = this
     if (!this.dimensions['tiles']) return []
     var values = []
     if (typeof ownFilter === 'undefined' || ownFilter){
@@ -97,11 +98,16 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         ids[values[i].properties.cartodb_id] = true
       }
     }
-    var boundingBox = this.tilesWithin
-    if (this.tilesWithin.length > 0) {
-      uniqueValues = uniqueValues.filter(function(feature){
-        return boundingBox.indexOf(feature.properties.tilePoint) > -1
-      })
+    var boundingBox = this.visibleTiles.tiles
+    var ring = this.visibleTiles.ring
+    if (boundingBox) {
+      uniqueValues = uniqueValues.filter(function(feature) {
+        if (boundingBox.indexOf(feature.properties.tilePoint) > -1) return true
+        else if (ring.indexOf(feature.properties.tilePoint) > -1) {
+          return this.visibleTiles.se.x > feature.geometry.coordinates[0] > this.visibleTiles.nw.x && 
+            this.visibleTiles.se.y < feature.geometry.coordinates[1] < this.visibleTiles.nw.y
+        }
+      }.bind(this))
     }
 
     return uniqueValues
@@ -113,8 +119,8 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
 
-  setBoundingBox: function (tiles) {
-    this.tilesWithin = tiles
+  setBoundingBox: function (visible) {
+    this.visibleTiles = visible
   },
 
   getMax: function (column) { 
