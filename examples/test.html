@@ -58,10 +58,15 @@
   attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
   }).addTo(map);
 
+  var layers = [{
+      sql: 'select * from ne_10m_populated_places_simple_3',
+      cartocss: document.getElementById('choropleth').innerHTML,
+  }];
+
   var cartoDBd3Layer = new L.CartoDBd3Layer({
     user: 'fdansv',
-    table: 'ne_adm0_europe',
-    cartocss: document.getElementById('choropleth').innerHTML,
+    layers: layers,
+    styles: layers.map(function(l) { return l.cartocss }),
     tiler_template: "http://development.localhost.lan:8181"
   }).addTo(map);
 
