@@ -104,10 +104,10 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       uniqueValues = uniqueValues.filter(function(feature) {
         if (boundingBox.indexOf(feature.properties.tilePoint) > -1) return true
         else if (ring.indexOf(feature.properties.tilePoint) > -1) {
-          if (this.visibleTiles.se.x > feature.geometry.coordinates[0] &&
-              feature.geometry.coordinates[0] > this.visibleTiles.nw.x && 
-              this.visibleTiles.se.y < feature.geometry.coordinates[1] &&
-              feature.geometry.coordinates[1] < this.visibleTiles.nw.y) {
+          if (this.visibleTiles.se.x >= feature.geometry.coordinates[0] &&
+              feature.geometry.coordinates[0] >= this.visibleTiles.nw.x && 
+              this.visibleTiles.se.y <= feature.geometry.coordinates[1] &&
+              feature.geometry.coordinates[1] <= this.visibleTiles.nw.y) {
             return true
           }
           else return false
