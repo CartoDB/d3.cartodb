@@ -78,7 +78,6 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   getValues: function (ownFilter, column) {
-    var self = this
     if (!this.dimensions['tiles']) return []
     var values = []
     if (typeof ownFilter === 'undefined' || ownFilter){
