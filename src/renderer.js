@@ -282,6 +282,9 @@ Renderer.prototype = {
           this.setAttribute('cx', coords.x)
           this.setAttribute('cy', coords.y)
         }
+        else{
+          this.parentElement.removeChild(this)
+        }
       })
     } else {
       features.enter().append('path').attr('class', sym)
