@@ -242,7 +242,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         for (var p = 0; p < group.children.length; p++) {
           group.children[p].onmouseenter = self.renderers[i].events.featureOver
           group.children[p].onmouseleave = self.renderers[i].events.featureOut
-          group.children[p].onmouseclick = self.renderers[i].events.featureClick
+          group.children[p].onclick = self.renderers[i].events.featureClick
         }
       }
     }
@@ -252,7 +252,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         for (var p = 0; p < group.length; p++) {
           group.children[p].onmouseenter = null
           group.children[p].onmouseleave = null
-          group.children[p].onmouseclick = null
+          group.children[p].onclick = null
         }
       }
     }
