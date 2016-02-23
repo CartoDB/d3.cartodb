@@ -73,7 +73,7 @@ Renderer.prototype = {
           this.style.cursor = 'pointer'
           var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
           self.geometries[featureHash].forEach(function (feature) {
-            callback(selection.data()[0], d3.select(feature))
+            callback(f, [], {x: f.clientX, y: f.clientY}, d3.select(feature).data()[0].properties, self.index)
           })
         }
         break
@@ -84,12 +84,12 @@ Renderer.prototype = {
           selection.reset = function () {
             selection.style(self.styleForSymbolizer(sym, 'shader'))
           }
-          callback(selection.data()[0], selection)
+          callback(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
         }
         break
       case 'featureClick':
         this.events.featureClick = function (f) {
-          callback(d3.select(this).data()[0], d3.select(this))
+          callback(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
         }
         break
       case 'featuresChanged':
