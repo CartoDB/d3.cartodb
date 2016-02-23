@@ -72,9 +72,7 @@ Renderer.prototype = {
           var selection = d3.select(this)
           this.style.cursor = 'pointer'
           var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
-          self.geometries[featureHash].forEach(function (feature) {
-            callback(f, [], {x: f.clientX, y: f.clientY}, d3.select(feature).data()[0].properties, self.index)
-          })
+          callback(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
         }
         break
       case 'featureOut':
