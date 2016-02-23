@@ -194,7 +194,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       })
       for (var key in self.eventCallbacks){
         r.on(key, function() {
-          var latLng = map.layerPointToLatLng([arguments[2].x, arguments[2].y])
+          var latLng = self._map.layerPointToLatLng([arguments[2].x, arguments[2].y])
           arguments[1] = Object.keys(latLng).map(function(e){return latLng[e]})
           self.eventCallbacks[key].apply(self, arguments)
         })
