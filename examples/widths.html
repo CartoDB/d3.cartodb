@@ -121,12 +121,8 @@
     tiler_template: "http://documentation.cartodb.com"
   }).addTo(map);
 
-  cartoDBd3Layer.on(0, "featureOut", function(f, d3selection){
-    d3selection.reset();
-  });
-
-  cartoDBd3Layer.on(0, "featureOver", function(f, d3selection){
-    d3selection.style({"fill": "black"});
+  cartoDBd3Layer.on("featureOver", function(event, latLng, pos, data, layer) {
+    console.log(data.name)
   });
 
   </script>
