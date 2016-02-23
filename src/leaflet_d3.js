@@ -23,6 +23,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     options = options || {}
     this.renderers = []
     this.svgTiles = {}
+    this.eventCallbacks = {}
     this._animated = true
     L.Util.setOptions(this, options)
     var styles = this.options.styles
@@ -38,9 +39,15 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.provider.on('ready', this._resetRenderers.bind(this))
   },
 
-  on: function (index, eventName, callback) {
-    if (this.renderers.length > 0 && eventName in this.renderers[index].events) {
-      this.renderers[index].on(eventName, callback)
+  on: function (eventName, callback) {
+    if (eventName in this.events) {
+      if (this.renderers.length > 0) {
+        this.renderers.forEach(function (renderer) {
+          renderer.on(eventName, callback)
+        })
+      } else {
+        this.eventCallbacks[eventName] = callback
+      }
     } else {
       L.TileLayer.prototype.on.call(this, arguments[0], arguments[1])
     }
@@ -185,6 +192,13 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       r.filter.on('filterApplied', function () {
         self.fire('featuresChanged', self.getFeatures())
       })
+      for (var key in self.eventCallbacks){
+        r.on(key, function() {
+          var latLng = map.layerPointToLatLng([arguments[2].x, arguments[2].y])
+          arguments[1] = Object.keys(latLng).map(function(e){return latLng[e]})
+          self.eventCallbacks[key].apply(self, arguments)
+        })
+      }
     })
   },
 
