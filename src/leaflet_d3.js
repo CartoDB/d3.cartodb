@@ -13,6 +13,12 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     tileBuffer: 50
   },
 
+  events: {
+    featureOver: null,
+    featureOut: null,
+    featureClick: null
+  },
+
   initialize: function (options) {
     options = options || {}
     this.renderers = []
