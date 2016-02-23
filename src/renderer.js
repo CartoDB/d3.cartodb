@@ -208,14 +208,14 @@ Renderer.prototype = {
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
 
-    styleLayers = g.data(layers)
-    styleLayers.each(function (layer) {
+    layers.forEach(function (layer) {
+      var thisGroup = g.append("g")
       var sym = self._getSymbolizer(layer)
       var features
       if (!updating) {
-        features = self._createFeatures(layer, collection, this)
+        features = self._createFeatures(layer, collection, thisGroup[0][0])
       } else {
-        features = d3.select(this).selectAll('.' + sym)
+        features = thisGroup.selectAll('.' + sym)
       }
       this.tilePoint = tilePoint
       self._styleFeatures(layer, features, this)
