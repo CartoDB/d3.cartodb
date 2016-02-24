@@ -317,7 +317,9 @@ Renderer.prototype = {
     feature.text(function (d) {
       return d.shader['text-name']
     })
-    feature.attr('dy', '.35em')
+    feature.attr('dy', function (d) {
+      return d.shader['text-dy']
+    })
     feature.attr('text-anchor', 'middle')
     feature.attr('x', function (d) {
       if (d.geometry.coordinates[0]) {
