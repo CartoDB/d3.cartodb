@@ -241,13 +241,15 @@ Renderer.prototype = {
         _.defaults(d.shader_hover, d.shader)
         self.events.featureOver = function (f) {
           this.style.cursor = 'default'
-          var hash = geo.hashFeature(d3.select(this).data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          var element = d3.select(this).data()[0]
+          var hash = geo.hashFeature(element.properties.cartodb_id, element.properties.tilePoint)
           self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
           })
         }
         self.events.featureOut = function () {
-          var hash = geo.hashFeature(d3.select(this).data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          var element = d3.select(this).data()[0]
+          var hash = geo.hashFeature(element.properties.cartodb_id, element.properties.tilePoint)
           self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
           })
