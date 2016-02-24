@@ -208,14 +208,17 @@ Renderer.prototype = {
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
 
-    styleLayers = g.data(layers)
-    styleLayers.each(function (layer) {
+    layers.forEach(function (layer, i) {
+      var thisGroup
+      var children = g[0][0].children
+      if(!children[i]) thisGroup = g.append('g')
+      else thisGroup = d3.select(children[i])
       var sym = self._getSymbolizer(layer)
       var features
       if (!updating) {
-        features = self._createFeatures(layer, collection, this)
+        features = self._createFeatures(layer, collection, thisGroup[0][0])
       } else {
-        features = d3.select(this).selectAll('.' + sym)
+        features = thisGroup.selectAll('.' + sym)
       }
       this.tilePoint = tilePoint
       self._styleFeatures(layer, features, this)
@@ -238,13 +241,15 @@ Renderer.prototype = {
         _.defaults(d.shader_hover, d.shader)
         self.events.featureOver = function (f) {
           this.style.cursor = 'default'
-          var hash = geo.hashFeature(d3.select(this).data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          var element = d3.select(this).data()[0]
+          var hash = geo.hashFeature(element.properties.cartodb_id, element.properties.tilePoint)
           self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
           })
         }
         self.events.featureOut = function () {
-          var hash = geo.hashFeature(d3.select(this).data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+          var element = d3.select(this).data()[0]
+          var hash = geo.hashFeature(element.properties.cartodb_id, element.properties.tilePoint)
           self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
           })

@@ -23,7 +23,13 @@ module.exports = {
     return corrected_x
   },
   hashFeature: function (id, tilePoint) {
-    var pane = Math.floor(tilePoint.x / Math.pow(2, tilePoint.zoom))
+    var x = tilePoint.x, z = tilePoint.zoom
+    if (typeof tilePoint === 'string') {
+      tilePoint = tilePoint.split(":")
+      x = tilePoint[0]
+      z = tilePoint[2]
+    }
+    var pane = Math.floor(x / Math.pow(2, z))
     return [id, pane].join(':')
   },
   lng2tile: function (lon,zoom) { return (Math.floor((lon+180)/360*Math.pow(2,zoom))); },
