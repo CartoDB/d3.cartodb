@@ -208,8 +208,11 @@ Renderer.prototype = {
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
 
-    layers.forEach(function (layer) {
-      var thisGroup = g.append("g")
+    layers.forEach(function (layer, i) {
+      var thisGroup
+      var children = g[0][0].children
+      if(!children[i]) thisGroup = g.append('g')
+      else thisGroup = d3.select(children[i])
       var sym = self._getSymbolizer(layer)
       var features
       if (!updating) {
