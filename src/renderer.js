@@ -310,18 +310,29 @@ Renderer.prototype = {
   },
 
   _transformText: function (feature) {
+    var self = this
     feature.text(function (d) {
-      return 'text' // d.shader['text-name']
+      return d.shader['text-name']
     })
     feature.attr('dy', '.35em')
     feature.attr('text-anchor', 'middle')
     feature.attr('x', function (d) {
-      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-      return p.x
+      if (d.geometry.coordinates[0]) {
+        var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
+        return p.x
+      }
+      else {
+        this.remove()
+      }
     })
     feature.attr('y', function (d) {
-      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-      return p.y
+      if (d.geometry.coordinates[0]) {
+        var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
+        return p.y
+      }
+      else {
+        this.remove()
+      }
     })
     return feature
   }
