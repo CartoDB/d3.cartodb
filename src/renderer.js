@@ -256,6 +256,10 @@ Renderer.prototype = {
         }
       }
     })
+    if (sym === 'text') {
+      features = this._transformText(features)
+    }
+
     var styleFn = self.styleForSymbolizer(this._getSymbolizer(layer), 'shader')
     features.attr('r', styleFn.radius)
     features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
@@ -278,7 +282,6 @@ Renderer.prototype = {
 
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
-      features = this._transformText(features)
     } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
       features.each(function(f) {
