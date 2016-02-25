@@ -56,15 +56,25 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   _getVisibleTiles: function () {
     var bounds = this._map.getBounds()
     var zoom = this._map.getZoom()
-    var nwTile = geo.latLng2Tile(bounds.getNorthWest().lat, bounds.getNorthWest().lng, zoom)
-    var seTile = geo.latLng2Tile(bounds.getSouthEast().lat, bounds.getSouthEast().lng, zoom)
+    var northWest = bounds.getNorthWest()
+    var southEast = bounds.getSouthEast()
+    var nwTile = geo.latLng2Tile(northWest.lat, northWest.lng, zoom)
+    var seTile = geo.latLng2Tile(southEast.lat, southEast.lng, zoom)
     var tiles = []
+    var ring = []
     for(var y = nwTile.y; y<=seTile.y; y++) {
       for(var x = nwTile.x; x<=seTile.x; x++) {
-        tiles.push([x,y,zoom].join(':'))
+        if (y === nwTile.y || y === seTile.y || x === nwTile.x || x === seTile.x){
+          ring.push([x,y,zoom].join(':'))
+        }
+        else{
+          tiles.push([x,y,zoom].join(':'))
+        }
       }
     }
-    return tiles
+    var se = geo.geo2Webmercator(southEast.lng, southEast.lat)
+    var nw = geo.geo2Webmercator(northWest.lng, northWest.lat)
+    return { tiles: tiles, ring: ring, se: se, nw: nw }
   },
 
   applyFilter: function (sublayerIndex, filterType, filterOptions) {
@@ -152,9 +162,9 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   },
 
   _setBoundingBox: function () {
-    var tiles = this._getVisibleTiles()
+    var visible = this._getVisibleTiles()
     this.renderers.forEach(function (renderer) {
-      renderer.filter.setBoundingBox(tiles)
+      renderer.filter.setBoundingBox(visible)
     })
   },
 
@@ -240,9 +250,12 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       for (var i = 0; i < this.children.length; i++) {
         var group = this.children[i]
         for (var p = 0; p < group.children.length; p++) {
-          group.children[p].onmouseenter = self.renderers[i].events.featureOver
-          group.children[p].onmouseleave = self.renderers[i].events.featureOut
-          group.children[p].onclick = self.renderers[i].events.featureClick
+          var subLayer = group.children[p]
+          for (var f = 0; f < subLayer.children.length; f++) {
+            subLayer.children[f].onmouseenter = self.renderers[i].events.featureOver
+            subLayer.children[f].onmouseleave = self.renderers[i].events.featureOut
+            subLayer.children[f].onclick = self.renderers[i].events.featureClick
+          }
         }
       }
     }

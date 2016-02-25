@@ -7,7 +7,7 @@ module.exports = {
     return (180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))))
   },
   geo2Webmercator: function (x_lon, y_lat) {
-    if (Math.abs(x_lon) <= 180 && Math.abs(y_lat) < 90) {
+      x_lon = x_lon % 180
       // 0.017453292519943295 => Deg to rad constant
       var num = x_lon * 0.017453292519943295
       // 6378137 => Earth radius
@@ -16,7 +16,6 @@ module.exports = {
       var x_mercator = x
       var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
       return {x: x_mercator, y: y_mercator}
-    }
   },
   wrapX: function (x, zoom) {
     var limit_x = Math.pow(2, zoom)
@@ -24,7 +23,13 @@ module.exports = {
     return corrected_x
   },
   hashFeature: function (id, tilePoint) {
-    var pane = Math.floor(tilePoint.x / Math.pow(2, tilePoint.zoom))
+    var x = tilePoint.x, z = tilePoint.zoom
+    if (typeof tilePoint === 'string') {
+      tilePoint = tilePoint.split(":")
+      x = tilePoint[0]
+      z = tilePoint[2]
+    }
+    var pane = Math.floor(x / Math.pow(2, z))
     return [id, pane].join(':')
   },
   lng2tile: function (lon,zoom) { return (Math.floor((lon+180)/360*Math.pow(2,zoom))); },
