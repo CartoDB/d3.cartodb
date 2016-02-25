@@ -227,8 +227,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       this._tileContainer.appendChild(tile)
     }
 
-    this._initTileEvents(tile)
-
     for (var i = 0; i < self.renderers.length; i++) {
       if (geometry.features.length > 1 && geometry.features[0].type === 'FeatureCollection') { // This means there's more than one layer
         if (geometry.features.length !== this.renderers.length) return
@@ -242,33 +240,6 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     var tilePos = this._getTilePos(tilePoint)
     tile.style.width = tile.style.height = this._getTileSize() + 'px'
     L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome)
-  },
-
-  _initTileEvents: function (tile) {
-    var self = this
-    tile.onmouseenter = function () {
-      for (var i = 0; i < this.children.length; i++) {
-        var group = this.children[i]
-        for (var p = 0; p < group.children.length; p++) {
-          var subLayer = group.children[p]
-          for (var f = 0; f < subLayer.children.length; f++) {
-            subLayer.children[f].onmouseover = self.renderers[i].events.featureOver
-            subLayer.children[f].onmouseleave = self.renderers[i].events.featureOut
-            subLayer.children[f].onclick = self.renderers[i].events.featureClick
-          }
-        }
-      }
-    }
-    tile.onmouseleave = function () {
-      for (var i = 0; i < this.children.length; i++) {
-        var group = this.children[i]
-        for (var p = 0; p < group.length; p++) {
-          group.children[p].onmouseover = null
-          group.children[p].onmouseleave = null
-          group.children[p].onclick = null
-        }
-      }
-    }
   },
 
   _clearTile: function (data) {
