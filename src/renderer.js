@@ -66,18 +66,28 @@ Renderer.prototype = {
 
   on: function (eventName, callback) {
     var self = this
-    switch (eventName) {
-      case 'featureOver':
-        self.layer.featureOver = callback
-        break
-      case 'featureOut':
-        self.layer.featureOut = callback
-        break
-      case 'featureClick':
-        self.layer.featureClick = callback
-        break
-      case 'featuresChanged':
-        this.filter.on('featuresChanged', callback)
+    if (eventName ==='featureOver') {
+      this.events.featureOver = function (f) {
+        var selection = d3.select(this)
+        this.style.cursor = 'pointer'
+        var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
+        self.layer.eventCallbacks.featureOver(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
+      }
+    } else if (eventName ==='featureOut') {
+      this.events.featureOut = function (f) {
+        var selection = d3.select(this)
+        var sym = this.attributes['class'].value
+        selection.reset = function () {
+          selection.style(self.styleForSymbolizer(sym, 'shader'))
+        }
+        self.layer.eventCallbacks.featureOut(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
+      }
+    } else if (eventName ==='featureClick') {
+      this.events.featureClick = function (f) {
+        self.layer.eventCallbacks.featureClick(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
+      }
+    } else if (eventName ==='featuresChanged') {
+      this.filter.on('featuresChanged', callback)
     }
   },
 
