@@ -252,7 +252,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         for (var p = 0; p < group.children.length; p++) {
           var subLayer = group.children[p]
           for (var f = 0; f < subLayer.children.length; f++) {
-            subLayer.children[f].onmouseenter = self.renderers[i].events.featureOver
+            subLayer.children[f].onmouseover = self.renderers[i].events.featureOver
             subLayer.children[f].onmouseleave = self.renderers[i].events.featureOut
             subLayer.children[f].onclick = self.renderers[i].events.featureClick
           }
@@ -263,7 +263,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       for (var i = 0; i < this.children.length; i++) {
         var group = this.children[i]
         for (var p = 0; p < group.length; p++) {
-          group.children[p].onmouseenter = null
+          group.children[p].onmouseover = null
           group.children[p].onmouseleave = null
           group.children[p].onclick = null
         }
