@@ -101,7 +101,12 @@
 <script src="../vendor/d3.v3.js"></script>
 <script src="../dist/d3.cartodb.full.js"></script>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="./Kojak.min.js"></script>
   <script>
+  kConfig.setIncludedPakages(['cartodb']);
+  kInst.instrument();
+  kRep.instrumentedCode({verbose: true});
+
   var c = [40.71512685201709, -74.00201797485352]
   var map = new L.Map("map", {center: c, zoom: 3})
 
