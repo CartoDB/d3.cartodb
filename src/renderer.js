@@ -327,6 +327,12 @@ Renderer.prototype = {
   }
 }
 
+Renderer.getIndexFromFeature = function (element) {
+  var i = 0
+  while (sibling = element.parentElement.parentElement.previousSibling) i ++
+  return i
+}
+
 function transformForSymbolizer (symbolizer) {
   if (symbolizer === 'markers' || symbolizer === 'labels') {
     var pathC = d3.geo.path().projection(function (d) { return d })
