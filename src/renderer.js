@@ -27,23 +27,9 @@ var Renderer = function (options) {
 
 Renderer.prototype = {
   events: {
-    featureOver: function (f) {
-      var selection = d3.select(this)
-      this.style.cursor = 'pointer'
-      var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
-      this.layer.featureOver(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, this.index)
-    },
-    featureOut: function (f) {
-      var selection = d3.select(this)
-      var sym = this.attributes['class'].value
-      selection.reset = function () {
-        selection.style(this.styleForSymbolizer(sym, 'shader'))
-      }.bind(this)
-      this.layer.featureOut(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, this.index)
-    },
-    featureClick: function (f) {
-      this.layer.featureClick(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, this.index)
-    }
+    featureOver: null,
+    featureOut: null,
+    featureClick: null
   },
 
   /**
