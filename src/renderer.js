@@ -329,7 +329,8 @@ Renderer.prototype = {
 
 Renderer.getIndexFromFeature = function (element) {
   var i = 0
-  while (sibling = element.parentElement.parentElement.previousSibling) i ++
+  var node = element.parentElement.parentElement
+  while (node = node.previousSibling) i ++
   return i
 }
 
