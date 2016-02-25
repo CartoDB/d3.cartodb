@@ -70,8 +70,8 @@ Renderer.prototype = {
       this.events.featureOver = function (f) {
         var selection = d3.select(this)
         this.style.cursor = 'pointer'
-        var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
-        self.layer.eventCallbacks.featureOver(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
+        var properties = selection.data()[0].properties
+        self.layer.eventCallbacks.featureOver(f, [], {x: f.clientX, y: f.clientY}, properties, self.index)
       }
     } else if (eventName ==='featureOut') {
       this.events.featureOut = function (f) {
