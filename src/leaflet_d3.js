@@ -13,10 +13,17 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     tileBuffer: 50
   },
 
+  events: {
+    featureOver: null,
+    featureOut: null,
+    featureClick: null
+  },
+
   initialize: function (options) {
     options = options || {}
     this.renderers = []
     this.svgTiles = {}
+    this.eventCallbacks = {}
     this._animated = true
     L.Util.setOptions(this, options)
     var styles = this.options.styles
@@ -32,9 +39,15 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.provider.on('ready', this._resetRenderers.bind(this))
   },
 
-  on: function (index, eventName, callback) {
-    if (this.renderers.length > 0 && eventName in this.renderers[index].events) {
-      this.renderers[index].on(eventName, callback)
+  on: function (eventName, callback) {
+    if (eventName in this.events) {
+      if (this.renderers.length > 0) {
+        this.renderers.forEach(function (renderer) {
+          renderer.on(eventName, callback)
+        })
+      } else {
+        this.eventCallbacks[eventName] = callback
+      }
     } else {
       L.TileLayer.prototype.on.call(this, arguments[0], arguments[1])
     }
@@ -189,6 +202,13 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       r.filter.on('filterApplied', function () {
         self.fire('featuresChanged', self.getFeatures())
       })
+      for (var key in self.eventCallbacks){
+        r.on(key, function() {
+          var latLng = self._map.layerPointToLatLng([arguments[2].x, arguments[2].y])
+          arguments[1] = Object.keys(latLng).map(function(e){return latLng[e]})
+          self.eventCallbacks[key].apply(self, arguments)
+        })
+      }
     })
   },
 
@@ -234,7 +254,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
           for (var f = 0; f < subLayer.children.length; f++) {
             subLayer.children[f].onmouseenter = self.renderers[i].events.featureOver
             subLayer.children[f].onmouseleave = self.renderers[i].events.featureOut
-            subLayer.children[f].onmouseclick = self.renderers[i].events.featureClick
+            subLayer.children[f].onclick = self.renderers[i].events.featureClick
           }
         }
       }
@@ -245,7 +265,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         for (var p = 0; p < group.length; p++) {
           group.children[p].onmouseenter = null
           group.children[p].onmouseleave = null
-          group.children[p].onmouseclick = null
+          group.children[p].onclick = null
         }
       }
     }

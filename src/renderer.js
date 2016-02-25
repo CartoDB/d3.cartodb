@@ -66,34 +66,34 @@ Renderer.prototype = {
 
   on: function (eventName, callback) {
     var self = this
-    switch (eventName) {
-      case 'featureOver':
-        this.events.featureOver = function (f) {
-          var selection = d3.select(this)
-          this.style.cursor = 'pointer'
-          var featureHash = geo.hashFeature(selection.data()[0].properties.cartodb_id, this.parentElement.tilePoint)
-          self.geometries[featureHash].forEach(function (feature) {
-            callback(selection.data()[0], d3.select(feature))
-          })
+    if (eventName ==='featureOver') {
+      this.events.featureOver = function (f) {
+        var selection = d3.select(this)
+        this.style.cursor = 'pointer'
+        var properties = selection.data()[0].properties
+        var index = Renderer.getIndexFromFeature(this)
+        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
+        self.layer.eventCallbacks.featureOver(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, properties, index)
+      }
+    } else if (eventName ==='featureOut') {
+      this.events.featureOut = function (f) {
+        var selection = d3.select(this)
+        var sym = this.attributes['class'].value
+        selection.reset = function () {
+          selection.style(self.styleForSymbolizer(sym, 'shader'))
         }
-        break
-      case 'featureOut':
-        this.events.featureOut = function (f) {
-          var selection = d3.select(this)
-          var sym = this.attributes['class'].value
-          selection.reset = function () {
-            selection.style(self.styleForSymbolizer(sym, 'shader'))
-          }
-          callback(selection.data()[0], selection)
-        }
-        break
-      case 'featureClick':
-        this.events.featureClick = function (f) {
-          callback(d3.select(this).data()[0], d3.select(this))
-        }
-        break
-      case 'featuresChanged':
-        this.filter.on('featuresChanged', callback)
+        var index = Renderer.getIndexFromFeature(this)
+        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
+        self.layer.eventCallbacks.featureOut(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, index)
+      }
+    } else if (eventName ==='featureClick') {
+      this.events.featureClick = function (f) {
+        var index = Renderer.getIndexFromFeature(this)
+        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
+        self.layer.eventCallbacks.featureClick(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, index)
+      }
+    } else if (eventName ==='featuresChanged') {
+      this.filter.on('featuresChanged', callback)
     }
   },
 
@@ -341,6 +341,13 @@ Renderer.prototype = {
     })
     return feature
   }
+}
+
+Renderer.getIndexFromFeature = function (element) {
+  var i = 0
+  var node = element.parentElement.parentElement
+  while (node = node.previousSibling) i ++
+  return i
 }
 
 function transformForSymbolizer (symbolizer) {
