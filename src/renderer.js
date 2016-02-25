@@ -71,7 +71,9 @@ Renderer.prototype = {
         var selection = d3.select(this)
         this.style.cursor = 'pointer'
         var properties = selection.data()[0].properties
-        self.layer.eventCallbacks.featureOver(f, [], {x: f.clientX, y: f.clientY}, properties, self.index)
+        var index = Renderer.getIndexFromFeature(this)
+        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
+        self.layer.eventCallbacks.featureOver(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, properties, index)
       }
     } else if (eventName ==='featureOut') {
       this.events.featureOut = function (f) {
@@ -80,11 +82,15 @@ Renderer.prototype = {
         selection.reset = function () {
           selection.style(self.styleForSymbolizer(sym, 'shader'))
         }
-        self.layer.eventCallbacks.featureOut(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
+        var index = Renderer.getIndexFromFeature(this)
+        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
+        self.layer.eventCallbacks.featureOut(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, index)
       }
     } else if (eventName ==='featureClick') {
       this.events.featureClick = function (f) {
-        self.layer.eventCallbacks.featureClick(f, [], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, self.index)
+        var index = Renderer.getIndexFromFeature(this)
+        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
+        self.layer.eventCallbacks.featureClick(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, index)
       }
     } else if (eventName ==='featuresChanged') {
       this.filter.on('featuresChanged', callback)
