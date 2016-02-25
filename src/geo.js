@@ -7,15 +7,18 @@ module.exports = {
     return (180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))))
   },
   geo2Webmercator: function (x_lon, y_lat) {
-      x_lon = x_lon % 180
-      // 0.017453292519943295 => Deg to rad constant
-      var num = x_lon * 0.017453292519943295
-      // 6378137 => Earth radius
-      var x = 6378137.0 * num
-      var a = y_lat * 0.017453292519943295
-      var x_mercator = x
-      var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
-      return {x: x_mercator, y: y_mercator}
+    x_lon = x_lon % 180
+    // 0.017453292519943295 => Deg to rad constant
+    var num = x_lon * 0.017453292519943295
+    // 6378137 => Earth radius
+    var x = 6378137.0 * num
+    var a = y_lat * 0.017453292519943295
+    var x_mercator = x
+    var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
+    return {x: x_mercator, y: y_mercator}
+  },
+  webmercator2Geo: function(x, y) {
+    
   },
   wrapX: function (x, zoom) {
     var limit_x = Math.pow(2, zoom)

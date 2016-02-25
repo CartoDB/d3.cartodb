@@ -256,6 +256,10 @@ Renderer.prototype = {
         }
       }
     })
+    if (sym === 'text') {
+      features = this._transformText(features)
+    }
+
     var styleFn = self.styleForSymbolizer(this._getSymbolizer(layer), 'shader')
     features.attr('r', styleFn.radius)
     features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
@@ -278,7 +282,6 @@ Renderer.prototype = {
 
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
-      features = this._transformText(features)
     } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
       features.each(function(f) {
@@ -310,18 +313,31 @@ Renderer.prototype = {
   },
 
   _transformText: function (feature) {
+    var self = this
     feature.text(function (d) {
-      return 'text' // d.shader['text-name']
+      return d.shader['text-name']
     })
-    feature.attr('dy', '.35em')
+    feature.attr('dy', function (d) {
+      return d.shader['text-dy']
+    })
     feature.attr('text-anchor', 'middle')
     feature.attr('x', function (d) {
-      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-      return p.x
+      if (d.geometry.coordinates[0]) {
+        var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
+        return p.x
+      }
+      else {
+        this.remove()
+      }
     })
     feature.attr('y', function (d) {
-      var p = this.layer.latLngToLayerPoint(d.geometry.coordinates[1], d.geometry.coordinates[0])
-      return p.y
+      if (d.geometry.coordinates[0]) {
+        var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
+        return p.y
+      }
+      else {
+        this.remove()
+      }
     })
     return feature
   }
