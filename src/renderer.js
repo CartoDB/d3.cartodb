@@ -72,8 +72,9 @@ Renderer.prototype = {
         this.style.cursor = 'pointer'
         var properties = selection.data()[0].properties
         var index = Renderer.getIndexFromFeature(this)
-        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
-        self.layer.eventCallbacks.featureOver(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, properties, index)
+        var latLng = self._getLatLngFromEvent(self.layer._map, f)
+        var pos = self._getPosFromEvent(self.layer._map, f)
+        self.layer.eventCallbacks.featureOver(f, latLng, pos, properties, index)
       }
     } else if (eventName ==='featureOut') {
       this.events.featureOut = function (f) {
@@ -83,18 +84,38 @@ Renderer.prototype = {
           selection.style(self.styleForSymbolizer(sym, 'shader'))
         }
         var index = Renderer.getIndexFromFeature(this)
-        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
-        self.layer.eventCallbacks.featureOut(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, index)
+        var latLng = self._getLatLngFromEvent(self.layer._map, f)
+        var pos = self._getPosFromEvent(self.layer._map, f)
+        self.layer.eventCallbacks.featureOut(f, latLng, pos, d3.select(this).data()[0].properties, index)
       }
     } else if (eventName ==='featureClick') {
       this.events.featureClick = function (f) {
         var index = Renderer.getIndexFromFeature(this)
-        var latLng = self.layer._map.layerPointToLatLng([f.clientX, f.clientY])
-        self.layer.eventCallbacks.featureClick(f, [latLng.lat, latLng.lng], {x: f.clientX, y: f.clientY}, d3.select(this).data()[0].properties, index)
+        var latLng = self._getLatLngFromEvent(self.layer._map, f)
+        var pos = self._getPosFromEvent(self.layer._map, f)
+        self.layer.eventCallbacks.featureClick(f, latLng, pos, d3.select(this).data()[0].properties, index)
       }
     } else if (eventName ==='featuresChanged') {
       this.filter.on('featuresChanged', callback)
     }
+  },
+
+  _getLatLngFromEvent: function (map, mouseEvent) {
+    var mapBoundingBoxClientRect = map.getContainer().getBoundingClientRect()
+    var latLng = map.layerPointToLatLng([
+      mouseEvent.clientX - mapBoundingBoxClientRect.left,
+      mouseEvent.clientY - mapBoundingBoxClientRect.top
+    ]);
+
+    return [latLng.lat, latLng.lng]
+  },
+
+  _getPosFromEvent: function (map, mouseEvent) {
+    var mapBoundingBoxClientRect = map.getContainer().getBoundingClientRect()
+    return {
+      x: mouseEvent.clientX - mapBoundingBoxClientRect.left,
+      y: mouseEvent.clientY - mapBoundingBoxClientRect.top
+    };
   },
 
   redraw: function (updating) {
