@@ -1,3 +1,4 @@
+/** global L **/
 var d3 = global.d3 || require('d3')
 var cartodb = global.cartodb || {}
 var carto = global.carto || require('carto')
@@ -68,54 +69,78 @@ Renderer.prototype = {
     var self = this
     if (eventName ==='featureOver') {
       this.events.featureOver = function (f) {
-        var selection = d3.select(this)
         this.style.cursor = 'pointer'
+        var selection = d3.select(this)
         var properties = selection.data()[0].properties
         var index = Renderer.getIndexFromFeature(this)
-        var latLng = self._getLatLngFromEvent(self.layer._map, f)
-        var pos = self._getPosFromEvent(self.layer._map, f)
-        self.layer.eventCallbacks.featureOver(f, latLng, pos, properties, index)
+        var layerPoint = self._getLayerPointFromEvent(self.layer._map, f)
+        var latLng = self.layer._map.layerPointToLatLng(layerPoint)
+        var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
+        self.layer.eventCallbacks.featureOver(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
     } else if (eventName ==='featureOut') {
       this.events.featureOut = function (f) {
         var selection = d3.select(this)
+        var properties = selection.data()[0].properties
         var sym = this.attributes['class'].value
         selection.reset = function () {
           selection.style(self.styleForSymbolizer(sym, 'shader'))
         }
         var index = Renderer.getIndexFromFeature(this)
-        var latLng = self._getLatLngFromEvent(self.layer._map, f)
-        var pos = self._getPosFromEvent(self.layer._map, f)
-        self.layer.eventCallbacks.featureOut(f, latLng, pos, d3.select(this).data()[0].properties, index)
+        var layerPoint = self._getLayerPointFromEvent(self.layer._map, f)
+        var latLng = self.layer._map.layerPointToLatLng(layerPoint)
+        var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
+        self.layer.eventCallbacks.featureOut(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
     } else if (eventName ==='featureClick') {
       this.events.featureClick = function (f) {
+        var selection = d3.select(this)
+        var properties = selection.data()[0].properties
         var index = Renderer.getIndexFromFeature(this)
-        var latLng = self._getLatLngFromEvent(self.layer._map, f)
-        var pos = self._getPosFromEvent(self.layer._map, f)
-        self.layer.eventCallbacks.featureClick(f, latLng, pos, d3.select(this).data()[0].properties, index)
+        var layerPoint = self._getLayerPointFromEvent(self.layer._map, f)
+        var latLng = self.layer._map.layerPointToLatLng(layerPoint)
+        var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
+        self.layer.eventCallbacks.featureClick(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
     } else if (eventName ==='featuresChanged') {
       this.filter.on('featuresChanged', callback)
     }
   },
 
-  _getLatLngFromEvent: function (map, mouseEvent) {
-    var mapBoundingBoxClientRect = map.getContainer().getBoundingClientRect()
-    var latLng = map.layerPointToLatLng([
-      mouseEvent.clientX - mapBoundingBoxClientRect.left,
-      mouseEvent.clientY - mapBoundingBoxClientRect.top
-    ]);
+  _getLayerPointFromEvent: function (map, event) {
+    var curleft = 0;
+    var curtop = 0;
+    var obj = map.getContainer();
 
-    return [latLng.lat, latLng.lng]
-  },
+    var x, y;
+    if (event.changedTouches && event.changedTouches.length > 0) {
+      x = event.changedTouches[0].clientX + window.scrollX;
+      y = event.changedTouches[0].clientY + window.scrollY;
+    } else {
+      x = event.clientX;
+      y = event.clientY;
+    }
 
-  _getPosFromEvent: function (map, mouseEvent) {
-    var mapBoundingBoxClientRect = map.getContainer().getBoundingClientRect()
-    return {
-      x: mouseEvent.clientX - mapBoundingBoxClientRect.left,
-      y: mouseEvent.clientY - mapBoundingBoxClientRect.top
-    };
+    var pointX;
+    var pointY;
+    // If the map is fixed at the top of the window, we can't use offsetParent
+    // cause there might be some scrolling that we need to take into account.
+    if (obj.offsetParent && obj.offsetTop > 0) {
+      do {
+        curleft += obj.offsetLeft;
+        curtop += obj.offsetTop;
+      } while (obj = obj.offsetParent);
+      pointX = x - curleft;
+      pointY = y - curtop;
+    } else {
+      var rect = obj.getBoundingClientRect();
+      var scrollX = (window.scrollX || window.pageXOffset);
+      var scrollY = (window.scrollY || window.pageYOffset);
+      pointX = (event.clientX ? event.clientX : x) - rect.left - obj.clientLeft - scrollX;
+      pointY = (event.clientY ? event.clientY : y) - rect.top - obj.clientTop - scrollY;
+    }
+    var point = new L.Point(pointX, pointY);
+    return map.containerPointToLayerPoint(point);
   },
 
   redraw: function (updating) {
