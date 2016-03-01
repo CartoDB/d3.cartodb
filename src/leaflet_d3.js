@@ -203,11 +203,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         self.fire('featuresChanged', self.getFeatures())
       })
       for (var key in self.eventCallbacks){
-        r.on(key, function() {
-          var latLng = self._map.layerPointToLatLng([arguments[2].x, arguments[2].y])
-          arguments[1] = Object.keys(latLng).map(function(e){return latLng[e]})
-          self.eventCallbacks[key].apply(self, arguments)
-        })
+        r.on(key, self.eventCallbacks[key])
       }
     })
   },
