@@ -1,3 +1,22 @@
+### 1.0.0
+* Fixed multiple issues with DOM manipulation
+* Started support of async layer add/removal
+* SVG tile overzoom
+* Now pending tile requests are canceled when zoom is changed or we don't need them
+* Added filter events
+* Filter only returns unique features
+* Changed logic of filters to adapt widgets better
+* Added statistical methods to filter
+* Features return correspond only to current bounding box
+* Reduces projection calculations
+* Fixed vizjson visor
+* Windshaft provider now accepts a layer definition
+* Fixed multiple rendering glitches
+* Fixed multi css layers
+* Changef featureover event to mousemove
+* Added minimal text rendering support
+* General stability fixes
+
 ### 0.3.2
 * Added support for individual marker widths
 * Fixed issue where events would be replicated across points out of bounds
