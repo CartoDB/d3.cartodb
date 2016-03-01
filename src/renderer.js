@@ -5,6 +5,7 @@ var carto = global.carto || require('carto')
 var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
+turboCartoCSS = require('turbo-cartocss')
 
 cartodb.d3 = d3 || {}
 
