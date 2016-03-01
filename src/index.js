@@ -5,7 +5,7 @@ var elements = {
   geo: require('./geo.js'),
   Renderer: require('./renderer.js'),
   net: require('./net.js'),
-  filter: require('./filter.js'),
+  Filter: require('./filter.js'),
   provider: require('./providers')
 }
 for (var key in elements) {
