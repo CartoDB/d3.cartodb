@@ -284,7 +284,9 @@ Renderer.prototype = {
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
       d.properties.global = self.globalVariables
-      d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
+      if (typeof d.shader === 'undefined'){
+        d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
+      }
       this.onmousemove = self.events.featureOver
       this.onmouseleave = self.events.featureOut
       this.onclick = self.events.featureClick
