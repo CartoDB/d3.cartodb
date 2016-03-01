@@ -196,7 +196,8 @@ Renderer.prototype = {
         'stroke': function (d) { return d[shaderName]['line-color'] },
         'stroke-width': function (d) { return d[shaderName]['line-width'] },
         'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
       }
     } else if (symbolyzer === 'markers') {
       return {
@@ -208,7 +209,8 @@ Renderer.prototype = {
         'radius': function (d) {
           return d[shaderName]['marker-width'] / 2
         },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
       }
     } else if (symbolyzer === 'text') {
       return {
