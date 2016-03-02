@@ -188,35 +188,34 @@ Renderer.prototype = {
     return realLayers
   },
 
-  styleForSymbolizer: function (symbolyzer, layer) {
-    var shaderName = this._getSymbolizer(layer)
+  styleForSymbolizer: function (symbolyzer, shaderName) {
     if (symbolyzer === 'polygon' || symbolyzer === 'line') {
       return {
-        'fill': function (d) { return layer.getStyle(d.properties, {})['polygon-fill'] || 'none' },
-        'fill-opacity': function (d) { return layer.getStyle(d.properties, {})['polygon-opacity'] },
-        'stroke': function (d) { return layer.getStyle(d.properties, {})['line-color'] },
-        'stroke-width': function (d) { return layer.getStyle(d.properties, {})['line-width'] },
-        'stroke-opacity': function (d) { return layer.getStyle(d.properties, {})['line-opacity'] },
-        'mix-blend-mode': function (d) { return layer.getStyle(d.properties, {})['comp-op'] },
-        'stroke-dasharray': function (d) { return layer.getStyle(d.properties, {})['line-dasharray']}
+        'fill': function (d) { return d[shaderName]['polygon-fill'] || 'none' },
+        'fill-opacity': function (d) { return d[shaderName]['polygon-opacity'] },
+        'stroke': function (d) { return d[shaderName]['line-color'] },
+        'stroke-width': function (d) { return d[shaderName]['line-width'] },
+        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
       }
     } else if (symbolyzer === 'markers') {
       return {
-        'fill': function (d) { return layer.getStyle(d.properties, {})['marker-fill'] || 'none' },
-        'fill-opacity': function (d) { return layer.getStyle(d.properties, {})['marker-fill-opacity'] },
-        'stroke': function (d) { return layer.getStyle(d.properties, {})['marker-line-color'] },
-        'stroke-opacity': function (d) { return layer.getStyle(d.properties, {})['marker-line-opacity'] },
-        'stroke-width': function (d) { return layer.getStyle(d.properties, {})['marker-line-width'] },
+        'fill': function (d) { return d[shaderName]['marker-fill'] || 'none' },
+        'fill-opacity': function (d) { return d[shaderName]['marker-fill-opacity'] },
+        'stroke': function (d) { return d[shaderName]['marker-line-color'] },
+        'stroke-opacity': function (d) { return d[shaderName]['marker-line-opacity'] },
+        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] },
         'radius': function (d) {
-          return layer.getStyle(d.properties, {})['marker-width'] / 2
+          return d[shaderName]['marker-width'] / 2
         },
-        'mix-blend-mode': function (d) { return layer.getStyle(d.properties, {})['comp-op'] },
-        'stroke-dasharray': function (d) { return layer.getStyle(d.properties, {})['line-dasharray']}
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
       }
     } else if (symbolyzer === 'text') {
       return {
-        'fill': function (d) { return layer.getStyle(d.properties, {})['text-fill'] || 'none' },
-        'mix-blend-mode': function (d) { return layer.getStyle(d.properties, {})['comp-op'] }
+        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
       }
     }
   },
@@ -284,6 +283,10 @@ Renderer.prototype = {
       var featureHash = geo.hashFeature(d.properties.cartodb_id, group.tilePoint)
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
+      d.properties.global = self.globalVariables
+      if (typeof d.shader === 'undefined'){
+        d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
+      }
       this.onmousemove = self.events.featureOver
       this.onmouseleave = self.events.featureOut
       this.onclick = self.events.featureClick
@@ -311,7 +314,7 @@ Renderer.prototype = {
       features = this._transformText(features)
     }
 
-    var styleFn = self.styleForSymbolizer(sym, layer)
+    var styleFn = self.styleForSymbolizer(this._getSymbolizer(layer), 'shader')
     features.attr('r', styleFn.radius)
     features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
     features.style(styleFn)
