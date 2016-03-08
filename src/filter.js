@@ -1,7 +1,9 @@
 var Crossfilter = require('crossfilter')
 var cartodb = require('./')
 
-function Filter () {
+function Filter (options) {
+  this.options = options || {}
+  this.idField = options.idField || 'cartodb_id'
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
@@ -92,9 +94,9 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     var uniqueValues = []
     var ids = {}
     for (var i = 0; i < values.length; i++) {
-      if (!(values[i].properties.cartodb_id in ids)) {
+      if (!(values[i].properties[this.idField] in ids)) {
         uniqueValues.push(values[i])
-        ids[values[i].properties.cartodb_id] = true
+        ids[values[i].properties[this.idField]] = true
       }
     }
     var boundingBox = this.visibleTiles.tiles
