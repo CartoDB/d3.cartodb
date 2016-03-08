@@ -2,6 +2,7 @@ var Crossfilter = require('crossfilter')
 var cartodb = require('./')
 
 function Filter (options) {
+  this.options = options || {}
   this.idField = options.idField || 'cartodb_id'
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
