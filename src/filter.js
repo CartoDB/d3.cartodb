@@ -1,7 +1,8 @@
 var Crossfilter = require('crossfilter')
 var cartodb = require('./')
 
-function Filter () {
+function Filter (options) {
+  this.options = options
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
