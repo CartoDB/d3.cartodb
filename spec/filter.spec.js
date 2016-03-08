@@ -1,6 +1,6 @@
 describe('The filter', function () {
   beforeAll(function () {
-    this.filter = new cartodb.d3.filter()
+    this.filter = new cartodb.d3.Filter()
     this.tile = MOCK_TILE
   })
 
@@ -10,7 +10,7 @@ describe('The filter', function () {
   })
 
   it('should add the tile to the tileset', function () {
-    expect(this.filter.tiles['3:2:1']).toBe(true)
+    expect(this.filter.tiles['2:1:3']).toBe(true)
   })
 
   it('should fetch a tile by tilePoint', function () {
