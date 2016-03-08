@@ -90,4 +90,22 @@ describe('The filter', function () {
     filter.addTile({x: 2, y: 1, zoom: 3}, tile)
     expect(this.filter.getValues().length).toEqual(15)
   })
+
+  it ('should return the similar results as the tiler', function () {
+    // Values returned by the tiler for populated places
+    var thetruth = {
+      count: 748,
+      n: 30,
+      s: -30,
+      e: 30,
+      w: -30
+    }
+    var se = cartodb.d3.geo.geo2Webmercator(thetruth.e, thetruth.s)
+    var nw = cartodb.d3.geo.geo2Webmercator(thetruth.w, thetruth.n)
+    var filter = new cartodb.d3.Filter()
+    var tile = HUGE_TILE
+    filter.addTile({x: 0, y: 0, zoom: 0}, tile)
+    filter.setBoundingBox({se:se, nw:nw})
+    expect(filter.getValues().length).toEqual(thetruth.count)
+  })
 })

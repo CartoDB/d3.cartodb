@@ -3,7 +3,7 @@ var cartodb = require('./')
 
 function Filter (options) {
   this.options = options || {}
-  this.idField = options.idField || 'cartodb_id'
+  this.idField = this.options.idField || 'cartodb_id'
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
@@ -99,9 +99,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
         ids[values[i].properties[this.idField]] = true
       }
     }
-    var boundingBox = this.visibleTiles.tiles
-    var ring = this.visibleTiles.ring
-    if (boundingBox) {
+    if (this.visibleTiles.se) {
       uniqueValues = uniqueValues.filter(function(feature) {
           return (this.visibleTiles.se.x >= feature.geometry.coordinates[0] &&
               feature.geometry.coordinates[0] >= this.visibleTiles.nw.x && 
