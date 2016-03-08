@@ -83,4 +83,11 @@ describe('The filter', function () {
     this.filter.addTile({x: 2, y: 1, zoom: 3}, this.tile)
     expect(initialLength).toEqual(this.filter.getValues().length)
   })
+
+  it ('should work correctly with a specified id field', function () {
+    var filter = new cartodb.d3.Filter()
+    var tile = MOCK_TILE_ALTERID
+    filter.addTile({x: 2, y: 1, zoom: 3}, tile)
+    expect(this.filter.getValues().length).toEqual(15)
+  })
 })
