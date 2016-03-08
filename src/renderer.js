@@ -16,13 +16,14 @@ d3.selection.prototype.moveToFront = function () {
 
 var Renderer = function (options) {
   this.options = options
+  this.idField = options.idField || 'cartodb_id'
   this.index = options.index
   if (options.cartocss) {
     this.setCartoCSS(options.cartocss)
   }
   this.globalVariables = {}
   this.layer = options.layer
-  this.filter = new Filter()
+  this.filter = new Filter({ idField: this.idField })
   this.geometries = {}
 }
 
@@ -280,7 +281,7 @@ Renderer.prototype = {
     var self = this
     features.each(function (d) {
       if (!d.properties) d.properties = {}
-      var featureHash = geo.hashFeature(d.properties.cartodb_id, group.tilePoint)
+      var featureHash = geo.hashFeature(d.properties[self.idField], group.tilePoint)
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
       d.properties.global = self.globalVariables
@@ -294,14 +295,14 @@ Renderer.prototype = {
         self.events.featureOver = function (f) {
           this.style.cursor = 'default'
           var element = d3.select(this).data()[0]
-          var hash = geo.hashFeature(element.properties.cartodb_id, element.properties.tilePoint)
+          var hash = geo.hashFeature(element.properties[self.idField], element.properties.tilePoint)
           self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader_hover'))
           })
         }
         self.events.featureOut = function () {
           var element = d3.select(this).data()[0]
-          var hash = geo.hashFeature(element.properties.cartodb_id, element.properties.tilePoint)
+          var hash = geo.hashFeature(element.properties[self.idField], element.properties.tilePoint)
           self.geometries[hash].forEach(function (feature) {
             d3.select(feature).style(self.styleForSymbolizer(sym, 'shader'))
           })
