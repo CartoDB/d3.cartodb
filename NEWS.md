@@ -1,3 +1,12 @@
+### 1.0.1
+* Improved event latlng calculation
+* Simplified logic of bounding box filtering
+* Fixed line opacity
+* Added dashed line capability
+* Improved tests
+* Added capability to specify own key id
+* Lines and polygons are filtrable with bounding boxes
+
 ### 1.0.0
 * Fixed multiple issues with DOM manipulation
 * Started support of async layer add/removal
