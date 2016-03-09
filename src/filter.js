@@ -1,6 +1,6 @@
 var Crossfilter = require('crossfilter')
 var cartodb = require('./')
-
+var geo = require('./geo')
 function Filter (options) {
   this.options = options || {}
   this.idField = this.options.idField || 'cartodb_id'
