@@ -8,6 +8,7 @@ function XYZProvider (options) {
   this.tilejson = options.tilejson
   this._tileQueue = []
   this._ready = false
+  this.geojsons = {}
   this.requests = {}
   if (!this.urlTemplate) {
     if (this.tilejson) {
@@ -31,6 +32,7 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
           geometry = topojson.feature(geometry, geometry.objects.vectile)
         }
         self.requests[[tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')].complete = true
+        self.geojsons[[tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')] = geometry
         callback(tilePoint, geometry)
       })
     } else {
