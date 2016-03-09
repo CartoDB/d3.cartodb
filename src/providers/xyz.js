@@ -94,17 +94,53 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
     })
   },
 
-  _tileParentExists: function(tilePoint) {
+  _getTileParent: function (tilePoint) {
     var parentTilePoint = {
       x: Math.floor(tilePoint.x / 2),
       y: Math.floor(tilePoint.y / 2),
-      zoom = tilePoint.zoom - 1
+      zoom: tilePoint.zoom - 1
     }
     var tilePointString = [parentTilePoint.x, parentTilePoint.y, parentTilePoint.zoom].join(":")
     if (tilePointString in this.geojsons) {
       return parentTilePoint
     }
     return false
+  },
+
+  _sliceParent: function (parent) {
+    var self = this
+    var tile = this.geojsons[[parent.x, parent.y, parent.zoom].join(":")]
+    var xAxis = (geo.tile2lon(parent.x, parent.z) + geo.tile2lon(parent.x + 1, parent.z)) / 2 
+    var yAxis = (geo.tile2lon(parent.y, parent.z) + geo.tile2lon(parent.y + 1, parent.z)) / 2 
+    this._generateChildrenTiles(parent)
+    tile.features.forEach(function (f) {
+      if (f.geometry.coordinates[0] > xAxis) {
+        x = parent.x * 2 + 1
+      } else {
+        x = parent.x * 2
+      }
+      if (f.geometry.coordinates[1] > yAxis) {
+        y = parent.y * 2 + 1
+      } else {
+        y = parent.y * 2
+      }
+      self.geojsons[[x, y, parent.zoom + 1].join(":")].features.push(f)
+    })
+  },
+
+  _generateChildrenTiles: function (parent) {
+    var base = {
+      features: [],
+      type: "FeatureCollection"
+    }
+    this.geojsons[[parent.x * 2, parent.y * 2, parent.zoom + 1].join(':')] = base
+    this.requests[[parent.x * 2, parent.y * 2, parent.zoom + 1].join(':')] = {complete: true, abort: function(){}}
+    this.geojsons[[parent.x * 2 + 1, parent.y * 2, parent.zoom + 1].join(':')] = base
+    this.requests[[parent.x * 2 + 1, parent.y * 2, parent.zoom + 1].join(':')] = {complete: true, abort: function(){}}
+    this.geojsons[[parent.x * 2, parent.y * 2 + 1, parent.zoom + 1].join(':')] = base
+    this.requests[[parent.x * 2, parent.y * 2 + 1, parent.zoom + 1].join(':')] = {complete: true, abort: function(){}}
+    this.geojsons[[parent.x * 2 + 1, parent.y * 2 + 1, parent.zoom + 1].join(':')] = base
+    this.requests[[parent.x * 2 + 1, parent.y * 2 + 1, parent.zoom + 1].join(':')] = {complete: true, abort: function(){}}
   }
 })
 
