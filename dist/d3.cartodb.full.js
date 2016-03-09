@@ -21846,7 +21846,7 @@ module.exports = {
 },{}],52:[function(require,module,exports){
 var Crossfilter = require('crossfilter')
 var cartodb = require('./')
-
+var geo = require('./geo')
 function Filter (options) {
   this.options = options || {}
   this.idField = this.options.idField || 'cartodb_id'
@@ -21947,10 +21947,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     }
     if (this.visibleTiles.se) {
       uniqueValues = uniqueValues.filter(function(feature) {
-          return (this.visibleTiles.se.x >= feature.geometry.coordinates[0] &&
-              feature.geometry.coordinates[0] >= this.visibleTiles.nw.x && 
-              this.visibleTiles.se.y <= feature.geometry.coordinates[1] &&
-              feature.geometry.coordinates[1] <= this.visibleTiles.nw.y)
+        return geo.contains(this.visibleTiles, feature)
       }.bind(this))
     }
 
@@ -22037,7 +22034,7 @@ Filter.reject = function (terms) {
 
 module.exports = Filter
 
-},{"./":54,"crossfilter":47}],53:[function(require,module,exports){
+},{"./":54,"./geo":53,"crossfilter":47}],53:[function(require,module,exports){
 module.exports = {
   tile2lon: function (x, z) {
     return (x / Math.pow(2, z) * 360 - 180)
@@ -22082,6 +22079,27 @@ module.exports = {
     return {x: this.lng2tile(lng, zoom),
             y: this.lat2tile(lat, zoom),
             zoom: zoom}
+  },
+
+  contains: function (boundingBox, feature) {
+    var self = this
+    if (typeof feature.geometry.coordinates[0] === 'number') {
+      return this.pointInBB(boundingBox, feature.geometry.coordinates)
+    } else if (feature.geometry.type === 'MultiLineString' || feature.geometry.type === 'MultiPolygon') {
+      feature.geometry.coordinates.forEach(function (line) {
+        line.forEach(function (point) {
+          if (self.pointInBB(boundingBox, point)) return true
+        })
+      })
+      return false
+    }
+  },
+
+  pointInBB: function (boundingBox, feature) {
+    return (boundingBox.se.x >= feature[0] &&
+      feature[0] >= boundingBox.nw.x && 
+      boundingBox.se.y <= feature[1] &&
+      feature[1] <= boundingBox.nw.y)
   }
 }
 
