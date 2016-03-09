@@ -42,15 +42,19 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
 
   getGeometry: function (tilePoint, callback) {
     var self = this
-    var url = this.urlTemplate
-      .replace('{x}', tilePoint.x)
-      .replace('{y}', tilePoint.y)
-      .replace('{z}', tilePoint.zoom)
-      .replace('{s}', 'abcd'[(tilePoint.x * tilePoint.y) % 4])
-      .replace('.png', '.geojson')
-    var tilePointString = [tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')
-    var request = d3.json(url, callback)
-    this.requests[tilePointString] = request
+    if (this._tileParentExists(tilePoint)) {
+
+    } else {
+      var url = this.urlTemplate
+        .replace('{x}', tilePoint.x)
+        .replace('{y}', tilePoint.y)
+        .replace('{z}', tilePoint.zoom)
+        .replace('{s}', 'abcd'[(tilePoint.x * tilePoint.y) % 4])
+        .replace('.png', '.geojson')
+      var tilePointString = [tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')
+      var request = d3.json(url, callback)
+      this.requests[tilePointString] = request
+    }
   },
 
   _setReady: function () {
@@ -85,6 +89,19 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
     this._tileQueue.forEach(function (item) {
       self.getTile.apply(self, item)
     })
+  },
+
+  _tileParentExists: function(tilePoint) {
+    var parentTilePoint = {
+      x: Math.floor(tilePoint.x / 2),
+      y: Math.floor(tilePoint.y / 2),
+      zoom = tilePoint.zoom - 1
+    }
+    var tilePointString = [parentTilePoint.x, parentTilePoint.y, parentTilePoint.zoom].join(":")
+    if (tilePointString in this.geojsons) {
+      return parentTilePoint
+    }
+    return false
   }
 })
 
