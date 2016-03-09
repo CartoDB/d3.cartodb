@@ -1,6 +1,7 @@
 var d3 = require('d3')
 var topojson = require('topojson')
 var cartodb = require('../')
+var geo = require('../geo')
 
 function XYZProvider (options) {
   this.format = options.format
@@ -42,8 +43,11 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
 
   getGeometry: function (tilePoint, callback) {
     var self = this
-    if (this._tileParentExists(tilePoint)) {
-
+    var tilePointString = [tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')
+    var parent = this._getTileParent(tilePoint)
+    if (parent) {
+      this._sliceParent(parent)
+      callback(undefined, this.geojsons[tilePointString])
     } else {
       var url = this.urlTemplate
         .replace('{x}', tilePoint.x)
@@ -51,7 +55,6 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
         .replace('{z}', tilePoint.zoom)
         .replace('{s}', 'abcd'[(tilePoint.x * tilePoint.y) % 4])
         .replace('.png', '.geojson')
-      var tilePointString = [tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')
       var request = d3.json(url, callback)
       this.requests[tilePointString] = request
     }
