@@ -42,5 +42,26 @@ module.exports = {
     return {x: this.lng2tile(lng, zoom),
             y: this.lat2tile(lat, zoom),
             zoom: zoom}
+  },
+
+  contains: function (boundingBox, feature) {
+    var self = this
+    if (typeof feature.geometry.coordinates[0] === 'number') {
+      return this.pointInBB(boundingBox, feature.geometry.coordinates)
+    } else if (feature.geometry.type === 'MultiLineString' || feature.geometry.type === 'MultiPolygon') {
+      feature.geometry.coordinates.forEach(function (line) {
+        line.forEach(function (point) {
+          if (self.pointInBB(boundingBox, point)) return true
+        })
+      })
+      return false
+    }
+  },
+
+  pointInBB: function (boundingBox, feature) {
+    return (boundingBox.se.x >= feature[0] &&
+      feature[0] >= boundingBox.nw.x && 
+      boundingBox.se.y <= feature[1] &&
+      feature[1] <= boundingBox.nw.y)
   }
 }
