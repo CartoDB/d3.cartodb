@@ -17,26 +17,24 @@ module.exports = {
     var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
     return {x: x_mercator, y: y_mercator}
   },
-  webmercator2Geo: function(x, y) {
-    
-  },
   wrapX: function (x, zoom) {
     var limit_x = Math.pow(2, zoom)
     var corrected_x = ((x % limit_x) + limit_x) % limit_x
     return corrected_x
   },
   hashFeature: function (id, tilePoint) {
-    var x = tilePoint.x, z = tilePoint.zoom
+    var x = tilePoint.x
+    var z = tilePoint.zoom
     if (typeof tilePoint === 'string') {
-      tilePoint = tilePoint.split(":")
+      tilePoint = tilePoint.split(':')
       x = tilePoint[0]
       z = tilePoint[2]
     }
     var pane = Math.floor(x / Math.pow(2, z))
     return [id, pane].join(':')
   },
-  lng2tile: function (lon,zoom) { return (Math.floor((lon+180)/360*Math.pow(2,zoom))); },
-  lat2tile: function (lat,zoom) { return (Math.floor((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom))); },
+  lng2tile: function (lon, zoom) { return (Math.floor((lon + 180) / 360 * Math.pow(2, zoom))) },
+  lat2tile: function (lat, zoom) { return (Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))) },
 
   latLng2Tile: function (lat, lng, zoom) {
     return {x: this.lng2tile(lng, zoom),
@@ -60,7 +58,7 @@ module.exports = {
 
   pointInBB: function (boundingBox, feature) {
     return (boundingBox.se.x >= feature[0] &&
-      feature[0] >= boundingBox.nw.x && 
+      feature[0] >= boundingBox.nw.x &&
       boundingBox.se.y <= feature[1] &&
       feature[1] <= boundingBox.nw.y)
   }

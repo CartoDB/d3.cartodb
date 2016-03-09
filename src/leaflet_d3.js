@@ -62,13 +62,12 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     var seTile = geo.latLng2Tile(southEast.lat, southEast.lng, zoom)
     var tiles = []
     var ring = []
-    for(var y = nwTile.y; y<=seTile.y; y++) {
-      for(var x = nwTile.x; x<=seTile.x; x++) {
-        if (y === nwTile.y || y === seTile.y || x === nwTile.x || x === seTile.x){
-          ring.push([x,y,zoom].join(':'))
-        }
-        else{
-          tiles.push([x,y,zoom].join(':'))
+    for (var y = nwTile.y; y <= seTile.y; y++) {
+      for (var x = nwTile.x; x <= seTile.x; x++) {
+        if (y === nwTile.y || y === seTile.y || x === nwTile.x || x === seTile.x) {
+          ring.push([x, y, zoom].join(':'))
+        } else {
+          tiles.push([x, y, zoom].join(':'))
         }
       }
     }
@@ -202,7 +201,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       r.filter.on('filterApplied', function () {
         self.fire('featuresChanged', self.getFeatures())
       })
-      for (var key in self.eventCallbacks){
+      for (var key in self.eventCallbacks) {
         r.on(key, self.eventCallbacks[key])
       }
     })
@@ -244,7 +243,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.renderers.forEach(function (r) {
       r.filter.removeTile(tilePoint)
     })
-    if (this.svgTiles[data.tileKey].parentNode === this._tileContainer){
+    if (this.svgTiles[data.tileKey].parentNode === this._tileContainer) {
       this._tileContainer.removeChild(this.svgTiles[data.tileKey])
     }
     delete this.svgTiles[data.tileKey]

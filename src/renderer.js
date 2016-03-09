@@ -68,7 +68,7 @@ Renderer.prototype = {
 
   on: function (eventName, callback) {
     var self = this
-    if (eventName ==='featureOver') {
+    if (eventName === 'featureOver') {
       this.events.featureOver = function (f) {
         this.style.cursor = 'pointer'
         var selection = d3.select(this)
@@ -79,7 +79,7 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureOver(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featureOut') {
+    } else if (eventName === 'featureOut') {
       this.events.featureOut = function (f) {
         var selection = d3.select(this)
         var properties = selection.data()[0].properties
@@ -93,7 +93,7 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureOut(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featureClick') {
+    } else if (eventName === 'featureClick') {
       this.events.featureClick = function (f) {
         var selection = d3.select(this)
         var properties = selection.data()[0].properties
@@ -103,45 +103,45 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureClick(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featuresChanged') {
+    } else if (eventName === 'featuresChanged') {
       this.filter.on('featuresChanged', callback)
     }
   },
 
   _getLayerPointFromEvent: function (map, event) {
-    var curleft = 0;
-    var curtop = 0;
-    var obj = map.getContainer();
+    var curleft = 0
+    var curtop = 0
+    var obj = map.getContainer()
 
-    var x, y;
+    var x, y
     if (event.changedTouches && event.changedTouches.length > 0) {
-      x = event.changedTouches[0].clientX + window.scrollX;
-      y = event.changedTouches[0].clientY + window.scrollY;
+      x = event.changedTouches[0].clientX + window.scrollX
+      y = event.changedTouches[0].clientY + window.scrollY
     } else {
-      x = event.clientX;
-      y = event.clientY;
+      x = event.clientX
+      y = event.clientY
     }
 
-    var pointX;
-    var pointY;
+    var pointX
+    var pointY
     // If the map is fixed at the top of the window, we can't use offsetParent
     // cause there might be some scrolling that we need to take into account.
     if (obj.offsetParent && obj.offsetTop > 0) {
       do {
-        curleft += obj.offsetLeft;
-        curtop += obj.offsetTop;
-      } while (obj = obj.offsetParent);
-      pointX = x - curleft;
-      pointY = y - curtop;
+        curleft += obj.offsetLeft
+        curtop += obj.offsetTop
+      } while (obj = obj.offsetParent)  // eslint-disable-line
+      pointX = x - curleft
+      pointY = y - curtop
     } else {
-      var rect = obj.getBoundingClientRect();
-      var scrollX = (window.scrollX || window.pageXOffset);
-      var scrollY = (window.scrollY || window.pageYOffset);
-      pointX = (event.clientX ? event.clientX : x) - rect.left - obj.clientLeft - scrollX;
-      pointY = (event.clientY ? event.clientY : y) - rect.top - obj.clientTop - scrollY;
+      var rect = obj.getBoundingClientRect()
+      var scrollX = (window.scrollX || window.pageXOffset)
+      var scrollY = (window.scrollY || window.pageYOffset)
+      pointX = (event.clientX ? event.clientX : x) - rect.left - obj.clientLeft - scrollX
+      pointY = (event.clientY ? event.clientY : y) - rect.top - obj.clientTop - scrollY
     }
-    var point = new L.Point(pointX, pointY);
-    return map.containerPointToLayerPoint(point);
+    var point = new window.L.Point(pointX, pointY)
+    return map.containerPointToLayerPoint(point)
   },
 
   redraw: function (updating) {
@@ -198,7 +198,7 @@ Renderer.prototype = {
         'stroke-width': function (d) { return d[shaderName]['line-width'] },
         'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
         'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
       }
     } else if (symbolyzer === 'markers') {
       return {
@@ -211,7 +211,7 @@ Renderer.prototype = {
           return d[shaderName]['marker-width'] / 2
         },
         'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
       }
     } else if (symbolyzer === 'text') {
       return {
@@ -241,11 +241,10 @@ Renderer.prototype = {
   render: function (svg, collection, tilePoint, updating) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
-    var g, styleLayers
+    var g
     var svgSel = d3.select(svg)
     if (svg.children[this.index]) {
       g = d3.select(svg.children[this.index])
-      styleLayers = g.data()
     } else {
       g = svgSel.append('g')
     }
@@ -261,7 +260,7 @@ Renderer.prototype = {
     layers.forEach(function (layer, i) {
       var thisGroup
       var children = g[0][0].children
-      if(!children[i]) thisGroup = g.append('g')
+      if (!children[i]) thisGroup = g.append('g')
       else thisGroup = d3.select(children[i])
       var sym = self._getSymbolizer(layer)
       var features
@@ -337,13 +336,12 @@ Renderer.prototype = {
       features.enter().append('svg:text').attr('class', sym)
     } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
-      features.each(function(f) {
-        if (f.coordinates[0]){
+      features.each(function (f) {
+        if (f.coordinates[0]) {
           var coords = self.projection.apply(this, f.coordinates)
           this.setAttribute('cx', coords.x)
           this.setAttribute('cy', coords.y)
-        }
-        else{
+        } else {
           this.parentElement.removeChild(this)
         }
       })
@@ -378,8 +376,7 @@ Renderer.prototype = {
       if (d.geometry.coordinates[0]) {
         var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
         return p.x
-      }
-      else {
+      } else {
         this.remove()
       }
     })
@@ -387,8 +384,7 @@ Renderer.prototype = {
       if (d.geometry.coordinates[0]) {
         var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
         return p.y
-      }
-      else {
+      } else {
         this.remove()
       }
     })
@@ -399,7 +395,7 @@ Renderer.prototype = {
 Renderer.getIndexFromFeature = function (element) {
   var i = 0
   var node = element.parentElement.parentElement
-  while (node = node.previousSibling) i ++
+  while (node = node.previousSibling) i++ // eslint-disable-line
   return i
 }
 
