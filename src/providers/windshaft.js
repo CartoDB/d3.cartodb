@@ -11,9 +11,10 @@ function WindshaftProvider (options) {
   this.initialize()
   this._ready = false
   this.requests = {}
+  this.geojsons = {}
 }
 
-cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
+cartodb.d3.extend(WindshaftProvider.prototype, XYZProvider.prototype, cartodb.d3.Event, {
 
   initialize: function () {
     this.tiler_template = this.tiler_template.replace('{user}', this.user)
@@ -27,14 +28,6 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
       this.fire('ready')
     }.bind(this))
   },
-
-  getTile: XYZProvider.prototype.getTile,
-
-  getGeometry: XYZProvider.prototype.getGeometry,
-
-  abortPending: XYZProvider.prototype.abortPending,
-
-  allTilesLoaded: XYZProvider.prototype.allTilesLoaded,
 
   _generateMapconfig: function (table) {
     var mapconfig = {
