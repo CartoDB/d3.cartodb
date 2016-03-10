@@ -324,11 +324,6 @@ Renderer.prototype = {
     var self = this
     var sym = this._getSymbolizer(layer)
     var geometry = collection.features
-    var transform = transformForSymbolizer(sym)
-    if (transform) {
-      geometry = geometry.map(transform)
-    }
-
     // select based on symbolizer
     var features = d3.select(group)
       .selectAll('.' + sym)
@@ -339,7 +334,7 @@ Renderer.prototype = {
     } else if (sym === 'markers') {
       features.enter().append('circle')
       features.each(function (f) {
-        var coords = self.projection.apply(this, f.coordinates)
+        var coords = self.projection.apply(this, f.geometry.coordinates)
         d3.select(this).attr({
           class: sym,
           cx: coords.x,
@@ -390,6 +385,20 @@ Renderer.prototype = {
       }
     })
     return feature
+  },
+  transformForSymbolizer: function (symbolizer) {
+    if (symbolizer === 'markers' || symbolizer === 'labels') {
+      var pathC = d3.geo.path().projection(function (d) { return d })
+      return function (d) {
+        debugger
+        return d._centroid || (d._centroid = {
+          type: 'Point',
+          properties: d.properties,
+          coordinates: pathC.centroid(d)
+        })
+      }
+    }
+    return null
   }
 }
 
@@ -398,20 +407,6 @@ Renderer.getIndexFromFeature = function (element) {
   var node = element.parentElement.parentElement
   while (node = node.previousSibling) i++ // eslint-disable-line
   return i
-}
-
-function transformForSymbolizer (symbolizer) {
-  if (symbolizer === 'markers' || symbolizer === 'labels') {
-    var pathC = d3.geo.path().projection(function (d) { return d })
-    return function (d) {
-      return d._centroid || (d._centroid = {
-        type: 'Point',
-        properties: d.properties,
-        coordinates: pathC.centroid(d)
-      })
-    }
-  }
-  return null
 }
 
 module.exports = Renderer
