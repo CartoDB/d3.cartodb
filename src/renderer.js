@@ -337,15 +337,14 @@ Renderer.prototype = {
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
     } else if (sym === 'markers') {
-      features.enter().append('circle').attr('class', sym)
+      features.enter().append('circle')
       features.each(function (f) {
-        if (f.coordinates[0]) {
-          var coords = self.projection.apply(this, f.coordinates)
-          this.setAttribute('cx', coords.x)
-          this.setAttribute('cy', coords.y)
-        } else {
-          this.parentElement.removeChild(this)
-        }
+        var coords = self.projection.apply(this, f.coordinates)
+        d3.select(this).attr({
+          class: sym,
+          cx: coords.x,
+          cy: coords.y
+        })
       })
     } else {
       features.enter().append('path').attr('class', sym)
