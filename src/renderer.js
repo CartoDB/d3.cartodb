@@ -284,7 +284,7 @@ Renderer.prototype = {
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
       d.properties.global = self.globalVariables
-      if (typeof d.shader === 'undefined'){
+      if (typeof d.shader === 'undefined') {
         d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       }
       this.onmousemove = self.events.featureOver
@@ -324,7 +324,6 @@ Renderer.prototype = {
     var self = this
     var sym = this._getSymbolizer(layer)
     var geometry = collection.features
-    // select based on symbolizer
     var features = d3.select(group)
       .selectAll('.' + sym)
       .data(geometry)
@@ -390,7 +389,6 @@ Renderer.prototype = {
     if (symbolizer === 'markers' || symbolizer === 'labels') {
       var pathC = d3.geo.path().projection(function (d) { return d })
       return function (d) {
-        debugger
         return d._centroid || (d._centroid = {
           type: 'Point',
           properties: d.properties,
