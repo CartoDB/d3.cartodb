@@ -25,7 +25,7 @@ describe('The renderer', function () {
     var features = MOCK_TILE
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     this.renderer.render(svg, features, {x: 2, y: 2, zoom: 3})
-    expect(svg.children[0].children.length).toEqual(15)
+    expect(svg.children[0].children[0].children.length).toEqual(15)
   })
 
 })

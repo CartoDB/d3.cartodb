@@ -28,7 +28,7 @@ module.exports = {
         var lyr = new L.CartoDBd3Layer({
           user: cartodbLayer.options.user_name,
           layers: layers,
-          styles: layers.map(function(l) { return l.cartocss })
+          styles: layers.map(function (l) { return l.cartocss })
         }).addTo(map)
 
         done(null, lyr, layers)

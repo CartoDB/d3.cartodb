@@ -4,7 +4,6 @@ module.exports = L.Class.extend({
   includes: L.Mixin.Events,
 
   initialize: function (options) {
-    var self = this
     this.options = options
     this.provider = options.provider
     this._map = options.map

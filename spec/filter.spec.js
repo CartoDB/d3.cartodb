@@ -1,6 +1,6 @@
 describe('The filter', function () {
   beforeAll(function () {
-    this.filter = new cartodb.d3.filter()
+    this.filter = new cartodb.d3.Filter()
     this.tile = MOCK_TILE
   })
 
@@ -10,7 +10,7 @@ describe('The filter', function () {
   })
 
   it('should add the tile to the tileset', function () {
-    expect(this.filter.tiles['3:2:1']).toBe(true)
+    expect(this.filter.tiles['2:1:3']).toBe(true)
   })
 
   it('should fetch a tile by tilePoint', function () {
@@ -82,5 +82,30 @@ describe('The filter', function () {
     var initialLength = this.filter.getValues().length
     this.filter.addTile({x: 2, y: 1, zoom: 3}, this.tile)
     expect(initialLength).toEqual(this.filter.getValues().length)
+  })
+
+  it ('should work correctly with a specified id field', function () {
+    var filter = new cartodb.d3.Filter()
+    var tile = MOCK_TILE_ALTERID
+    filter.addTile({x: 2, y: 1, zoom: 3}, tile)
+    expect(this.filter.getValues().length).toEqual(15)
+  })
+
+  it ('should return the similar results as the tiler', function () {
+    // Values returned by the tiler for populated places
+    var thetruth = {
+      count: 748,
+      n: 30,
+      s: -30,
+      e: 30,
+      w: -30
+    }
+    var se = cartodb.d3.geo.geo2Webmercator(thetruth.e, thetruth.s)
+    var nw = cartodb.d3.geo.geo2Webmercator(thetruth.w, thetruth.n)
+    var filter = new cartodb.d3.Filter()
+    var tile = HUGE_TILE
+    filter.addTile({x: 0, y: 0, zoom: 0}, tile)
+    filter.setBoundingBox({se:se, nw:nw})
+    expect(filter.getValues().length).toEqual(thetruth.count)
   })
 })
