@@ -15,10 +15,13 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   addTile: function (tilePoint, collection) {
     var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
-    this.crossfilter.add(collection.features.map(function (f) {
+    var featuresToAdd = []
+    collection.features.forEach(function (f) {
+      if (f.geometry.type === 'GeometryCollection') return
       f.properties.tilePoint = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
-      return f
-    }))
+      featuresToAdd.push(f)
+    })
+    this.crossfilter.add(featuresToAdd)
     this.tiles[tilePointString] = true
     return this.getTile(tilePoint)
   },
