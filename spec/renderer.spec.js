@@ -28,4 +28,27 @@ describe('The renderer', function () {
     expect(svg.children[0].children[0].children.length).toEqual(15)
   })
 
+
+  describe('when drawing points', function () {
+    it('should render their widths correctly', function () {
+      var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: [population]; marker-fill: #FF6600; }'})
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      var features = MOCK_TILE_WIDTHS
+      renderer.render(svg, features, {x: 2, y: 1, zoom: 2})
+      var circles = svg.children[0].children[0].children
+      expect(circles[0].attributes.r.value).toEqual("15")
+      expect(circles[1].attributes.r.value).toEqual("7.5")
+      expect(circles[2].attributes.r.value).toEqual("2.5")
+    })
+
+    it('should render text when text properties are indicated', function () {
+      var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: [population]; marker-fill: #FF6600; } #sensor_log_2015_09_20_12_53::labels { text-name: [population]; text-size: 10; text-label-position-tolerance: 10; text-fill: #000; text-halo-fill: #FFF; text-halo-radius: 1; text-dy: -10; text-allow-overlap: true; text-placement: point; text-placement-type: simple; }'})
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      var features = MOCK_TILE_WIDTHS
+      renderer.render(svg, features, {x: 2, y: 1, zoom: 2})
+      var elements = svg.children[0].children[1].children
+      expect(elements[0].attributes["class"].value).toEqual('text')
+    })
+  })
+
 })
