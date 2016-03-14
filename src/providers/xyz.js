@@ -110,19 +110,20 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
   _sliceParent: function (parent) {
     var self = this
     var tile = this.geojsons[[parent.x, parent.y, parent.zoom].join(":")]
-    var xAxis = (geo.tile2lon(parent.x, parent.z) + geo.tile2lon(parent.x + 1, parent.z)) / 2 
-    var yAxis = (geo.tile2lon(parent.y, parent.z) + geo.tile2lon(parent.y + 1, parent.z)) / 2 
+    var xAxis = (geo.tile2lon(parent.x, parent.zoom) + geo.tile2lon(parent.x + 1, parent.zoom)) / 2 
+    var yAxis = (geo.tile2lat(parent.y, parent.zoom) + geo.tile2lat(parent.y + 1, parent.zoom)) / 2 
+    var webmAxis = geo.geo2Webmercator(xAxis, yAxis)
     this._generateChildrenTiles(parent)
     tile.features.forEach(function (f) {
-      if (f.geometry.coordinates[0] > xAxis) {
+      if (f.geometry.coordinates[0] > webmAxis.x) {
         x = parent.x * 2 + 1
       } else {
         x = parent.x * 2
       }
-      if (f.geometry.coordinates[1] > yAxis) {
-        y = parent.y * 2 + 1
-      } else {
+      if (f.geometry.coordinates[1] > webmAxis.y) {
         y = parent.y * 2
+      } else {
+        y = parent.y * 2 + 1
       }
       self.geojsons[[x, y, parent.zoom + 1].join(":")].features.push(f)
     })
