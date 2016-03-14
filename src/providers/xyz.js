@@ -134,13 +134,25 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
       features: [],
       type: "FeatureCollection"
     }
-    this.geojsons[[parent.x * 2, parent.y * 2, parent.zoom + 1].join(':')] = base
+    this.geojsons[[parent.x * 2, parent.y * 2, parent.zoom + 1].join(':')] = {
+      features: [],
+      type: "FeatureCollection"
+    }
     this.requests[[parent.x * 2, parent.y * 2, parent.zoom + 1].join(':')] = {complete: true, abort: function(){}}
-    this.geojsons[[parent.x * 2 + 1, parent.y * 2, parent.zoom + 1].join(':')] = base
+    this.geojsons[[parent.x * 2 + 1, parent.y * 2, parent.zoom + 1].join(':')] = {
+      features: [],
+      type: "FeatureCollection"
+    }
     this.requests[[parent.x * 2 + 1, parent.y * 2, parent.zoom + 1].join(':')] = {complete: true, abort: function(){}}
-    this.geojsons[[parent.x * 2, parent.y * 2 + 1, parent.zoom + 1].join(':')] = base
+    this.geojsons[[parent.x * 2, parent.y * 2 + 1, parent.zoom + 1].join(':')] = {
+      features: [],
+      type: "FeatureCollection"
+    }
     this.requests[[parent.x * 2, parent.y * 2 + 1, parent.zoom + 1].join(':')] = {complete: true, abort: function(){}}
-    this.geojsons[[parent.x * 2 + 1, parent.y * 2 + 1, parent.zoom + 1].join(':')] = base
+    this.geojsons[[parent.x * 2 + 1, parent.y * 2 + 1, parent.zoom + 1].join(':')] = {
+      features: [],
+      type: "FeatureCollection"
+    }
     this.requests[[parent.x * 2 + 1, parent.y * 2 + 1, parent.zoom + 1].join(':')] = {complete: true, abort: function(){}}
   }
 })
