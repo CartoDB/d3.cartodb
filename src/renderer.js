@@ -6,6 +6,7 @@ var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
 turboCartoCSS = require('turbo-cartocss')
+Datasource = require('./datasource')
 
 cartodb.d3 = d3 || {}
 
@@ -56,15 +57,26 @@ Renderer.prototype = {
   },
 
   setCartoCSS: function (cartocss) {
-    this.renderer = new carto.RendererJS()
-    this.shader = this.renderer.render(cartocss)
-    if (this.layer) {
-      for (var tileKey in this.layer.svgTiles) {
-        var tilePoint = tileKey.split(':')
-        tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
-        this.render(this.layer.svgTiles[tileKey], null, tilePoint, true)
+    this._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
+      if (err) {
+        console.error(err.message);
+        throw err;
       }
-    }
+      this.renderer = new carto.RendererJS()
+      this.shader = this.renderer.render(parsedCartoCSS)
+      if (this.layer) {
+        for (var tileKey in this.layer.svgTiles) {
+          var tilePoint = tileKey.split(':')
+          tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
+          this.render(this.layer.svgTiles[tileKey], null, tilePoint, true)
+        }
+      }
+    }.bind(this))
+  },
+
+  _preprocessCartoCSS: function (cartocss, callback) {
+    var datasource = new Datasource(this.filter)
+    turboCartoCSS(cartocss, datasource, callback)
   },
 
   on: function (eventName, callback) {
