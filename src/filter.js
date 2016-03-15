@@ -1,7 +1,9 @@
 var Crossfilter = require('crossfilter')
 var cartodb = require('./')
-
-function Filter () {
+var geo = require('./geo')
+function Filter (options) {
+  this.options = options || {}
+  this.idField = this.options.idField || 'cartodb_id'
   this.crossfilter = new Crossfilter()
   this.dimensions = {}
   this.tiles = {}
@@ -13,10 +15,13 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   addTile: function (tilePoint, collection) {
     var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
-    this.crossfilter.add(collection.features.map(function (f) {
+    var featuresToAdd = []
+    collection.features.forEach(function (f) {
+      if (f.geometry.type === 'GeometryCollection') return
       f.properties.tilePoint = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
-      return f
-    }))
+      featuresToAdd.push(f)
+    })
+    this.crossfilter.add(featuresToAdd)
     this.tiles[tilePointString] = true
     return this.getTile(tilePoint)
   },
@@ -80,31 +85,25 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   getValues: function (ownFilter, column) {
     if (!this.dimensions['tiles']) return []
     var values = []
-    if (typeof ownFilter === 'undefined' || ownFilter){
+    if (typeof ownFilter === 'undefined' || ownFilter) {
       values = this.dimensions['tiles'].top(Infinity)
-    }
-    else {
+    } else {
       this._createDimension(column)
       this.dimensions[column].filterAll()
-      var values = this.dimensions[column].top(Infinity)
+      values = this.dimensions[column].top(Infinity)
       this.dimensions[column].filter(this.filters[column])
     }
     var uniqueValues = []
     var ids = {}
     for (var i = 0; i < values.length; i++) {
-      if (!(values[i].properties.cartodb_id in ids)) {
+      if (!(values[i].properties[this.idField] in ids)) {
         uniqueValues.push(values[i])
-        ids[values[i].properties.cartodb_id] = true
+        ids[values[i].properties[this.idField]] = true
       }
     }
-    var boundingBox = this.visibleTiles.tiles
-    var ring = this.visibleTiles.ring
-    if (boundingBox) {
-      uniqueValues = uniqueValues.filter(function(feature) {
-          return (this.visibleTiles.se.x >= feature.geometry.coordinates[0] &&
-              feature.geometry.coordinates[0] >= this.visibleTiles.nw.x && 
-              this.visibleTiles.se.y <= feature.geometry.coordinates[1] &&
-              feature.geometry.coordinates[1] <= this.visibleTiles.nw.y)
+    if (this.visibleTiles.se) {
+      uniqueValues = uniqueValues.filter(function (feature) {
+        return geo.contains(this.visibleTiles, feature)
       }.bind(this))
     }
 
@@ -113,30 +112,27 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 
   getColumnValues: function (column, numberOfValues) {
     this._createDimension(column)
-    return this.dimensions[column].group().top(numberOfValues ? numberOfValues : Infinity)
+    return this.dimensions[column].group().top(numberOfValues || Infinity)
   },
-
 
   setBoundingBox: function (visible) {
     this.visibleTiles = visible
   },
 
-  getMax: function (column) { 
+  getMax: function (column) {
     this._createDimension(column)
     try {
       return this.dimensions[column].top(1)[0].properties[column]
-    }
-    catch(e) {
+    } catch (e) {
       return null
     }
   },
 
-  getMin: function (column) { 
+  getMin: function (column) {
     this._createDimension(column)
     try {
       return this.dimensions[column].bottom(1)[0].properties[column]
-    }
-    catch(e) {
+    } catch (e) {
       return null
     }
   },

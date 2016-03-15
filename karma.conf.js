@@ -18,6 +18,7 @@ module.exports = function(config) {
       {pattern: 'spec/**/*spec.js', included: true},
       {pattern: 'spec/*spec.js', included: true},
       'spec/mocks/tile.js',
+      'spec/mocks/populatedplaces.js',
       'vendor/underscore-min.js',
       'vendor/leaflet.js',
       'vendor/carto.uncompressed.js',
