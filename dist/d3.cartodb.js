@@ -111,10 +111,13 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   addTile: function (tilePoint, collection) {
     var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
-    this.crossfilter.add(collection.features.map(function (f) {
+    var featuresToAdd = []
+    collection.features.forEach(function (f) {
+      if (f.geometry.type === 'GeometryCollection') return
       f.properties.tilePoint = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
-      return f
-    }))
+      featuresToAdd.push(f)
+    })
+    this.crossfilter.add(featuresToAdd)
     this.tiles[tilePointString] = true
     return this.getTile(tilePoint)
   },
@@ -178,13 +181,12 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   getValues: function (ownFilter, column) {
     if (!this.dimensions['tiles']) return []
     var values = []
-    if (typeof ownFilter === 'undefined' || ownFilter){
+    if (typeof ownFilter === 'undefined' || ownFilter) {
       values = this.dimensions['tiles'].top(Infinity)
-    }
-    else {
+    } else {
       this._createDimension(column)
       this.dimensions[column].filterAll()
-      var values = this.dimensions[column].top(Infinity)
+      values = this.dimensions[column].top(Infinity)
       this.dimensions[column].filter(this.filters[column])
     }
     var uniqueValues = []
@@ -196,7 +198,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       }
     }
     if (this.visibleTiles.se) {
-      uniqueValues = uniqueValues.filter(function(feature) {
+      uniqueValues = uniqueValues.filter(function (feature) {
         return geo.contains(this.visibleTiles, feature)
       }.bind(this))
     }
@@ -206,30 +208,27 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 
   getColumnValues: function (column, numberOfValues) {
     this._createDimension(column)
-    return this.dimensions[column].group().top(numberOfValues ? numberOfValues : Infinity)
+    return this.dimensions[column].group().top(numberOfValues || Infinity)
   },
-
 
   setBoundingBox: function (visible) {
     this.visibleTiles = visible
   },
 
-  getMax: function (column) { 
+  getMax: function (column) {
     this._createDimension(column)
     try {
       return this.dimensions[column].top(1)[0].properties[column]
-    }
-    catch(e) {
+    } catch (e) {
       return null
     }
   },
 
-  getMin: function (column) { 
+  getMin: function (column) {
     this._createDimension(column)
     try {
       return this.dimensions[column].bottom(1)[0].properties[column]
-    }
-    catch(e) {
+    } catch (e) {
       return null
     }
   },
@@ -304,26 +303,24 @@ module.exports = {
     var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
     return {x: x_mercator, y: y_mercator}
   },
-  webmercator2Geo: function(x, y) {
-    
-  },
   wrapX: function (x, zoom) {
     var limit_x = Math.pow(2, zoom)
     var corrected_x = ((x % limit_x) + limit_x) % limit_x
     return corrected_x
   },
   hashFeature: function (id, tilePoint) {
-    var x = tilePoint.x, z = tilePoint.zoom
+    var x = tilePoint.x
+    var z = tilePoint.zoom
     if (typeof tilePoint === 'string') {
-      tilePoint = tilePoint.split(":")
+      tilePoint = tilePoint.split(':')
       x = tilePoint[0]
       z = tilePoint[2]
     }
     var pane = Math.floor(x / Math.pow(2, z))
     return [id, pane].join(':')
   },
-  lng2tile: function (lon,zoom) { return (Math.floor((lon+180)/360*Math.pow(2,zoom))); },
-  lat2tile: function (lat,zoom) { return (Math.floor((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom))); },
+  lng2tile: function (lon, zoom) { return (Math.floor((lon + 180) / 360 * Math.pow(2, zoom))) },
+  lat2tile: function (lat, zoom) { return (Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))) },
 
   latLng2Tile: function (lat, lng, zoom) {
     return {x: this.lng2tile(lng, zoom),
@@ -347,7 +344,7 @@ module.exports = {
 
   pointInBB: function (boundingBox, feature) {
     return (boundingBox.se.x >= feature[0] &&
-      feature[0] >= boundingBox.nw.x && 
+      feature[0] >= boundingBox.nw.x &&
       boundingBox.se.y <= feature[1] &&
       feature[1] <= boundingBox.nw.y)
   }
@@ -433,13 +430,12 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     var seTile = geo.latLng2Tile(southEast.lat, southEast.lng, zoom)
     var tiles = []
     var ring = []
-    for(var y = nwTile.y; y<=seTile.y; y++) {
-      for(var x = nwTile.x; x<=seTile.x; x++) {
-        if (y === nwTile.y || y === seTile.y || x === nwTile.x || x === seTile.x){
-          ring.push([x,y,zoom].join(':'))
-        }
-        else{
-          tiles.push([x,y,zoom].join(':'))
+    for (var y = nwTile.y; y <= seTile.y; y++) {
+      for (var x = nwTile.x; x <= seTile.x; x++) {
+        if (y === nwTile.y || y === seTile.y || x === nwTile.x || x === seTile.x) {
+          ring.push([x, y, zoom].join(':'))
+        } else {
+          tiles.push([x, y, zoom].join(':'))
         }
       }
     }
@@ -573,7 +569,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       r.filter.on('filterApplied', function () {
         self.fire('featuresChanged', self.getFeatures())
       })
-      for (var key in self.eventCallbacks){
+      for (var key in self.eventCallbacks) {
         r.on(key, self.eventCallbacks[key])
       }
     })
@@ -615,7 +611,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.renderers.forEach(function (r) {
       r.filter.removeTile(tilePoint)
     })
-    if (this._tileContainer.hasChildNodes(this.svgTiles[data.tileKey])){
+    if (this.svgTiles[data.tileKey].parentNode === this._tileContainer) {
       this._tileContainer.removeChild(this.svgTiles[data.tileKey])
     }
     delete this.svgTiles[data.tileKey]
@@ -1080,7 +1076,7 @@ Renderer.prototype = {
 
   on: function (eventName, callback) {
     var self = this
-    if (eventName ==='featureOver') {
+    if (eventName === 'featureOver') {
       this.events.featureOver = function (f) {
         this.style.cursor = 'pointer'
         var selection = d3.select(this)
@@ -1091,7 +1087,7 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureOver(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featureOut') {
+    } else if (eventName === 'featureOut') {
       this.events.featureOut = function (f) {
         var selection = d3.select(this)
         var properties = selection.data()[0].properties
@@ -1105,7 +1101,7 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureOut(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featureClick') {
+    } else if (eventName === 'featureClick') {
       this.events.featureClick = function (f) {
         var selection = d3.select(this)
         var properties = selection.data()[0].properties
@@ -1115,45 +1111,45 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureClick(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featuresChanged') {
+    } else if (eventName === 'featuresChanged') {
       this.filter.on('featuresChanged', callback)
     }
   },
 
   _getLayerPointFromEvent: function (map, event) {
-    var curleft = 0;
-    var curtop = 0;
-    var obj = map.getContainer();
+    var curleft = 0
+    var curtop = 0
+    var obj = map.getContainer()
 
-    var x, y;
+    var x, y
     if (event.changedTouches && event.changedTouches.length > 0) {
-      x = event.changedTouches[0].clientX + window.scrollX;
-      y = event.changedTouches[0].clientY + window.scrollY;
+      x = event.changedTouches[0].clientX + window.scrollX
+      y = event.changedTouches[0].clientY + window.scrollY
     } else {
-      x = event.clientX;
-      y = event.clientY;
+      x = event.clientX
+      y = event.clientY
     }
 
-    var pointX;
-    var pointY;
+    var pointX
+    var pointY
     // If the map is fixed at the top of the window, we can't use offsetParent
     // cause there might be some scrolling that we need to take into account.
     if (obj.offsetParent && obj.offsetTop > 0) {
       do {
-        curleft += obj.offsetLeft;
-        curtop += obj.offsetTop;
-      } while (obj = obj.offsetParent);
-      pointX = x - curleft;
-      pointY = y - curtop;
+        curleft += obj.offsetLeft
+        curtop += obj.offsetTop
+      } while (obj = obj.offsetParent)  // eslint-disable-line
+      pointX = x - curleft
+      pointY = y - curtop
     } else {
-      var rect = obj.getBoundingClientRect();
-      var scrollX = (window.scrollX || window.pageXOffset);
-      var scrollY = (window.scrollY || window.pageYOffset);
-      pointX = (event.clientX ? event.clientX : x) - rect.left - obj.clientLeft - scrollX;
-      pointY = (event.clientY ? event.clientY : y) - rect.top - obj.clientTop - scrollY;
+      var rect = obj.getBoundingClientRect()
+      var scrollX = (window.scrollX || window.pageXOffset)
+      var scrollY = (window.scrollY || window.pageYOffset)
+      pointX = (event.clientX ? event.clientX : x) - rect.left - obj.clientLeft - scrollX
+      pointY = (event.clientY ? event.clientY : y) - rect.top - obj.clientTop - scrollY
     }
-    var point = new L.Point(pointX, pointY);
-    return map.containerPointToLayerPoint(point);
+    var point = new window.L.Point(pointX, pointY)
+    return map.containerPointToLayerPoint(point)
   },
 
   redraw: function (updating) {
@@ -1210,7 +1206,7 @@ Renderer.prototype = {
         'stroke-width': function (d) { return d[shaderName]['line-width'] },
         'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
         'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
       }
     } else if (symbolyzer === 'markers') {
       return {
@@ -1223,7 +1219,7 @@ Renderer.prototype = {
           return d[shaderName]['marker-width'] / 2
         },
         'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
       }
     } else if (symbolyzer === 'text') {
       return {
@@ -1253,11 +1249,10 @@ Renderer.prototype = {
   render: function (svg, collection, tilePoint, updating) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
-    var g, styleLayers
+    var g
     var svgSel = d3.select(svg)
     if (svg.children[this.index]) {
       g = d3.select(svg.children[this.index])
-      styleLayers = g.data()
     } else {
       g = svgSel.append('g')
     }
@@ -1273,7 +1268,7 @@ Renderer.prototype = {
     layers.forEach(function (layer, i) {
       var thisGroup
       var children = g[0][0].children
-      if(!children[i]) thisGroup = g.append('g')
+      if (!children[i]) thisGroup = g.append('g')
       else thisGroup = d3.select(children[i])
       var sym = self._getSymbolizer(layer)
       var features
@@ -1349,13 +1344,12 @@ Renderer.prototype = {
       features.enter().append('svg:text').attr('class', sym)
     } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
-      features.each(function(f) {
-        if (f.coordinates[0]){
+      features.each(function (f) {
+        if (f.coordinates[0]) {
           var coords = self.projection.apply(this, f.coordinates)
           this.setAttribute('cx', coords.x)
           this.setAttribute('cy', coords.y)
-        }
-        else{
+        } else {
           this.parentElement.removeChild(this)
         }
       })
@@ -1390,8 +1384,7 @@ Renderer.prototype = {
       if (d.geometry.coordinates[0]) {
         var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
         return p.x
-      }
-      else {
+      } else {
         this.remove()
       }
     })
@@ -1399,8 +1392,7 @@ Renderer.prototype = {
       if (d.geometry.coordinates[0]) {
         var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
         return p.y
-      }
-      else {
+      } else {
         this.remove()
       }
     })
@@ -1411,7 +1403,7 @@ Renderer.prototype = {
 Renderer.getIndexFromFeature = function (element) {
   var i = 0
   var node = element.parentElement.parentElement
-  while (node = node.previousSibling) i ++
+  while (node = node.previousSibling) i++ // eslint-disable-line
   return i
 }
 
@@ -1439,7 +1431,6 @@ module.exports = L.Class.extend({
   includes: L.Mixin.Events,
 
   initialize: function (options) {
-    var self = this
     this.options = options
     this.provider = options.provider
     this._map = options.map
@@ -1616,7 +1607,7 @@ module.exports = {
         var lyr = new L.CartoDBd3Layer({
           user: cartodbLayer.options.user_name,
           layers: layers,
-          styles: layers.map(function(l) { return l.cartocss })
+          styles: layers.map(function (l) { return l.cartocss })
         }).addTo(map)
 
         done(null, lyr, layers)
