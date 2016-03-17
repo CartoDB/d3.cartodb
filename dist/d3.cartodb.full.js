@@ -10114,7 +10114,7 @@ module.exports = require("./crossfilter").crossfilter;
 },{"./crossfilter":46}],48:[function(require,module,exports){
 !function() {
   var d3 = {
-    version: "3.5.9"
+    version: "3.5.16"
   };
   var d3_arraySlice = [].slice, d3_array = function(list) {
     return d3_arraySlice.call(list);
@@ -10334,20 +10334,20 @@ module.exports = require("./crossfilter").crossfilter;
     while (i < n) pairs[i] = [ p0 = p1, p1 = array[++i] ];
     return pairs;
   };
-  d3.zip = function() {
-    if (!(n = arguments.length)) return [];
-    for (var i = -1, m = d3.min(arguments, d3_zipLength), zips = new Array(m); ++i < m; ) {
-      for (var j = -1, n, zip = zips[i] = new Array(n); ++j < n; ) {
-        zip[j] = arguments[j][i];
+  d3.transpose = function(matrix) {
+    if (!(n = matrix.length)) return [];
+    for (var i = -1, m = d3.min(matrix, d3_transposeLength), transpose = new Array(m); ++i < m; ) {
+      for (var j = -1, n, row = transpose[i] = new Array(n); ++j < n; ) {
+        row[j] = matrix[j][i];
       }
     }
-    return zips;
+    return transpose;
   };
-  function d3_zipLength(d) {
+  function d3_transposeLength(d) {
     return d.length;
   }
-  d3.transpose = function(matrix) {
-    return d3.zip.apply(d3, matrix);
+  d3.zip = function() {
+    return d3.transpose(arguments);
   };
   d3.keys = function(map) {
     var keys = [];
@@ -10734,9 +10734,10 @@ module.exports = require("./crossfilter").crossfilter;
       return d3_selectAll(selector, this);
     };
   }
+  var d3_nsXhtml = "http://www.w3.org/1999/xhtml";
   var d3_nsPrefix = {
     svg: "http://www.w3.org/2000/svg",
-    xhtml: "http://www.w3.org/1999/xhtml",
+    xhtml: d3_nsXhtml,
     xlink: "http://www.w3.org/1999/xlink",
     xml: "http://www.w3.org/XML/1998/namespace",
     xmlns: "http://www.w3.org/2000/xmlns/"
@@ -10919,7 +10920,7 @@ module.exports = require("./crossfilter").crossfilter;
   function d3_selection_creator(name) {
     function create() {
       var document = this.ownerDocument, namespace = this.namespaceURI;
-      return namespace ? document.createElementNS(namespace, name) : document.createElement(name);
+      return namespace === d3_nsXhtml && document.documentElement.namespaceURI === d3_nsXhtml ? document.createElement(name) : document.createElementNS(namespace, name);
     }
     function createNS() {
       return this.ownerDocument.createElementNS(name.space, name.local);
@@ -11318,7 +11319,7 @@ module.exports = require("./crossfilter").crossfilter;
     }
     function dragstart(id, position, subject, move, end) {
       return function() {
-        var that = this, target = d3.event.target, parent = that.parentNode, dispatch = event.of(that, arguments), dragged = 0, dragId = id(), dragName = ".drag" + (dragId == null ? "" : "-" + dragId), dragOffset, dragSubject = d3.select(subject(target)).on(move + dragName, moved).on(end + dragName, ended), dragRestore = d3_event_dragSuppress(target), position0 = position(parent, dragId);
+        var that = this, target = d3.event.target.correspondingElement || d3.event.target, parent = that.parentNode, dispatch = event.of(that, arguments), dragged = 0, dragId = id(), dragName = ".drag" + (dragId == null ? "" : "-" + dragId), dragOffset, dragSubject = d3.select(subject(target)).on(move + dragName, moved).on(end + dragName, ended), dragRestore = d3_event_dragSuppress(target), position0 = position(parent, dragId);
         if (origin) {
           dragOffset = origin.apply(that, arguments);
           dragOffset = [ dragOffset.x - position0[0], dragOffset.y - position0[1] ];
@@ -16271,7 +16272,7 @@ module.exports = require("./crossfilter").crossfilter;
           index: di,
           startAngle: x0,
           endAngle: x,
-          value: (x - x0) / k
+          value: groupSums[di]
         };
         x += padding;
       }
@@ -16481,7 +16482,7 @@ module.exports = require("./crossfilter").crossfilter;
           alpha = x;
         } else {
           timer.c = null, timer.t = NaN, timer = null;
-          event.start({
+          event.end({
             type: "end",
             alpha: alpha = 0
           });
@@ -17679,7 +17680,9 @@ module.exports = require("./crossfilter").crossfilter;
     return d3.rebind(scale, linear, "range", "rangeRound", "interpolate", "clamp");
   }
   function d3_scale_linearNice(domain, m) {
-    return d3_scale_nice(domain, d3_scale_niceStep(d3_scale_linearTickRange(domain, m)[2]));
+    d3_scale_nice(domain, d3_scale_niceStep(d3_scale_linearTickRange(domain, m)[2]));
+    d3_scale_nice(domain, d3_scale_niceStep(d3_scale_linearTickRange(domain, m)[2]));
+    return domain;
   }
   function d3_scale_linearTickRange(domain, m) {
     if (m == null) m = 10;
@@ -17781,10 +17784,11 @@ module.exports = require("./crossfilter").crossfilter;
     scale.tickFormat = function(n, format) {
       if (!arguments.length) return d3_scale_logFormat;
       if (arguments.length < 2) format = d3_scale_logFormat; else if (typeof format !== "function") format = d3.format(format);
-      var k = Math.max(.1, n / scale.ticks().length), f = positive ? (e = 1e-12, Math.ceil) : (e = -1e-12, 
-      Math.floor), e;
+      var k = Math.max(1, base * n / scale.ticks().length);
       return function(d) {
-        return d / pow(f(log(d) + e)) <= k ? format(d) : "";
+        var i = d / pow(Math.round(log(d)));
+        if (i * base < base - .5) i *= base;
+        return i <= k ? format(d) : "";
       };
     };
     scale.copy = function() {
@@ -19663,17 +19667,135 @@ module.exports = require("./crossfilter").crossfilter;
   if (typeof define === "function" && define.amd) this.d3 = d3, define(d3); else if (typeof module === "object" && module.exports) module.exports = d3; else this.d3 = d3;
 }();
 },{}],49:[function(require,module,exports){
-!function() {
-  var topojson = {
-    version: "1.6.19",
-    mesh: function(topology) { return object(topology, meshArcs.apply(this, arguments)); },
-    meshArcs: meshArcs,
-    merge: function(topology) { return object(topology, mergeArcs.apply(this, arguments)); },
-    mergeArcs: mergeArcs,
-    feature: featureOrCollection,
-    neighbors: neighbors,
-    presimplify: presimplify
-  };
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (factory((global.topojson = {})));
+}(this, function (exports) { 'use strict';
+
+  function noop() {}
+
+  function absolute(transform) {
+    if (!transform) return noop;
+    var x0,
+        y0,
+        kx = transform.scale[0],
+        ky = transform.scale[1],
+        dx = transform.translate[0],
+        dy = transform.translate[1];
+    return function(point, i) {
+      if (!i) x0 = y0 = 0;
+      point[0] = (x0 += point[0]) * kx + dx;
+      point[1] = (y0 += point[1]) * ky + dy;
+    };
+  }
+
+  function relative(transform) {
+    if (!transform) return noop;
+    var x0,
+        y0,
+        kx = transform.scale[0],
+        ky = transform.scale[1],
+        dx = transform.translate[0],
+        dy = transform.translate[1];
+    return function(point, i) {
+      if (!i) x0 = y0 = 0;
+      var x1 = (point[0] - dx) / kx | 0,
+          y1 = (point[1] - dy) / ky | 0;
+      point[0] = x1 - x0;
+      point[1] = y1 - y0;
+      x0 = x1;
+      y0 = y1;
+    };
+  }
+
+  function reverse(array, n) {
+    var t, j = array.length, i = j - n;
+    while (i < --j) t = array[i], array[i++] = array[j], array[j] = t;
+  }
+
+  function bisect(a, x) {
+    var lo = 0, hi = a.length;
+    while (lo < hi) {
+      var mid = lo + hi >>> 1;
+      if (a[mid] < x) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+
+  function feature(topology, o) {
+    return o.type === "GeometryCollection" ? {
+      type: "FeatureCollection",
+      features: o.geometries.map(function(o) { return feature$1(topology, o); })
+    } : feature$1(topology, o);
+  }
+
+  function feature$1(topology, o) {
+    var f = {
+      type: "Feature",
+      id: o.id,
+      properties: o.properties || {},
+      geometry: object(topology, o)
+    };
+    if (o.id == null) delete f.id;
+    return f;
+  }
+
+  function object(topology, o) {
+    var absolute$$ = absolute(topology.transform),
+        arcs = topology.arcs;
+
+    function arc(i, points) {
+      if (points.length) points.pop();
+      for (var a = arcs[i < 0 ? ~i : i], k = 0, n = a.length, p; k < n; ++k) {
+        points.push(p = a[k].slice());
+        absolute$$(p, k);
+      }
+      if (i < 0) reverse(points, n);
+    }
+
+    function point(p) {
+      p = p.slice();
+      absolute$$(p, 0);
+      return p;
+    }
+
+    function line(arcs) {
+      var points = [];
+      for (var i = 0, n = arcs.length; i < n; ++i) arc(arcs[i], points);
+      if (points.length < 2) points.push(points[0].slice());
+      return points;
+    }
+
+    function ring(arcs) {
+      var points = line(arcs);
+      while (points.length < 4) points.push(points[0].slice());
+      return points;
+    }
+
+    function polygon(arcs) {
+      return arcs.map(ring);
+    }
+
+    function geometry(o) {
+      var t = o.type;
+      return t === "GeometryCollection" ? {type: t, geometries: o.geometries.map(geometry)}
+          : t in geometryType ? {type: t, coordinates: geometryType[t](o)}
+          : null;
+    }
+
+    var geometryType = {
+      Point: function(o) { return point(o.coordinates); },
+      MultiPoint: function(o) { return o.coordinates.map(point); },
+      LineString: function(o) { return line(o.arcs); },
+      MultiLineString: function(o) { return o.arcs.map(line); },
+      Polygon: function(o) { return polygon(o.arcs); },
+      MultiPolygon: function(o) { return o.arcs.map(polygon); }
+    };
+
+    return geometry(o);
+  }
 
   function stitchArcs(topology, arcs) {
     var stitchedArcs = {},
@@ -19749,30 +19871,34 @@ module.exports = require("./crossfilter").crossfilter;
     return fragments;
   }
 
+  function mesh(topology) {
+    return object(topology, meshArcs.apply(this, arguments));
+  }
+
   function meshArcs(topology, o, filter) {
     var arcs = [];
+
+    function arc(i) {
+      var j = i < 0 ? ~i : i;
+      (geomsByArc[j] || (geomsByArc[j] = [])).push({i: i, g: geom});
+    }
+
+    function line(arcs) {
+      arcs.forEach(arc);
+    }
+
+    function polygon(arcs) {
+      arcs.forEach(line);
+    }
+
+    function geometry(o) {
+      if (o.type === "GeometryCollection") o.geometries.forEach(geometry);
+      else if (o.type in geometryType) geom = o, geometryType[o.type](o.arcs);
+    }
 
     if (arguments.length > 1) {
       var geomsByArc = [],
           geom;
-
-      function arc(i) {
-        var j = i < 0 ? ~i : i;
-        (geomsByArc[j] || (geomsByArc[j] = [])).push({i: i, g: geom});
-      }
-
-      function line(arcs) {
-        arcs.forEach(arc);
-      }
-
-      function polygon(arcs) {
-        arcs.forEach(line);
-      }
-
-      function geometry(o) {
-        if (o.type === "GeometryCollection") o.geometries.forEach(geometry);
-        else if (o.type in geometryType) geom = o, geometryType[o.type](o.arcs);
-      }
 
       var geometryType = {
         LineString: line,
@@ -19793,6 +19919,31 @@ module.exports = require("./crossfilter").crossfilter;
     return {type: "MultiLineString", arcs: stitchArcs(topology, arcs)};
   }
 
+  function triangle(triangle) {
+    var a = triangle[0], b = triangle[1], c = triangle[2];
+    return Math.abs((a[0] - c[0]) * (b[1] - a[1]) - (a[0] - b[0]) * (c[1] - a[1]));
+  }
+
+  function ring(ring) {
+    var i = -1,
+        n = ring.length,
+        a,
+        b = ring[n - 1],
+        area = 0;
+
+    while (++i < n) {
+      a = b;
+      b = ring[i];
+      area += a[0] * b[1] - a[1] * b[0];
+    }
+
+    return area / 2;
+  }
+
+  function merge(topology) {
+    return object(topology, mergeArcs.apply(this, arguments));
+  }
+
   function mergeArcs(topology, objects) {
     var polygonsByArc = {},
         polygons = [],
@@ -19804,16 +19955,16 @@ module.exports = require("./crossfilter").crossfilter;
     });
 
     function register(polygon) {
-      polygon.forEach(function(ring) {
-        ring.forEach(function(arc) {
+      polygon.forEach(function(ring$$) {
+        ring$$.forEach(function(arc) {
           (polygonsByArc[arc = arc < 0 ? ~arc : arc] || (polygonsByArc[arc] = [])).push(polygon);
         });
       });
       polygons.push(polygon);
     }
 
-    function exterior(ring) {
-      return cartesianRingArea(object(topology, {type: "Polygon", arcs: [ring]}).coordinates[0]) > 0; // TODO allow spherical?
+    function exterior(ring$$) {
+      return ring(object(topology, {type: "Polygon", arcs: [ring$$]}).coordinates[0]) > 0; // TODO allow spherical?
     }
 
     polygons.forEach(function(polygon) {
@@ -19824,8 +19975,8 @@ module.exports = require("./crossfilter").crossfilter;
         components.push(component);
         while (polygon = neighbors.pop()) {
           component.push(polygon);
-          polygon.forEach(function(ring) {
-            ring.forEach(function(arc) {
+          polygon.forEach(function(ring$$) {
+            ring$$.forEach(function(arc) {
               polygonsByArc[arc < 0 ? ~arc : arc].forEach(function(polygon) {
                 if (!polygon._) {
                   polygon._ = 1;
@@ -19845,12 +19996,12 @@ module.exports = require("./crossfilter").crossfilter;
     return {
       type: "MultiPolygon",
       arcs: components.map(function(polygons) {
-        var arcs = [];
+        var arcs = [], n;
 
         // Extract the exterior (unique) arcs.
         polygons.forEach(function(polygon) {
-          polygon.forEach(function(ring) {
-            ring.forEach(function(arc) {
+          polygon.forEach(function(ring$$) {
+            ring$$.forEach(function(arc) {
               if (polygonsByArc[arc < 0 ? ~arc : arc].length < 2) {
                 arcs.push(arc);
               }
@@ -19878,93 +20029,6 @@ module.exports = require("./crossfilter").crossfilter;
         return arcs;
       })
     };
-  }
-
-  function featureOrCollection(topology, o) {
-    return o.type === "GeometryCollection" ? {
-      type: "FeatureCollection",
-      features: o.geometries.map(function(o) { return feature(topology, o); })
-    } : feature(topology, o);
-  }
-
-  function feature(topology, o) {
-    var f = {
-      type: "Feature",
-      id: o.id,
-      properties: o.properties || {},
-      geometry: object(topology, o)
-    };
-    if (o.id == null) delete f.id;
-    return f;
-  }
-
-  function object(topology, o) {
-    var absolute = transformAbsolute(topology.transform),
-        arcs = topology.arcs;
-
-    function arc(i, points) {
-      if (points.length) points.pop();
-      for (var a = arcs[i < 0 ? ~i : i], k = 0, n = a.length, p; k < n; ++k) {
-        points.push(p = a[k].slice());
-        absolute(p, k);
-      }
-      if (i < 0) reverse(points, n);
-    }
-
-    function point(p) {
-      p = p.slice();
-      absolute(p, 0);
-      return p;
-    }
-
-    function line(arcs) {
-      var points = [];
-      for (var i = 0, n = arcs.length; i < n; ++i) arc(arcs[i], points);
-      if (points.length < 2) points.push(points[0].slice());
-      return points;
-    }
-
-    function ring(arcs) {
-      var points = line(arcs);
-      while (points.length < 4) points.push(points[0].slice());
-      return points;
-    }
-
-    function polygon(arcs) {
-      return arcs.map(ring);
-    }
-
-    function geometry(o) {
-      var t = o.type;
-      return t === "GeometryCollection" ? {type: t, geometries: o.geometries.map(geometry)}
-          : t in geometryType ? {type: t, coordinates: geometryType[t](o)}
-          : null;
-    }
-
-    var geometryType = {
-      Point: function(o) { return point(o.coordinates); },
-      MultiPoint: function(o) { return o.coordinates.map(point); },
-      LineString: function(o) { return line(o.arcs); },
-      MultiLineString: function(o) { return o.arcs.map(line); },
-      Polygon: function(o) { return polygon(o.arcs); },
-      MultiPolygon: function(o) { return o.arcs.map(polygon); }
-    };
-
-    return geometry(o);
-  }
-
-  function reverse(array, n) {
-    var t, j = array.length, i = j - n; while (i < --j) t = array[i], array[i++] = array[j], array[j] = t;
-  }
-
-  function bisect(a, x) {
-    var lo = 0, hi = a.length;
-    while (lo < hi) {
-      var mid = lo + hi >>> 1;
-      if (a[mid] < x) lo = mid + 1;
-      else hi = mid;
-    }
-    return lo;
   }
 
   function neighbors(objects) {
@@ -20009,97 +20073,6 @@ module.exports = require("./crossfilter").crossfilter;
     }
 
     return neighbors;
-  }
-
-  function presimplify(topology, triangleArea) {
-    var absolute = transformAbsolute(topology.transform),
-        relative = transformRelative(topology.transform),
-        heap = minAreaHeap();
-
-    if (!triangleArea) triangleArea = cartesianTriangleArea;
-
-    topology.arcs.forEach(function(arc) {
-      var triangles = [],
-          maxArea = 0,
-          triangle;
-
-      // To store each point’s effective area, we create a new array rather than
-      // extending the passed-in point to workaround a Chrome/V8 bug (getting
-      // stuck in smi mode). For midpoints, the initial effective area of
-      // Infinity will be computed in the next step.
-      for (var i = 0, n = arc.length, p; i < n; ++i) {
-        p = arc[i];
-        absolute(arc[i] = [p[0], p[1], Infinity], i);
-      }
-
-      for (var i = 1, n = arc.length - 1; i < n; ++i) {
-        triangle = arc.slice(i - 1, i + 2);
-        triangle[1][2] = triangleArea(triangle);
-        triangles.push(triangle);
-        heap.push(triangle);
-      }
-
-      for (var i = 0, n = triangles.length; i < n; ++i) {
-        triangle = triangles[i];
-        triangle.previous = triangles[i - 1];
-        triangle.next = triangles[i + 1];
-      }
-
-      while (triangle = heap.pop()) {
-        var previous = triangle.previous,
-            next = triangle.next;
-
-        // If the area of the current point is less than that of the previous point
-        // to be eliminated, use the latter's area instead. This ensures that the
-        // current point cannot be eliminated without eliminating previously-
-        // eliminated points.
-        if (triangle[1][2] < maxArea) triangle[1][2] = maxArea;
-        else maxArea = triangle[1][2];
-
-        if (previous) {
-          previous.next = next;
-          previous[2] = triangle[2];
-          update(previous);
-        }
-
-        if (next) {
-          next.previous = previous;
-          next[0] = triangle[0];
-          update(next);
-        }
-      }
-
-      arc.forEach(relative);
-    });
-
-    function update(triangle) {
-      heap.remove(triangle);
-      triangle[1][2] = triangleArea(triangle);
-      heap.push(triangle);
-    }
-
-    return topology;
-  };
-
-  function cartesianRingArea(ring) {
-    var i = -1,
-        n = ring.length,
-        a,
-        b = ring[n - 1],
-        area = 0;
-
-    while (++i < n) {
-      a = b;
-      b = ring[i];
-      area += a[0] * b[1] - a[1] * b[0];
-    }
-
-    return area * .5;
-  }
-
-  function cartesianTriangleArea(triangle) {
-    var a = triangle[0], b = triangle[1], c = triangle[2];
-    return Math.abs((a[0] - c[0]) * (b[1] - a[1]) - (a[0] - b[0]) * (c[1] - a[1]));
   }
 
   function compareArea(a, b) {
@@ -20157,47 +20130,91 @@ module.exports = require("./crossfilter").crossfilter;
     return heap;
   }
 
-  function transformAbsolute(transform) {
-    if (!transform) return noop;
-    var x0,
-        y0,
-        kx = transform.scale[0],
-        ky = transform.scale[1],
-        dx = transform.translate[0],
-        dy = transform.translate[1];
-    return function(point, i) {
-      if (!i) x0 = y0 = 0;
-      point[0] = (x0 += point[0]) * kx + dx;
-      point[1] = (y0 += point[1]) * ky + dy;
-    };
+  function presimplify(topology, triangleArea) {
+    var absolute$$ = absolute(topology.transform),
+        relative$$ = relative(topology.transform),
+        heap = minAreaHeap();
+
+    if (!triangleArea) triangleArea = triangle;
+
+    topology.arcs.forEach(function(arc) {
+      var triangles = [],
+          maxArea = 0,
+          triangle,
+          i,
+          n,
+          p;
+
+      // To store each point’s effective area, we create a new array rather than
+      // extending the passed-in point to workaround a Chrome/V8 bug (getting
+      // stuck in smi mode). For midpoints, the initial effective area of
+      // Infinity will be computed in the next step.
+      for (i = 0, n = arc.length; i < n; ++i) {
+        p = arc[i];
+        absolute$$(arc[i] = [p[0], p[1], Infinity], i);
+      }
+
+      for (i = 1, n = arc.length - 1; i < n; ++i) {
+        triangle = arc.slice(i - 1, i + 2);
+        triangle[1][2] = triangleArea(triangle);
+        triangles.push(triangle);
+        heap.push(triangle);
+      }
+
+      for (i = 0, n = triangles.length; i < n; ++i) {
+        triangle = triangles[i];
+        triangle.previous = triangles[i - 1];
+        triangle.next = triangles[i + 1];
+      }
+
+      while (triangle = heap.pop()) {
+        var previous = triangle.previous,
+            next = triangle.next;
+
+        // If the area of the current point is less than that of the previous point
+        // to be eliminated, use the latter's area instead. This ensures that the
+        // current point cannot be eliminated without eliminating previously-
+        // eliminated points.
+        if (triangle[1][2] < maxArea) triangle[1][2] = maxArea;
+        else maxArea = triangle[1][2];
+
+        if (previous) {
+          previous.next = next;
+          previous[2] = triangle[2];
+          update(previous);
+        }
+
+        if (next) {
+          next.previous = previous;
+          next[0] = triangle[0];
+          update(next);
+        }
+      }
+
+      arc.forEach(relative$$);
+    });
+
+    function update(triangle) {
+      heap.remove(triangle);
+      triangle[1][2] = triangleArea(triangle);
+      heap.push(triangle);
+    }
+
+    return topology;
   }
 
-  function transformRelative(transform) {
-    if (!transform) return noop;
-    var x0,
-        y0,
-        kx = transform.scale[0],
-        ky = transform.scale[1],
-        dx = transform.translate[0],
-        dy = transform.translate[1];
-    return function(point, i) {
-      if (!i) x0 = y0 = 0;
-      var x1 = (point[0] - dx) / kx | 0,
-          y1 = (point[1] - dy) / ky | 0;
-      point[0] = x1 - x0;
-      point[1] = y1 - y0;
-      x0 = x1;
-      y0 = y1;
-    };
-  }
+  var version = "1.6.24";
 
-  function noop() {}
+  exports.version = version;
+  exports.mesh = mesh;
+  exports.meshArcs = meshArcs;
+  exports.merge = merge;
+  exports.mergeArcs = mergeArcs;
+  exports.feature = feature;
+  exports.neighbors = neighbors;
+  exports.presimplify = presimplify;
 
-  if (typeof define === "function" && define.amd) define(topojson);
-  else if (typeof module === "object" && module.exports) module.exports = topojson;
-  else this.topojson = topojson;
-}();
-
+}));
 },{}],50:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
@@ -21861,10 +21878,13 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   addTile: function (tilePoint, collection) {
     var tilePointString = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
-    this.crossfilter.add(collection.features.map(function (f) {
+    var featuresToAdd = []
+    collection.features.forEach(function (f) {
+      if (f.geometry.type === 'GeometryCollection') return
       f.properties.tilePoint = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
-      return f
-    }))
+      featuresToAdd.push(f)
+    })
+    this.crossfilter.add(featuresToAdd)
     this.tiles[tilePointString] = true
     return this.getTile(tilePoint)
   },
@@ -21928,13 +21948,12 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   getValues: function (ownFilter, column) {
     if (!this.dimensions['tiles']) return []
     var values = []
-    if (typeof ownFilter === 'undefined' || ownFilter){
+    if (typeof ownFilter === 'undefined' || ownFilter) {
       values = this.dimensions['tiles'].top(Infinity)
-    }
-    else {
+    } else {
       this._createDimension(column)
       this.dimensions[column].filterAll()
-      var values = this.dimensions[column].top(Infinity)
+      values = this.dimensions[column].top(Infinity)
       this.dimensions[column].filter(this.filters[column])
     }
     var uniqueValues = []
@@ -21946,7 +21965,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       }
     }
     if (this.visibleTiles.se) {
-      uniqueValues = uniqueValues.filter(function(feature) {
+      uniqueValues = uniqueValues.filter(function (feature) {
         return geo.contains(this.visibleTiles, feature)
       }.bind(this))
     }
@@ -21956,30 +21975,27 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
 
   getColumnValues: function (column, numberOfValues) {
     this._createDimension(column)
-    return this.dimensions[column].group().top(numberOfValues ? numberOfValues : Infinity)
+    return this.dimensions[column].group().top(numberOfValues || Infinity)
   },
-
 
   setBoundingBox: function (visible) {
     this.visibleTiles = visible
   },
 
-  getMax: function (column) { 
+  getMax: function (column) {
     this._createDimension(column)
     try {
       return this.dimensions[column].top(1)[0].properties[column]
-    }
-    catch(e) {
+    } catch (e) {
       return null
     }
   },
 
-  getMin: function (column) { 
+  getMin: function (column) {
     this._createDimension(column)
     try {
       return this.dimensions[column].bottom(1)[0].properties[column]
-    }
-    catch(e) {
+    } catch (e) {
       return null
     }
   },
@@ -22054,26 +22070,24 @@ module.exports = {
     var y_mercator = 3189068.5 * Math.log((1.0 + Math.sin(a)) / (1.0 - Math.sin(a)))
     return {x: x_mercator, y: y_mercator}
   },
-  webmercator2Geo: function(x, y) {
-    
-  },
   wrapX: function (x, zoom) {
     var limit_x = Math.pow(2, zoom)
     var corrected_x = ((x % limit_x) + limit_x) % limit_x
     return corrected_x
   },
   hashFeature: function (id, tilePoint) {
-    var x = tilePoint.x, z = tilePoint.zoom
+    var x = tilePoint.x
+    var z = tilePoint.zoom
     if (typeof tilePoint === 'string') {
-      tilePoint = tilePoint.split(":")
+      tilePoint = tilePoint.split(':')
       x = tilePoint[0]
       z = tilePoint[2]
     }
     var pane = Math.floor(x / Math.pow(2, z))
     return [id, pane].join(':')
   },
-  lng2tile: function (lon,zoom) { return (Math.floor((lon+180)/360*Math.pow(2,zoom))); },
-  lat2tile: function (lat,zoom) { return (Math.floor((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom))); },
+  lng2tile: function (lon, zoom) { return (Math.floor((lon + 180) / 360 * Math.pow(2, zoom))) },
+  lat2tile: function (lat, zoom) { return (Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))) },
 
   latLng2Tile: function (lat, lng, zoom) {
     return {x: this.lng2tile(lng, zoom),
@@ -22097,7 +22111,7 @@ module.exports = {
 
   pointInBB: function (boundingBox, feature) {
     return (boundingBox.se.x >= feature[0] &&
-      feature[0] >= boundingBox.nw.x && 
+      feature[0] >= boundingBox.nw.x &&
       boundingBox.se.y <= feature[1] &&
       feature[1] <= boundingBox.nw.y)
   }
@@ -22183,13 +22197,12 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     var seTile = geo.latLng2Tile(southEast.lat, southEast.lng, zoom)
     var tiles = []
     var ring = []
-    for(var y = nwTile.y; y<=seTile.y; y++) {
-      for(var x = nwTile.x; x<=seTile.x; x++) {
-        if (y === nwTile.y || y === seTile.y || x === nwTile.x || x === seTile.x){
-          ring.push([x,y,zoom].join(':'))
-        }
-        else{
-          tiles.push([x,y,zoom].join(':'))
+    for (var y = nwTile.y; y <= seTile.y; y++) {
+      for (var x = nwTile.x; x <= seTile.x; x++) {
+        if (y === nwTile.y || y === seTile.y || x === nwTile.x || x === seTile.x) {
+          ring.push([x, y, zoom].join(':'))
+        } else {
+          tiles.push([x, y, zoom].join(':'))
         }
       }
     }
@@ -22323,7 +22336,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
       r.filter.on('filterApplied', function () {
         self.fire('featuresChanged', self.getFeatures())
       })
-      for (var key in self.eventCallbacks){
+      for (var key in self.eventCallbacks) {
         r.on(key, self.eventCallbacks[key])
       }
     })
@@ -22365,7 +22378,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.renderers.forEach(function (r) {
       r.filter.removeTile(tilePoint)
     })
-    if (this._tileContainer.hasChildNodes(this.svgTiles[data.tileKey])){
+    if (this.svgTiles[data.tileKey].parentNode === this._tileContainer) {
       this._tileContainer.removeChild(this.svgTiles[data.tileKey])
     }
     delete this.svgTiles[data.tileKey]
@@ -22830,7 +22843,7 @@ Renderer.prototype = {
 
   on: function (eventName, callback) {
     var self = this
-    if (eventName ==='featureOver') {
+    if (eventName === 'featureOver') {
       this.events.featureOver = function (f) {
         this.style.cursor = 'pointer'
         var selection = d3.select(this)
@@ -22841,7 +22854,7 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureOver(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featureOut') {
+    } else if (eventName === 'featureOut') {
       this.events.featureOut = function (f) {
         var selection = d3.select(this)
         var properties = selection.data()[0].properties
@@ -22855,7 +22868,7 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureOut(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featureClick') {
+    } else if (eventName === 'featureClick') {
       this.events.featureClick = function (f) {
         var selection = d3.select(this)
         var properties = selection.data()[0].properties
@@ -22865,45 +22878,45 @@ Renderer.prototype = {
         var pos = self.layer._map.layerPointToContainerPoint(layerPoint)
         self.layer.eventCallbacks.featureClick(f, [ latLng.lat, latLng.lng ], pos, properties, index)
       }
-    } else if (eventName ==='featuresChanged') {
+    } else if (eventName === 'featuresChanged') {
       this.filter.on('featuresChanged', callback)
     }
   },
 
   _getLayerPointFromEvent: function (map, event) {
-    var curleft = 0;
-    var curtop = 0;
-    var obj = map.getContainer();
+    var curleft = 0
+    var curtop = 0
+    var obj = map.getContainer()
 
-    var x, y;
+    var x, y
     if (event.changedTouches && event.changedTouches.length > 0) {
-      x = event.changedTouches[0].clientX + window.scrollX;
-      y = event.changedTouches[0].clientY + window.scrollY;
+      x = event.changedTouches[0].clientX + window.scrollX
+      y = event.changedTouches[0].clientY + window.scrollY
     } else {
-      x = event.clientX;
-      y = event.clientY;
+      x = event.clientX
+      y = event.clientY
     }
 
-    var pointX;
-    var pointY;
+    var pointX
+    var pointY
     // If the map is fixed at the top of the window, we can't use offsetParent
     // cause there might be some scrolling that we need to take into account.
     if (obj.offsetParent && obj.offsetTop > 0) {
       do {
-        curleft += obj.offsetLeft;
-        curtop += obj.offsetTop;
-      } while (obj = obj.offsetParent);
-      pointX = x - curleft;
-      pointY = y - curtop;
+        curleft += obj.offsetLeft
+        curtop += obj.offsetTop
+      } while (obj = obj.offsetParent)  // eslint-disable-line
+      pointX = x - curleft
+      pointY = y - curtop
     } else {
-      var rect = obj.getBoundingClientRect();
-      var scrollX = (window.scrollX || window.pageXOffset);
-      var scrollY = (window.scrollY || window.pageYOffset);
-      pointX = (event.clientX ? event.clientX : x) - rect.left - obj.clientLeft - scrollX;
-      pointY = (event.clientY ? event.clientY : y) - rect.top - obj.clientTop - scrollY;
+      var rect = obj.getBoundingClientRect()
+      var scrollX = (window.scrollX || window.pageXOffset)
+      var scrollY = (window.scrollY || window.pageYOffset)
+      pointX = (event.clientX ? event.clientX : x) - rect.left - obj.clientLeft - scrollX
+      pointY = (event.clientY ? event.clientY : y) - rect.top - obj.clientTop - scrollY
     }
-    var point = new L.Point(pointX, pointY);
-    return map.containerPointToLayerPoint(point);
+    var point = new window.L.Point(pointX, pointY)
+    return map.containerPointToLayerPoint(point)
   },
 
   redraw: function (updating) {
@@ -22960,7 +22973,7 @@ Renderer.prototype = {
         'stroke-width': function (d) { return d[shaderName]['line-width'] },
         'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
         'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
       }
     } else if (symbolyzer === 'markers') {
       return {
@@ -22973,7 +22986,7 @@ Renderer.prototype = {
           return d[shaderName]['marker-width'] / 2
         },
         'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray']}
+        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
       }
     } else if (symbolyzer === 'text') {
       return {
@@ -23003,11 +23016,10 @@ Renderer.prototype = {
   render: function (svg, collection, tilePoint, updating) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
-    var g, styleLayers
+    var g
     var svgSel = d3.select(svg)
     if (svg.children[this.index]) {
       g = d3.select(svg.children[this.index])
-      styleLayers = g.data()
     } else {
       g = svgSel.append('g')
     }
@@ -23023,7 +23035,7 @@ Renderer.prototype = {
     layers.forEach(function (layer, i) {
       var thisGroup
       var children = g[0][0].children
-      if(!children[i]) thisGroup = g.append('g')
+      if (!children[i]) thisGroup = g.append('g')
       else thisGroup = d3.select(children[i])
       var sym = self._getSymbolizer(layer)
       var features
@@ -23099,13 +23111,12 @@ Renderer.prototype = {
       features.enter().append('svg:text').attr('class', sym)
     } else if (sym === 'markers') {
       features.enter().append('circle').attr('class', sym)
-      features.each(function(f) {
-        if (f.coordinates[0]){
+      features.each(function (f) {
+        if (f.coordinates[0]) {
           var coords = self.projection.apply(this, f.coordinates)
           this.setAttribute('cx', coords.x)
           this.setAttribute('cy', coords.y)
-        }
-        else{
+        } else {
           this.parentElement.removeChild(this)
         }
       })
@@ -23140,8 +23151,7 @@ Renderer.prototype = {
       if (d.geometry.coordinates[0]) {
         var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
         return p.x
-      }
-      else {
+      } else {
         this.remove()
       }
     })
@@ -23149,8 +23159,7 @@ Renderer.prototype = {
       if (d.geometry.coordinates[0]) {
         var p = self.projection(d.geometry.coordinates[0], d.geometry.coordinates[1])
         return p.y
-      }
-      else {
+      } else {
         this.remove()
       }
     })
@@ -23161,7 +23170,7 @@ Renderer.prototype = {
 Renderer.getIndexFromFeature = function (element) {
   var i = 0
   var node = element.parentElement.parentElement
-  while (node = node.previousSibling) i ++
+  while (node = node.previousSibling) i++ // eslint-disable-line
   return i
 }
 
@@ -23189,7 +23198,6 @@ module.exports = L.Class.extend({
   includes: L.Mixin.Events,
 
   initialize: function (options) {
-    var self = this
     this.options = options
     this.provider = options.provider
     this._map = options.map
@@ -23366,7 +23374,7 @@ module.exports = {
         var lyr = new L.CartoDBd3Layer({
           user: cartodbLayer.options.user_name,
           layers: layers,
-          styles: layers.map(function(l) { return l.cartocss })
+          styles: layers.map(function (l) { return l.cartocss })
         }).addTo(map)
 
         done(null, lyr, layers)

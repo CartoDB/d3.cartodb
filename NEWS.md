@@ -1,3 +1,7 @@
+### 1.0.2
+* Tests improvements
+* GeometryCollections are now excluded from renderer
+
 ### 1.0.1
 * Improved event latlng calculation
 * Simplified logic of bounding box filtering
