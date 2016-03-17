@@ -58,24 +58,30 @@ Renderer.prototype = {
 
   setCartoCSS: function (cartocss) {
     var self = this
-    if (!this.filter) {
+    if (['ramp', 'colorbrewer', 'buckets'].map(String.prototype.indexOf.bind(cartocss)).every(function(f){return f===-1})){
+      this._applyStyle(cartocss)
+    } else {
       this.options.layer.tileLoader.on('tilesLoaded', function () {
         self._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
           if (err) {
             console.error(err.message);
             throw err;
           }
-          self.renderer = new carto.RendererJS()
-          self.shader = self.renderer.render(parsedCartoCSS)
-          if (self.layer) {
-            for (var tileKey in self.layer.svgTiles) {
-              var tilePoint = tileKey.split(':')
-              tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
-              self.render(self.layer.svgTiles[tileKey], null, tilePoint, false)
-            }
-          }
+          self._applyStyle(parsedCartoCSS)
         })
       })
+    }
+  },
+
+  _applyStyle: function (cartocss) {
+    this.renderer = new carto.RendererJS()
+    this.shader = this.renderer.render(cartocss)
+    if (this.layer) {
+      for (var tileKey in this.layer.svgTiles) {
+        var tilePoint = tileKey.split(':')
+        tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
+        this.render(this.layer.svgTiles[tileKey], null, tilePoint, false)
+      }
     }
   },
 
