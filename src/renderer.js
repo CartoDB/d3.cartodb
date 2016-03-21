@@ -335,29 +335,30 @@ Renderer.prototype = {
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
     } else {
-      features.enter().append(function(f) {
-        var type = f.type;
+      features.enter().append(function (f) {
+        var type = f.type
         var name = {
           'Feature': 'path',
           'Point': 'circle'
-        }[type];
-        var element = document.createElementNS("http://www.w3.org/2000/svg", name)
-        element.setAttribute('class', { 'Feature': 'polygon', 'Point': 'markers'}[type]);
+        }[type]
+
+        var element = document.createElementNS('http://www.w3.org/2000/svg', name)
 
         if (type === 'Feature') {
-          element.setAttribute('class', sym);
+          element.setAttribute('class', sym)
           element.setAttribute('d', self.path(f))
         } else {
           if (f.coordinates[0]) {
+            element.setAttribute('class', 'markers')
             var coords = self.projection.apply(this, f.coordinates)
             element.setAttribute('cx', coords.x)
             element.setAttribute('cy', coords.y)
           }
         }
 
-        return element;
+        return element
       })
-    } 
+    }
     features.exit().remove()
     return features
   },
