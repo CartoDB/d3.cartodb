@@ -350,9 +350,8 @@ Renderer.prototype = {
             selection.attr('class', 'markers').attr('cx', coords.x).attr('cy', coords.y)
           }
         }
-
       })
-    } 
+    }
     features.exit().remove()
     return features
   },
