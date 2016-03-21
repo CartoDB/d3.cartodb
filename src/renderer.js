@@ -334,21 +334,31 @@ Renderer.prototype = {
 
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
-    } else if (sym === 'markers') {
-      features.enter().append('circle').attr('class', sym)
-      features.each(function (f) {
-        if (f.coordinates[0]) {
-          var coords = self.projection.apply(this, f.coordinates)
-          this.setAttribute('cx', coords.x)
-          this.setAttribute('cy', coords.y)
-        } else {
-          this.parentElement.removeChild(this)
-        }
-      })
     } else {
-      features.enter().append('path').attr('class', sym)
-      features.attr('d', this.path)
-    }
+      features.enter().append(function (f) {
+        return document.createElementNS('http://www.w3.org/2000/svg', {
+          'Feature': 'path',
+          'Point': 'circle'
+        }[f.type])
+      }).attr('class', function (f) {
+        return {
+          'Feature': 'polygon',
+          'Point': 'markers'
+        }[f.type]
+      }).each(function (f) {
+        if (f.type === 'Feature') {
+          features.enter().append('path').attr('class', sym)
+          features.attr('d', self.path)
+        } else {
+          if (f.coordinates[0]) {
+            var coords = self.projection.apply(this, f.coordinates)
+            this.setAttribute('cx', coords.x)
+            this.setAttribute('cy', coords.y)
+          }
+        }
+
+      })
+    } 
     features.exit().remove()
     return features
   },
