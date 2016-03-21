@@ -43,14 +43,13 @@ module.exports = {
   },
 
   contains: function (boundingBox, feature) {
-    var self = this
     if (typeof feature.geometry.coordinates[0] === 'number') {
       return this.pointInBB(boundingBox, feature.geometry.coordinates)
     } else if (feature.geometry.type === 'MultiLineString' || feature.geometry.type === 'MultiPolygon') {
       var geometries = feature.geometry.coordinates
       for (var multipoly = 0; multipoly < geometries.length; multipoly++) {
         for (var poly = 0; poly < geometries[multipoly].length; poly++) {
-          return this.anyPointInBB(boundingBox,geometries[multipoly][poly])
+          return this.anyPointInBB(boundingBox, geometries[multipoly][poly])
         }
       }
     } else if (feature.geometry.type === 'LineString' || feature.geometry.type === 'Polygon') {

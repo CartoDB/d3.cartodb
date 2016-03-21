@@ -336,29 +336,29 @@ Renderer.prototype = {
       features.enter().append('svg:text').attr('class', sym)
     } else {
       features.enter().append(function (f) {
-        return document.createElementNS('http://www.w3.org/2000/svg', {
+        var type = f.type
+        var name = {
           'Feature': 'path',
           'Point': 'circle'
-        }[f.type])
-      }).attr('class', function (f) {
-        return {
-          'Feature': 'polygon',
-          'Point': 'markers'
-        }[f.type]
-      }).each(function (f) {
-        if (f.type === 'Feature') {
-          features.enter().append('path').attr('class', sym)
-          features.attr('d', self.path)
+        }[type]
+
+        var element = document.createElementNS('http://www.w3.org/2000/svg', name)
+
+        if (type === 'Feature') {
+          element.setAttribute('class', sym)
+          element.setAttribute('d', self.path(f))
         } else {
           if (f.coordinates[0]) {
+            element.setAttribute('class', 'markers')
             var coords = self.projection.apply(this, f.coordinates)
-            this.setAttribute('cx', coords.x)
-            this.setAttribute('cy', coords.y)
+            element.setAttribute('cx', coords.x)
+            element.setAttribute('cy', coords.y)
           }
         }
 
+        return element
       })
-    } 
+    }
     features.exit().remove()
     return features
   },
