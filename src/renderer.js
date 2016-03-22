@@ -262,7 +262,7 @@ Renderer.prototype = {
       var children = g[0][0].children
       if (!children[i]) thisGroup = g.append('g')
       else thisGroup = d3.select(children[i])
-      var sym = self._getSymbolizer(layer)
+      var sym = self._getSymbolizers(layer)[0]
       var features
       if (!updating) {
         features = self._createFeatures(layer, collection, thisGroup[0][0])
@@ -276,7 +276,7 @@ Renderer.prototype = {
   },
 
   _styleFeatures: function (layer, features, group) {
-    var sym = this._getSymbolizer(layer)
+    var sym = this._getSymbolizers(layer)[0]
     var self = this
     features.each(function (d) {
       if (!d.properties) d.properties = {}
@@ -312,7 +312,7 @@ Renderer.prototype = {
       features = this._transformText(features)
     }
 
-    var styleFn = self.styleForSymbolizer(this._getSymbolizer(layer), 'shader')
+    var styleFn = self.styleForSymbolizer(this._getSymbolizers(layer)[0], 'shader')
     features.attr('r', styleFn.radius)
     features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
     features.style(styleFn)
@@ -320,7 +320,7 @@ Renderer.prototype = {
 
   _createFeatures: function (layer, collection, group) {
     var self = this
-    var sym = this._getSymbolizer(layer)
+    var sym = this._getSymbolizers(layer)[0]
     var geometry = collection.features
     var transform = transformForSymbolizer(sym)
     if (transform) {
@@ -363,14 +363,14 @@ Renderer.prototype = {
     return features
   },
 
-  _getSymbolizer: function (layer) {
+  _getSymbolizers: function (layer) {
     var symbolizers = layer.getSymbolizers()
     symbolizers = _.filter(symbolizers, function (f) {
       return f !== '*'
     })
     // merge line and polygon symbolizers
     symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
-    return symbolizers[0]
+    return symbolizers
   },
 
   _transformText: function (feature) {
@@ -413,11 +413,15 @@ function transformForSymbolizer (symbolizer) {
   if (symbolizer === 'markers' || symbolizer === 'labels') {
     var pathC = d3.geo.path().projection(function (d) { return d })
     return function (d) {
-      return d._centroid || (d._centroid = {
-        type: 'Point',
-        properties: d.properties,
-        coordinates: pathC.centroid(d)
-      })
+      if (d.geometry.type === 'Point'){
+        return d._centroid || (d._centroid = {
+          type: 'Point',
+          properties: d.properties,
+          coordinates: pathC.centroid(d)
+        })
+      } else {
+        return d
+      }
     }
   }
   return null
