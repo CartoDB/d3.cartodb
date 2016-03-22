@@ -340,25 +340,18 @@ Renderer.prototype = {
           'Feature': 'path',
           'Point': 'circle'
         }[f.type])
-      }).attr('class', function (f) {
-        return {
-          'Feature': 'polygon',
-          'Point': 'markers'
-        }[f.type]
       }).each(function (f) {
+        var selection = d3.select(this)
         if (f.type === 'Feature') {
-          features.enter().append('path').attr('class', sym)
-          features.attr('d', self.path)
+          selection.attr('class', sym).attr('d', self.path)
         } else {
           if (f.coordinates[0]) {
             var coords = self.projection.apply(this, f.coordinates)
-            this.setAttribute('cx', coords.x)
-            this.setAttribute('cy', coords.y)
+            selection.attr('class', 'markers').attr('cx', coords.x).attr('cy', coords.y)
           }
         }
-
       })
-    } 
+    }
     features.exit().remove()
     return features
   },
