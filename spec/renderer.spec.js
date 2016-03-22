@@ -51,4 +51,15 @@ describe('The renderer', function () {
     })
   })
 
+  describe('when drawing multiple geometry types on the same layer', function () {
+    it ('should draw a path and a circle in the same svg', function () {
+      var features = MOCK_DIFFERENT_TYPES
+      var renderer = new cartodb.d3.Renderer({ index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: 8; marker-fill: #FF6600; }'})
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      renderer.render(svg, features, {x: 2, y: 1, zoom: 2})
+      var elements = svg.children[0].children[0].children
+      expect(elements[0].tagName).toEqual('circle')
+      expect(elements[1].tagName).toEqual('path')
+    })
+  })
 })
