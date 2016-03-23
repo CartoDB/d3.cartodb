@@ -17,7 +17,6 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
     var featuresToAdd = []
     collection.features.forEach(function (f) {
-      if (f.geometry.type === 'GeometryCollection') return
       f.properties.tilePoint = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
       featuresToAdd.push(f)
     })
