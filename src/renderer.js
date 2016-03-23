@@ -313,7 +313,7 @@ Renderer.prototype = {
     }
     this._getSymbolizers(layer).forEach(function (sym) {
       var style = self.styleForSymbolizer(sym, 'shader')
-      features.filter(sym === 'markers'? 'circle': 'path').style(style)
+      features.filter(sym === 'markers' ? 'circle' : 'path').style(style)
       if (sym === 'markers') {
         features.attr('r', style.radius)
       }
@@ -408,7 +408,7 @@ function transformForSymbolizer (symbolizer) {
   if (symbolizer === 'markers' || symbolizer === 'labels') {
     var pathC = d3.geo.path().projection(function (d) { return d })
     return function (d) {
-      if (d.geometry.type === 'Point'){
+      if (d.geometry.type === 'Point') {
         return d._centroid || (d._centroid = {
           type: 'Point',
           properties: d.properties,
