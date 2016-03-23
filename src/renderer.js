@@ -284,7 +284,9 @@ Renderer.prototype = {
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
       d.properties.global = self.globalVariables
-      d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
+      if (typeof d.shader === 'undefined') {
+        d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
+      }
       this.onmousemove = self.events.featureOver
       this.onmouseleave = self.events.featureOut
       this.onclick = self.events.featureClick
@@ -322,12 +324,6 @@ Renderer.prototype = {
     var self = this
     var sym = this._getSymbolizer(layer)
     var geometry = collection.features
-    var transform = transformForSymbolizer(sym)
-    if (transform) {
-      geometry = geometry.map(transform)
-    }
-
-    // select based on symbolizer
     var features = d3.select(group)
       .selectAll('.' + sym)
       .data(geometry)
@@ -335,15 +331,14 @@ Renderer.prototype = {
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
     } else if (sym === 'markers') {
-      features.enter().append('circle').attr('class', sym)
+      features.enter().append('circle')
       features.each(function (f) {
-        if (f.coordinates[0]) {
-          var coords = self.projection.apply(this, f.coordinates)
-          this.setAttribute('cx', coords.x)
-          this.setAttribute('cy', coords.y)
-        } else {
-          this.parentElement.removeChild(this)
-        }
+        var coords = self.projection.apply(this, f.geometry.coordinates)
+        d3.select(this).attr({
+          class: sym,
+          cx: coords.x,
+          cy: coords.y
+        })
       })
     } else {
       features.enter().append('path').attr('class', sym)
@@ -389,6 +384,19 @@ Renderer.prototype = {
       }
     })
     return feature
+  },
+  transformForSymbolizer: function (symbolizer) {
+    if (symbolizer === 'markers' || symbolizer === 'labels') {
+      var pathC = d3.geo.path().projection(function (d) { return d })
+      return function (d) {
+        return d._centroid || (d._centroid = {
+          type: 'Point',
+          properties: d.properties,
+          coordinates: pathC.centroid(d)
+        })
+      }
+    }
+    return null
   }
 }
 
@@ -397,20 +405,6 @@ Renderer.getIndexFromFeature = function (element) {
   var node = element.parentElement.parentElement
   while (node = node.previousSibling) i++ // eslint-disable-line
   return i
-}
-
-function transformForSymbolizer (symbolizer) {
-  if (symbolizer === 'markers' || symbolizer === 'labels') {
-    var pathC = d3.geo.path().projection(function (d) { return d })
-    return function (d) {
-      return d._centroid || (d._centroid = {
-        type: 'Point',
-        properties: d.properties,
-        coordinates: pathC.centroid(d)
-      })
-    }
-  }
-  return null
 }
 
 module.exports = Renderer

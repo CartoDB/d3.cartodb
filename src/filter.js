@@ -142,7 +142,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
   },
 
   _createDimension: function (column) {
-    if (!this.dimensions[column]) {
+    if (typeof this.dimensions[column] === 'undefined') {
       this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
     }
   }
