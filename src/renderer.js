@@ -311,11 +311,13 @@ Renderer.prototype = {
     if (sym === 'text') {
       features = this._transformText(features)
     }
-
-    var styleFn = self.styleForSymbolizer(this._getSymbolizers(layer)[0], 'shader')
-    features.attr('r', styleFn.radius)
-    features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
-    features.style(styleFn)
+    this._getSymbolizers(layer).forEach(function (sym) {
+      var style = self.styleForSymbolizer(sym, 'shader')
+      features.filter(sym === 'markers'? 'circle': 'path').style(style)
+      if (sym === 'markers') {
+        features.attr('r', style.radius)
+      }
+    })
   },
 
   _createFeatures: function (layer, collection, group) {
