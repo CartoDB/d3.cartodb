@@ -11,7 +11,7 @@ dist_folder:
 clean: 
 	rm -rf dist
 
-test: lint
+test: dist/d3.cartodb.full.uncompressed.js
 	./node_modules/.bin/karma start --single-run --browsers Firefox
 
 testDebug:

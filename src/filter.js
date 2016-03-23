@@ -92,12 +92,17 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       values = this.dimensions[column].top(Infinity)
       this.dimensions[column].filter(this.filters[column])
     }
+    if (values.length === 0) return values
     var uniqueValues = []
     var ids = {}
-    for (var i = 0; i < values.length; i++) {
-      if (!(values[i].properties[this.idField] in ids)) {
-        uniqueValues.push(values[i])
-        ids[values[i].properties[this.idField]] = true
+    if (typeof values[0].properties[this.idField] === 'undefined') {
+      uniqueValues = values
+    } else {
+      for (var i = 0; i < values.length; i++) {
+        if (!(values[i].properties[this.idField] in ids)) {
+          uniqueValues.push(values[i])
+          ids[values[i].properties[this.idField]] = true
+        }
       }
     }
     if (this.visibleTiles.se) {

@@ -56,7 +56,21 @@ module.exports = {
     } else if (typeof feature.geometry.coordinates[0] === 'number') {
       return this.pointInBB(boundingBox, feature.geometry.coordinates)
     } else if (feature.geometry.type === 'MultiLineString' || feature.geometry.type === 'MultiPolygon') {
-      return feature.geometry.coordinates.some(somePointInBB)
+      var geometries = feature.geometry.coordinates
+      for (var multipoly = 0; multipoly < geometries.length; multipoly++) {
+        for (var poly = 0; poly < geometries[multipoly].length; poly++) {
+          return this.anyPointInBB(boundingBox, geometries[multipoly][poly])
+        }
+      }
+    } else if (feature.geometry.type === 'LineString' || feature.geometry.type === 'Polygon') {
+      return this.anyPointInBB(boundingBox, feature.geometry.coordinates)
+    }
+  },
+
+  anyPointInBB: function (boundingBox, feature) {
+    for (var point = 0; point < feature.length; point++) {
+      var thisPoint = feature[point]
+      if (this.pointInBB(boundingBox, thisPoint)) return true
     }
   },
 
