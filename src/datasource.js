@@ -24,6 +24,6 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
     var quantiles = d3.scale.quantile().range(d3.range(bins)).domain(values.map(function (f) {
       return f.properties[column]
     })).quantiles()
-    return quantiles
+    callback(null, quantiles)
   }
 }
