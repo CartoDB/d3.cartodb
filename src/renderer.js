@@ -61,7 +61,7 @@ Renderer.prototype = {
     if (['ramp', 'colorbrewer', 'buckets'].map(String.prototype.indexOf.bind(cartocss)).every(function(f){return f===-1})){
       this._applyStyle(cartocss)
     } else {
-      this.options.layer.tileLoader.on('tilesLoaded', function () {
+      this.filter.on('featuresChanged', function () {
         self._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
           if (err) {
             console.error(err.message);
