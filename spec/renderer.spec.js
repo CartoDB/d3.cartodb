@@ -54,9 +54,15 @@ describe('The renderer', function () {
       var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: ramp(population); marker-fill: #FF6600; } '})
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
       var features = MOCK_TILE_WIDTHS
-      renderer.render(svg, features, {x: 2, y: 1, zoom: 2})
-      var elements = svg.children[0].children[0].children
-      expect(elements.length > 0).toBe(true)
+      var tilePoint = {x: 2, y: 1, zoom: 2}
+      renderer.filter.addTile(tilePoint, features)
+      renderer.filter.trigger('featuresChanged')
+      // We need to defer because turbo cartocss is async
+      _.defer(function(){
+        renderer.render(svg, features, tilePoint)
+        var elements = svg.children[0].children[0].children
+        expect(elements.length > 0).toBe(true)
+      })
 
     })
   })
