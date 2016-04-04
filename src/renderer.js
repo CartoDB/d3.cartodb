@@ -58,7 +58,7 @@ Renderer.prototype = {
 
   setCartoCSS: function (cartocss) {
     var self = this
-    if (['ramp', 'colorbrewer', 'buckets'].map(String.prototype.indexOf.bind(cartocss)).every(function (f) { return f === -1 })) {
+    if (Renderer.isTurboCartoCSS(cartocss)) {
       this._applyStyle(cartocss)
     } else {
       this.filter.on('featuresChanged', function () {
@@ -426,6 +426,13 @@ Renderer.getIndexFromFeature = function (element) {
   var node = element.parentElement.parentElement
   while (node = node.previousSibling) i++ // eslint-disable-line
   return i
+}
+
+Renderer.isTurboCartoCSS = function (cartocss) {
+  var reservedWords = ['ramp', 'colorbrewer', 'buckets']
+  if (reservedWords.map(String.prototype.indexOf.bind(cartocss)).every(function (f) { return f === -1 })) {
+    return true
+  } else return false
 }
 
 function transformForSymbolizer (symbolizer) {
