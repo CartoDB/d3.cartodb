@@ -18,11 +18,13 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
   })
   if (!method || method === 'equal') {
     var scale = d3.scale.linear().domain([0, bins]).range(extent)
-    callback(null, d3.range(bins).map(scale))
+    ramp = d3.range(bins).map(scale)
   } else if (method === 'quantiles') {
-    var quantiles = d3.scale.quantile().range(d3.range(bins)).domain(values.map(function (f) {
+    ramp = d3.scale.quantile().range(d3.range(bins)).domain(values.map(function (f) {
       return f.properties[column]
     })).quantiles()
-    callback(null, quantiles)
+  } else {
+    throw new Error('Quantification method ' + method + ' is not supported')
   }
+  ramp && callback(null, ramp)
 }
