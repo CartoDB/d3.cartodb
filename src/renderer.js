@@ -5,8 +5,8 @@ var carto = global.carto || require('carto')
 var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
-turboCartoCSS = require('turbo-cartocss')
-Datasource = require('./datasource')
+var turboCartoCSS = require('turbo-cartocss')
+var Datasource = require('./datasource')
 
 cartodb.d3 = d3 || {}
 
@@ -58,14 +58,14 @@ Renderer.prototype = {
 
   setCartoCSS: function (cartocss) {
     var self = this
-    if (['ramp', 'colorbrewer', 'buckets'].map(String.prototype.indexOf.bind(cartocss)).every(function(f){return f===-1})){
+    if (['ramp', 'colorbrewer', 'buckets'].map(String.prototype.indexOf.bind(cartocss)).every(function (f) { return f === -1 })) {
       this._applyStyle(cartocss)
     } else {
       this.filter.on('featuresChanged', function () {
         self._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
           if (err) {
-            console.error(err.message);
-            throw err;
+            console.error(err.message)
+            throw err
           }
           self._applyStyle(parsedCartoCSS)
         })
