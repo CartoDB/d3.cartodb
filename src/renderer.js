@@ -20,12 +20,12 @@ var Renderer = function (options) {
   this.options = options
   this.idField = options.idField || 'cartodb_id'
   this.index = options.index
+  this.filter = new Filter({ idField: this.idField })
   if (options.cartocss) {
     this.setCartoCSS(options.cartocss)
   }
   this.globalVariables = {}
   this.layer = options.layer
-  this.filter = new Filter({ idField: this.idField })
   this.geometries = {}
 }
 
