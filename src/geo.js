@@ -44,15 +44,33 @@ module.exports = {
 
   contains: function (boundingBox, feature) {
     var self = this
-    if (typeof feature.geometry.coordinates[0] === 'number') {
+    function somePointInBB (line) {
+      line.some(function (point) {
+        return self.pointInBB(boundingBox, point)
+      })
+    }
+    if (feature.geometry.type === 'GeometryCollection') {
+      return feature.geometry.geometries.some(function (geometry) {
+        return geometry.coordinates.some(somePointInBB)
+      })
+    } else if (typeof feature.geometry.coordinates[0] === 'number') {
       return this.pointInBB(boundingBox, feature.geometry.coordinates)
     } else if (feature.geometry.type === 'MultiLineString' || feature.geometry.type === 'MultiPolygon') {
-      feature.geometry.coordinates.forEach(function (line) {
-        line.forEach(function (point) {
-          if (self.pointInBB(boundingBox, point)) return true
-        })
-      })
-      return false
+      var geometries = feature.geometry.coordinates
+      for (var multipoly = 0; multipoly < geometries.length; multipoly++) {
+        for (var poly = 0; poly < geometries[multipoly].length; poly++) {
+          return this.anyPointInBB(boundingBox, geometries[multipoly][poly])
+        }
+      }
+    } else if (feature.geometry.type === 'LineString' || feature.geometry.type === 'Polygon') {
+      return this.anyPointInBB(boundingBox, feature.geometry.coordinates)
+    }
+  },
+
+  anyPointInBB: function (boundingBox, feature) {
+    for (var point = 0; point < feature.length; point++) {
+      var thisPoint = feature[point]
+      if (this.pointInBB(boundingBox, thisPoint)) return true
     }
   },
 
