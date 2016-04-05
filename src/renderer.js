@@ -56,10 +56,10 @@ Renderer.prototype = {
     }
   },
 
-  setCartoCSS: function (cartocss) {
+  setCartoCSS: function (cartocss, transition) {
     var self = this
     if (Renderer.isTurboCartoCSS(cartocss)) {
-      this._applyStyle(cartocss)
+      this._applyStyle(cartocss, transition)
     } else {
       this.filter.on('featuresChanged', function () {
         self._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
@@ -67,20 +67,20 @@ Renderer.prototype = {
             console.error(err.message)
             throw err
           }
-          self._applyStyle(parsedCartoCSS)
+          self._applyStyle(parsedCartoCSS, transition)
         })
       })
     }
   },
 
-  _applyStyle: function (cartocss) {
+  _applyStyle: function (cartocss, transition) {
     this.renderer = new carto.RendererJS()
     this.shader = this.renderer.render(cartocss)
     if (this.layer) {
       for (var tileKey in this.layer.svgTiles) {
         var tilePoint = tileKey.split(':')
         tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
-        this.render(this.layer.svgTiles[tileKey], null, tilePoint, false)
+        this.render(this.layer.svgTiles[tileKey], null, tilePoint, false, transition)
       }
     }
   },
@@ -262,7 +262,7 @@ Renderer.prototype = {
     }
   },
 
-  render: function (svg, collection, tilePoint, updating) {
+  render: function (svg, collection, tilePoint, updating, transition) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
     var g
@@ -294,12 +294,12 @@ Renderer.prototype = {
         features = thisGroup.selectAll('.' + sym)
       }
       this.tilePoint = tilePoint
-      self._styleFeatures(layer, features, this)
+      self._styleFeatures(layer, features, this, transition)
     })
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
   },
 
-  _styleFeatures: function (layer, features, group) {
+  _styleFeatures: function (layer, features, group, transition) {
     var sym = this._getSymbolizers(layer)[0]
     var self = this
     features.each(function (d) {
@@ -337,9 +337,17 @@ Renderer.prototype = {
     }
     this._getSymbolizers(layer).forEach(function (sym) {
       var style = self.styleForSymbolizer(sym, 'shader')
-      features.filter(sym === 'markers' ? 'circle' : 'path').style(style)
+      if (transition){
+        features.filter(sym === 'markers' ? 'circle' : 'path').transition().duration(500).delay(function(){return Math.floor(Math.random() * (1000 - 200 + 1)) + 200}).style(style)
+      } else { 
+        features.filter(sym === 'markers' ? 'circle' : 'path').style(style)
+      }
       if (sym === 'markers') {
-        features.attr('r', style.radius)
+        if (transition){
+          features.transition().duration(300).delay(function(){return Math.floor(Math.random() * (500 - 80 + 1)) + 80}).attr('r', style.radius)
+        } else { 
+          features.attr('r', style.radius)
+        }
       }
     })
   },

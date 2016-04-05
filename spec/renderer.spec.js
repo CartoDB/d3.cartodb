@@ -63,7 +63,6 @@ describe('The renderer', function () {
         var elements = svg.children[0].children[0].children
         expect(elements.length > 0).toBe(true)
       })
-
     })
   })
 
