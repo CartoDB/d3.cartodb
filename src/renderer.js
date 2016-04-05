@@ -437,7 +437,7 @@ Renderer.getIndexFromFeature = function (element) {
 }
 
 Renderer.isTurboCartoCSS = function (cartocss) {
-  var reservedWords = ['ramp(', 'colorbrewer(', 'buckets(']
+  var reservedWords = ['ramp', 'colorbrewer', 'buckets']
   var isTurbo = reservedWords
     .map(function (w) {
       return w + '('
