@@ -29,7 +29,7 @@
     "crossfilter": "^1.3.12",
     "d3": "^3.5.6",
     "topojson": "^1.6.19",
-    "turbo-cartocss": "^0.4.0",
+    "turbo-cartocss": "git://github.com/CartoDB/turbo-cartocss.git#master",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
