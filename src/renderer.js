@@ -430,9 +430,14 @@ Renderer.getIndexFromFeature = function (element) {
 
 Renderer.isTurboCartoCSS = function (cartocss) {
   var reservedWords = ['ramp(', 'colorbrewer(', 'buckets(']
-  if (reservedWords.map(String.prototype.indexOf.bind(cartocss)).every(function (f) { return f === -1 })) {
-    return true
-  } else return false
+  var isTurbo = reservedWords
+    .map(function (w) {
+      return w + '('
+    })
+    .map(String.prototype.indexOf.bind(cartocss))
+    .every(function (f) { return f === -1 })
+
+  return isTurbo
 }
 
 function transformForSymbolizer (symbolizer) {
