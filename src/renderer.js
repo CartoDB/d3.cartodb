@@ -337,17 +337,12 @@ Renderer.prototype = {
     }
     this._getSymbolizers(layer).forEach(function (sym) {
       var style = self.styleForSymbolizer(sym, 'shader')
-      if (transition){
-        features.filter(sym === 'markers' ? 'circle' : 'path').transition().duration(500).delay(function(){return Math.floor(Math.random() * (500 - 80 + 1)) + 80}).style(style)
+      if (transition) {
+        features.filter(sym === 'markers' ? 'circle' : 'path').transition().duration(500).delay(function () {
+          return Math.floor(Math.random() * (500 - 80 + 1)) + 80
+        }).style(style).attr('r', style.radius)
       } else { 
-        features.filter(sym === 'markers' ? 'circle' : 'path').style(style)
-      }
-      if (sym === 'markers') {
-        if (transition){
-          features.transition().duration(300).delay(function () { return Math.floor(Math.random() * (500 - 80 + 1)) + 80}).attr('r', style.radius)
-        } else { 
-          features.attr('r', style.radius)
-        }
+        features.filter(sym === 'markers' ? 'circle' : 'path').style(style).attr('r', style.radius)
       }
     })
   },
