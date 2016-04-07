@@ -56,6 +56,7 @@ Renderer.prototype = {
 
   setCartoCSS: function (cartocss) {
     this.renderer = new carto.RendererJS()
+    cartocss = Renderer.cleanCSS(cartocss)
     this.shader = this.renderer.render(cartocss)
     if (this.layer) {
       for (var tileKey in this.layer.svgTiles) {
@@ -402,6 +403,12 @@ Renderer.getIndexFromFeature = function (element) {
   var node = element.parentElement.parentElement
   while (node = node.previousSibling) i++ // eslint-disable-line
   return i
+}
+
+Renderer.cleanCSS = function (cartocss) {
+  return cartocss.replace(/\#[^;:]*?[\{[]/g, function (f) { 
+    return f.replace(f.replace("#","").replace("{","").replace("[","").trim(), "layer")
+  })
 }
 
 function transformForSymbolizer (symbolizer) {
