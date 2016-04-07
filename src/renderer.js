@@ -61,20 +61,29 @@ Renderer.prototype = {
     if (Renderer.isTurboCartoCSS(cartocss)) {
       this._applyStyle(cartocss, transition)
     } else {
-      this.filter.on('featuresChanged', function () {
-        self._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
-          if (err) {
-            console.error(err.message)
-            throw err
-          }
-          self._applyStyle(parsedCartoCSS, transition)
+      if (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading)) {
+        this.filter.on('featuresChanged', function () {
+          self._setTurboCartoCSS(cartocss, transition)
         })
-      })
+      } else {
+        self._setTurboCartoCSS(cartocss, transition)
+      }
     }
+  },
+
+  _setTurboCartoCSS: function (cartocss, transition) {
+    this._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
+      if (err) {
+        console.error(err.message)
+        throw err
+      }
+      this._applyStyle(parsedCartoCSS, transition)
+    }.bind(this))
   },
 
   _applyStyle: function (cartocss, transition) {
     this.renderer = new carto.RendererJS()
+    cartocss = Renderer.cleanCSS(cartocss)
     this.shader = this.renderer.render(cartocss)
     if (this.layer) {
       for (var tileKey in this.layer.svgTiles) {
@@ -448,8 +457,13 @@ Renderer.isTurboCartoCSS = function (cartocss) {
     })
     .map(String.prototype.indexOf.bind(cartocss))
     .every(function (f) { return f === -1 })
-
   return isTurbo
+}
+
+Renderer.cleanCSS = function (cartocss) {
+  return cartocss.replace(/\#[^;:}]*?[\{[]/g, function (f) { 
+    return f.replace(f.replace("#","").replace("{","").replace("[","").trim(), "layer")
+  })
 }
 
 function transformForSymbolizer (symbolizer) {

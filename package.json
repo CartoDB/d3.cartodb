@@ -45,6 +45,7 @@
     "karma-requirejs": "^0.2.2",
     "requirejs": "^2.1.20",
     "standard": "^5.4.1",
-    "uglifyjs": "^2.4.10"
+    "uglifyjs": "^2.4.10",
+    "watchify": "^3.7.0"
   }
 }
