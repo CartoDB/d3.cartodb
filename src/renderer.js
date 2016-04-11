@@ -62,7 +62,7 @@ Renderer.prototype = {
     if (Renderer.isTurboCartoCSS(cartocss)) {
       this._applyStyle(cartocss, transition)
     } else {
-      if (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading)) {
+      if (this.layer && (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading))) {
         this.filter.on('featuresChanged', function () {
           self._setTurboCartoCSS(cartocss, transition)
         })
