@@ -27,6 +27,7 @@ var Renderer = function (options) {
   this.globalVariables = {}
   this.layer = options.layer
   this.geometries = {}
+  this.styleHistory = []
 }
 
 Renderer.prototype = {
@@ -349,15 +350,7 @@ Renderer.prototype = {
       var delays = {}
       if (transition) {
         features.filter(sym === 'markers' ? 'circle' : 'path').transition().duration(500).delay(function (f) {
-
-          var delay
-          if (f.properties.cartodb_id) {
-            delays[f.properties.cartodb_id] || Math.floor(Math.random() * (500 - 80 + 1)) + 80
-          } else {
-            return Math.floor(Math.random() * (500 - 80 + 1)) + 80
-          }
-          delays[f.properties.cartodb_id] = delay
-          return delay
+            return Math.floor(Math.random() * 500)
         }).style(style).attr('r', style.radius)
       } else { 
         features.filter(sym === 'markers' ? 'circle' : 'path').style(style).attr('r', style.radius)
