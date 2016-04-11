@@ -21,13 +21,13 @@ var Renderer = function (options) {
   this.idField = options.idField || 'cartodb_id'
   this.index = options.index
   this.filter = new Filter({ idField: this.idField })
+  this.styleHistory = []
   if (options.cartocss) {
     this.setCartoCSS(options.cartocss)
   }
   this.globalVariables = {}
   this.layer = options.layer
   this.geometries = {}
-  this.styleHistory = []
 }
 
 Renderer.prototype = {
@@ -39,7 +39,7 @@ Renderer.prototype = {
 
   /**
    * changes a global variable in cartocss
-   * it can be used in carotcss in this way:
+   * it can be used in cartocss in this way:
    * [prop < global.variableName] {...}
    *
    * this function can be used passing an object with all the variables or just key value:
@@ -83,6 +83,7 @@ Renderer.prototype = {
   },
 
   _applyStyle: function (cartocss, transition) {
+    this._addStyleToHistory(cartocss)
     this.renderer = new carto.RendererJS()
     cartocss = Renderer.cleanCSS(cartocss)
     this.shader = this.renderer.render(cartocss)
@@ -93,6 +94,16 @@ Renderer.prototype = {
         this.render(this.layer.svgTiles[tileKey], null, tilePoint, false, transition)
       }
     }
+  },
+
+  _addStyleToHistory: function (cartocss) {
+    if (this.styleHistory[this.styleHistory.length - 1] !== cartocss) {
+      this.styleHistory.push(cartocss)
+    }
+  },
+
+  restoreCartoCSS: function (transition) {
+    this.setCartoCSS(this.styleHistory[0], transition)
   },
 
   _preprocessCartoCSS: function (cartocss, callback) {
