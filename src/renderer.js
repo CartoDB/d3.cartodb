@@ -5,6 +5,8 @@ var carto = global.carto || require('carto')
 var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
+var turboCartoCSS = require('turbo-cartocss')
+var Datasource = require('./datasource')
 
 cartodb.d3 = d3 || {}
 
@@ -18,12 +20,13 @@ var Renderer = function (options) {
   this.options = options
   this.idField = options.idField || 'cartodb_id'
   this.index = options.index
+  this.filter = new Filter({ idField: this.idField })
+  this.styleHistory = []
   if (options.cartocss) {
     this.setCartoCSS(options.cartocss)
   }
   this.globalVariables = {}
   this.layer = options.layer
-  this.filter = new Filter({ idField: this.idField })
   this.geometries = {}
 }
 
@@ -36,7 +39,7 @@ Renderer.prototype = {
 
   /**
    * changes a global variable in cartocss
-   * it can be used in carotcss in this way:
+   * it can be used in cartocss in this way:
    * [prop < global.variableName] {...}
    *
    * this function can be used passing an object with all the variables or just key value:
@@ -54,16 +57,58 @@ Renderer.prototype = {
     }
   },
 
-  setCartoCSS: function (cartocss) {
+  setCartoCSS: function (cartocss, transition) {
+    var self = this
+    if (Renderer.isTurboCartoCSS(cartocss)) {
+      this._applyStyle(cartocss, transition)
+    } else {
+      if (this.layer && (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading))) {
+        this.filter.on('featuresChanged', function () {
+          self._setTurboCartoCSS(cartocss, transition)
+        })
+      } else {
+        self._setTurboCartoCSS(cartocss, transition)
+      }
+    }
+  },
+
+  _setTurboCartoCSS: function (cartocss, transition) {
+    this._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
+      if (err) {
+        console.error(err.message)
+        throw err
+      }
+      this._applyStyle(parsedCartoCSS, transition)
+    }.bind(this))
+  },
+
+  _applyStyle: function (cartocss, transition) {
+    this._addStyleToHistory(cartocss)
     this.renderer = new carto.RendererJS()
+    cartocss = Renderer.cleanCSS(cartocss)
     this.shader = this.renderer.render(cartocss)
     if (this.layer) {
       for (var tileKey in this.layer.svgTiles) {
         var tilePoint = tileKey.split(':')
         tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
-        this.render(this.layer.svgTiles[tileKey], null, tilePoint, true)
+        this.render(this.layer.svgTiles[tileKey], null, tilePoint, false, transition)
       }
     }
+  },
+
+  _addStyleToHistory: function (cartocss) {
+    if (this.styleHistory[this.styleHistory.length - 1] !== cartocss) {
+      this.styleHistory.push(cartocss)
+    }
+  },
+
+  restoreCartoCSS: function (transition) {
+    this.setCartoCSS(this.styleHistory[0], transition)
+  },
+
+  _preprocessCartoCSS: function (cartocss, callback) {
+    var datasource = new Datasource(this.filter)
+    turboCartoCSS(cartocss, datasource, callback)
   },
 
   on: function (eventName, callback) {
@@ -238,7 +283,7 @@ Renderer.prototype = {
     }
   },
 
-  render: function (svg, collection, tilePoint, updating) {
+  render: function (svg, collection, tilePoint, updating, transition) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
     var g
@@ -270,12 +315,12 @@ Renderer.prototype = {
         features = thisGroup.selectAll('.' + sym)
       }
       this.tilePoint = tilePoint
-      self._styleFeatures(layer, features, this)
+      self._styleFeatures(layer, features, this, transition)
     })
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
   },
 
-  _styleFeatures: function (layer, features, group) {
+  _styleFeatures: function (layer, features, group, transition) {
     var sym = this._getSymbolizers(layer)[0]
     var self = this
     features.each(function (d) {
@@ -313,9 +358,13 @@ Renderer.prototype = {
     }
     this._getSymbolizers(layer).forEach(function (sym) {
       var style = self.styleForSymbolizer(sym, 'shader')
-      features.filter(sym === 'markers' ? 'circle' : 'path').style(style)
-      if (sym === 'markers') {
-        features.attr('r', style.radius)
+      var delays = {}
+      if (transition) {
+        features.filter(sym === 'markers' ? 'circle' : 'path').transition().duration(500).delay(function (f) {
+            return Math.floor(Math.random() * 500)
+        }).style(style).attr('r', style.radius)
+      } else { 
+        features.filter(sym === 'markers' ? 'circle' : 'path').style(style).attr('r', style.radius)
       }
     })
   },
@@ -402,6 +451,23 @@ Renderer.getIndexFromFeature = function (element) {
   var node = element.parentElement.parentElement
   while (node = node.previousSibling) i++ // eslint-disable-line
   return i
+}
+
+Renderer.isTurboCartoCSS = function (cartocss) {
+  var reservedWords = ['ramp', 'colorbrewer', 'buckets']
+  var isTurbo = reservedWords
+    .map(function (w) {
+      return w + '('
+    })
+    .map(String.prototype.indexOf.bind(cartocss))
+    .every(function (f) { return f === -1 })
+  return isTurbo
+}
+
+Renderer.cleanCSS = function (cartocss) {
+  return cartocss.replace(/\#[^;:}]*?[\{[]/g, function (f) { 
+    return f.replace(f.replace("#","").replace("{","").replace("[","").trim(), "layer")
+  })
 }
 
 function transformForSymbolizer (symbolizer) {

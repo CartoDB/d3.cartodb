@@ -276,7 +276,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
   setCartoCSS: function (index, cartocss) {
     this.options.styles[index] = cartocss
-    this.renderers[index].setCartoCSS(cartocss)
+    var transition = arguments[2]
+    this.renderers[index].setCartoCSS(cartocss, transition)
   },
 
   _getLoadedTilesPercentage: function (container) {

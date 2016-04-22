@@ -13,12 +13,19 @@ describe('The renderer', function () {
     expect(_).not.toEqual(undefined)
     expect(carto).not.toEqual(undefined)
   })
+  describe('when setting CartoCSS styles', function() {
+    it('should update the css renderer', function () {
+      this.renderer = new cartodb.d3.Renderer({index:0, cartocss: '/** simple visualization */ #snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1; marker-placement: point; marker-type: ellipse; marker-width: 10; marker-fill: #FF6600; marker-allow-overlap: true; }'})
+      var s = this.renderer.shader;
+      this.renderer.setCartoCSS('/** simple visualization */ #snow{ marker-fill-opacity: 0.7; marker-line-color: #000; marker-line-width: 1; marker-line-opacity: 1; marker-placement: point; marker-type: ellipse; marker-width: 10; marker-fill: #FF6600; marker-allow-overlap: true; }')
+      expect(this.renderer.shader).not.toEqual(s)
+    })
 
-  it('setCartoCSS should update the css renderer', function () {
-    this.renderer = new cartodb.d3.Renderer({index:0, cartocss: '/** simple visualization */ #snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1; marker-placement: point; marker-type: ellipse; marker-width: 10; marker-fill: #FF6600; marker-allow-overlap: true; }'})
-    var s = this.renderer.shader;
-    this.renderer.setCartoCSS('/** simple visualization */ #snow{ marker-fill-opacity: 0.7; marker-line-color: #000; marker-line-width: 1; marker-line-opacity: 1; marker-placement: point; marker-type: ellipse; marker-width: 10; marker-fill: #FF6600; marker-allow-overlap: true; }')
-    expect(this.renderer.shader).not.toEqual(s)
+    it('should uniformise its layer names', function () {
+      var style = "/** simple visualization */ @ramp7: #000000;  #clientes {   [point=0]{       marker-width: 0;     }   [point=1]{       marker-fill-opacity: 1;     }     marker-line-color: #FFF;     marker-line-width: 0.1;     marker-line-opacity: 1;     marker-placement: point;     marker-type: ellipse;     marker-allow-overlap: true;     marker-width: 3;     [zoom<14]{     marker-width: 2;    }       line-color:@ramp7;     line-width: 0.4;     [zoom>14]{     line-width: 0;     }     line-opacity: .1;     marker-fill: @ramp7;     line-color: @ramp7;     }  #clientes_2[edad_clien>=0]{ marker-width: 4; } "
+      var renderer = new cartodb.d3.Renderer({index:0, cartocss: style})
+      expect(renderer.shader.getLayers()[0].shader['marker-width'].js.length).toEqual(4)
+    })
   })
 
   it('svg tiles should be correctly formed', function () {
@@ -48,6 +55,21 @@ describe('The renderer', function () {
       renderer.render(svg, features, {x: 2, y: 1, zoom: 2})
       var elements = svg.children[0].children[1].children
       expect(elements[0].attributes["class"].value).toEqual('text')
+    }),
+
+    it('should apply turbo style properties correctly', function () {
+      var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: ramp(population); marker-fill: #FF6600; } '})
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      var features = MOCK_TILE_WIDTHS
+      var tilePoint = {x: 2, y: 1, zoom: 2}
+      renderer.filter.addTile(tilePoint, features)
+      renderer.filter.trigger('featuresChanged')
+      // We need to defer because turbo cartocss is async
+      _.defer(function () {
+        renderer.render(svg, features, tilePoint)
+        var elements = svg.children[0].children[0].children
+        expect(elements.length > 0).toBe(true)
+      })
     })
   })
 
