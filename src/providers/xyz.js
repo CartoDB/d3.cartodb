@@ -1,5 +1,4 @@
 var d3 = require('d3')
-var topojson = require('topojson')
 var cartodb = require('../')
 
 function XYZProvider (options) {
@@ -26,10 +25,6 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
       var self = this
       this.getGeometry(tilePoint, function (err, geometry) {
         if (err) return
-        if (geometry.type === 'Topology') {
-          self.format = 'topojson'
-          geometry = topojson.feature(geometry, geometry.objects.vectile)
-        }
         self.requests[[tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')].complete = true
         callback(tilePoint, geometry)
       })
