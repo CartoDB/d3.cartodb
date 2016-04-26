@@ -153,6 +153,14 @@ Renderer.prototype = {
     }
   },
 
+  inferGeometryType: function () {
+    return this.filter.surveyRandom(5, function (f) {
+      if (f.type === 'Point' || f.geometry.type === 'Point') return 'marker'
+      else if (f.geometry.type.toLowerCase().indexOf('polygon') > -1) return 'polygon'
+      else if (f.geometry.type.toLowerCase().indexOf('line') > -1) return 'line'
+    })[0]
+  },
+
   _getLayerPointFromEvent: function (map, event) {
     var curleft = 0
     var curtop = 0
