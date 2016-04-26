@@ -5,7 +5,7 @@ var carto = global.carto || require('carto')
 var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
-var turboCartoCSS = require('turbo-cartocss')
+var turboCarto = require('turbo-carto')
 var Datasource = require('./datasource')
 
 cartodb.d3 = d3 || {}
@@ -59,20 +59,20 @@ Renderer.prototype = {
 
   setCartoCSS: function (cartocss, transition) {
     var self = this
-    if (Renderer.isTurboCartoCSS(cartocss)) {
+    if (Renderer.isTurboCarto(cartocss)) {
       this._applyStyle(cartocss, transition)
     } else {
       if (this.layer && (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading))) {
         this.filter.on('featuresChanged', function () {
-          self._setTurboCartoCSS(cartocss, transition)
+          self._setTurboCarto(cartocss, transition)
         })
       } else {
-        self._setTurboCartoCSS(cartocss, transition)
+        self._setTurboCarto(cartocss, transition)
       }
     }
   },
 
-  _setTurboCartoCSS: function (cartocss, transition) {
+  _setTurboCarto: function (cartocss, transition) {
     this._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
       if (err) {
         console.error(err.message)
@@ -108,7 +108,7 @@ Renderer.prototype = {
 
   _preprocessCartoCSS: function (cartocss, callback) {
     var datasource = new Datasource(this.filter)
-    turboCartoCSS(cartocss, datasource, callback)
+    turboCarto(cartocss, datasource, callback)
   },
 
   on: function (eventName, callback) {
@@ -453,7 +453,7 @@ Renderer.getIndexFromFeature = function (element) {
   return i
 }
 
-Renderer.isTurboCartoCSS = function (cartocss) {
+Renderer.isTurboCarto = function (cartocss) {
   var reservedWords = ['ramp', 'colorbrewer', 'buckets']
   var isTurbo = reservedWords
     .map(function (w) {
