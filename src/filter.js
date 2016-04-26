@@ -146,20 +146,19 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     return this.dimensions[column].groupAll().value()
   },
 
-  surveyRandom: function (sampleSize, column, fn) {
+  surveyRandom: function (sampleSize, fn) {
     var randomIndices = []
     var values = this.getValues()
     for (var i = 0; i < sampleSize; i++) {
-      randomIndices.push(Math.floor(Math.random() * (sampleSize + 1)))
+      randomIndices.push(values[Math.floor(Math.random() * (sampleSize + 1))])
     }
-    return !randomIndices
-            .map(function (f) { return typeof values[f].properties[column] !== 'undefined' })
-            .some(function (b) { return !b })
+    return randomIndices.map(fn);
   },
 
   _createDimension: function (column) {
     if (!this.dimensions[column]) {
-      if (this.surveyRandom(5, column)){
+      var survey = this.surveyRandom(5, function (f) { return typeof f.properties[column] !== 'undefined' })
+      if (!survey.some(function (b) { return !b })){
         this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
       } else {
         throw new Error('Couldn\'t create dimension: column ' + column + ' doesn\'t exist.')
