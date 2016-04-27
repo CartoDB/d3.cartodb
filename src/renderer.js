@@ -364,6 +364,11 @@ Renderer.prototype = {
     if (sym === 'text') {
       features = this._transformText(features)
     }
+    if (features.size() > 200) {
+      transition = false
+    } else {
+      transition = true
+    }
     this._getSymbolizers(layer).forEach(function (sym) {
       var style = self.styleForSymbolizer(sym, 'shader')
       var delays = {}
