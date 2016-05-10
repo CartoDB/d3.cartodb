@@ -12,8 +12,9 @@ CSSDataSource.prototype.getName = function () {
 }
 
 CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
-  var values = this.filter.getValues();
   var ramp = []
+  var error = null
+  var values = this.filter.getValues()
   var extent = d3.extent(values, function (f) {
     return f.properties[column]
   })
@@ -31,7 +32,7 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
     }
     ramp = jenks(valuesInGeoJSON, column, bins);
   } else {
-    throw new Error('Quantification method ' + method + ' is not supported')
+    error = 'Quantification method ' + method + ' is not supported'
   }
-  ramp && callback(null, ramp)
+  callback(error, ramp)
 }
