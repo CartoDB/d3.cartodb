@@ -18,9 +18,7 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
   var columnAccessor = function (f) {
     return f.properties[column]
   }
-  var extent = d3.extent(values, function (f) {
-    return f.properties[column]
-  })
+  var extent = d3.extent(values, columnAccessor)
   if (!method || method === 'equal') {
     var scale = d3.scale.linear().domain([0, bins]).range(extent)
     ramp = d3.range(bins).map(scale)
