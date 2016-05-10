@@ -89,6 +89,23 @@ describe('The renderer', function () {
         done()
       }, 0)
     })
+
+    xit('should apply headstails turbo style properties correctly', function (done) {
+      var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: 6; marker-fill: ramp([population], cartocolor(Sunset2, 3), headstails); } '})
+      var svg = document.createElementNS('http://www.w3.org/00/svg', 'svg')
+      var features = MOCK_TILE_WIDTHS
+      var tilePoint = {x: 2, y: 1, zoom: 2}
+      renderer.filter.addTile(tilePoint, features)
+      renderer.filter.trigger('featuresChanged')
+      // We need to defer because turbo cartocss is async
+      setTimeout(function () {
+        renderer.render(svg, features, tilePoint)
+        var elements = svg.children[0].children[0].children
+        expect(elements.length > 0).toBe(true)
+        expect(elements[0].style.fill).toEqual('rgb(92, 83, 165)')
+        done()
+      }, 0)
+    })
   })
 
   describe('when drawing multiple geometry types on the same layer', function () {
