@@ -15,6 +15,9 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
   var ramp = []
   var error = null
   var values = this.filter.getValues()
+  var columnAccessor = function (f) {
+    return f.properties[column]
+  }
   var extent = d3.extent(values, function (f) {
     return f.properties[column]
   })
@@ -22,15 +25,22 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
     var scale = d3.scale.linear().domain([0, bins]).range(extent)
     ramp = d3.range(bins).map(scale)
   } else if (method === 'quantiles') {
-    ramp = d3.scale.quantile().range(d3.range(bins)).domain(values.map(function (f) {
-      return f.properties[column]
-    })).quantiles()
+    ramp = d3.scale.quantile().range(d3.range(bins)).domain(values.map(columnAccessor)).quantiles()
   } else if (method === 'jenks') {
     var valuesInGeoJSON = {
       "type": "FeatureCollection",
       "features": values
     }
     ramp = jenks(valuesInGeoJSON, column, bins);
+  } else if (method === 'headstails') {
+    var sortedValues = _.pluck(values, columnAccessor).sort();
+    var mean = d3.mean(sortedValues);
+    ramp.push(mean);
+    for (var i = 1; i < bins; i++) {
+      ramp.push(d3.mean(sortedValues.filter(function (v) {
+        return v > ramp[length - 1];
+      })))
+    }
   } else {
     error = 'Quantification method ' + method + ' is not supported'
   }
