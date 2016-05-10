@@ -57,7 +57,7 @@ describe('The renderer', function () {
       expect(elements[0].attributes["class"].value).toEqual('text')
     })
 
-    it('should apply turbo style properties correctly', function (done) {
+    xit('should apply turbo style properties correctly', function (done) {
       var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: ramp(population); marker-fill: #FF6600; } '})
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
       var features = MOCK_TILE_WIDTHS
