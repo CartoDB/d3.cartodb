@@ -1,4 +1,5 @@
 var d3 = require('d3')
+var jenks = require('turf-jenks')
 
 function CSSDataSource (filter) {
   this.filter = filter
@@ -11,8 +12,9 @@ CSSDataSource.prototype.getName = function () {
 }
 
 CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
-  var values = this.filter.getValues()
   var ramp = []
+  var error = null
+  var values = this.filter.getValues()
   var extent = d3.extent(values, function (f) {
     return f.properties[column]
   })
@@ -23,8 +25,14 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
     ramp = d3.scale.quantile().range(d3.range(bins)).domain(values.map(function (f) {
       return f.properties[column]
     })).quantiles()
+  } else if (method === 'jenks') {
+    var valuesInGeoJSON = {
+      "type": "FeatureCollection",
+      "features": values
+    }
+    ramp = jenks(valuesInGeoJSON, column, bins);
   } else {
-    throw new Error('Quantification method ' + method + ' is not supported')
+    error = new Error('Quantification method ' + method + ' is not supported')
   }
-  ramp && callback(null, ramp)
+  callback(error, ramp)
 }

@@ -17,16 +17,14 @@ describe('The XYZ provider', function () {
     document.body.removeChild(document.getElementById('map'))
   })
 
-  it('should load the layer properly with an asynchronous call', function() {
+  it('should load the layer properly with an asynchronous call', function(done) {
     var asyncLayer = new L.CartoDBd3Layer()
-    cartodb.d3.provider.XYZProvider.prototype.getGeometry = function(tilePoint, callback){
-      callback(MOCK_TILE)
-    }
+    var spy = jasmine.createSpy('geom')
+    asyncLayer.provider.getGeometry = spy;
     asyncLayer.addTo(this.map)
-    spyOn(asyncLayer.provider, 'getGeometry')
     asyncLayer.provider.setURL('doesnt.really.matter')
     setTimeout(function () {
-      expect(asyncLayer.provider.getGeometry).toHaveBeenCalled()
+      expect(spy).toHaveBeenCalled()
       done()
     }, 0)
   })
