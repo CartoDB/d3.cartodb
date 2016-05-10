@@ -44,7 +44,7 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
       })));
     }
   } else {
-    error = 'Quantification method ' + method + ' is not supported'
+    error = new Error('Quantification method ' + method + ' is not supported')
   }
   callback(error, ramp)
 }
