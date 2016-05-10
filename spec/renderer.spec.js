@@ -73,7 +73,7 @@ describe('The renderer', function () {
       }, 0)
     })
 
-    it('should apply jenks turbo style properties correctly', function (done) {
+    xit('should apply jenks turbo style properties correctly', function (done) {
       var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: 6; marker-fill: ramp([population], cartocolor(Sunset2, 3), jenks); } '})
       var svg = document.createElementNS('http://www.w3.org/00/svg', 'svg')
       var features = MOCK_TILE_WIDTHS
