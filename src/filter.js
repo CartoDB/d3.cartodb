@@ -150,7 +150,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     var randomIndices = []
     var values = this.getValues()
     for (var i = 0; i < sampleSize; i++) {
-      randomIndices.push(values[Math.floor(Math.random() * (sampleSize + 1))])
+      randomIndices.push(values[Math.floor(Math.random() * values.length)])
     }
     return randomIndices.map(fn);
   },
