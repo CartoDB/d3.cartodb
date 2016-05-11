@@ -34,12 +34,18 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
     var sortedValues = values.map(columnAccessor).sort(function(a, b) {
       return a - b;
     });
-    var mean = d3.mean(sortedValues);
-    ramp.push(mean);
-    for (var i = 1; i < bins; i++) {
-      ramp.push(d3.mean(sortedValues.filter(function (v) {
-        return v > ramp[length - 1];
-      })));
+    if (sortedValues.length < bins) {
+      error = 'Number of bins should be lower than total number of rows'
+    } else if (sortedValues.length === bins) {
+      ramp = sortedValues;
+    } else {
+      var mean = d3.mean(sortedValues);
+      ramp.push(mean);
+      for (var i = 1; i < bins; i++) {
+        ramp.push(d3.mean(sortedValues.filter(function (v) {
+          return v > ramp[length - 1];
+        })));
+      }
     }
   } else {
     error = new Error('Quantification method ' + method + ' is not supported')
