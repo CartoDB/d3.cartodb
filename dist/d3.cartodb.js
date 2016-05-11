@@ -94,6 +94,62 @@ module.exports = {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],2:[function(require,module,exports){
+var d3 = require('d3')
+var jenks = require('turf-jenks')
+
+function CSSDataSource (filter) {
+  this.filter = filter
+}
+
+module.exports = CSSDataSource
+
+CSSDataSource.prototype.getName = function () {
+  return 'CSSDataSource'
+}
+
+CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
+  var ramp = []
+  var error = null
+  var values = this.filter.getValues()
+  var columnAccessor = function (f) {
+    return f.properties[column]
+  }
+  var extent = d3.extent(values, columnAccessor)
+  if (!method || method === 'equal') {
+    var scale = d3.scale.linear().domain([0, bins]).range(extent)
+    ramp = d3.range(bins).map(scale)
+  } else if (method === 'quantiles') {
+    ramp = d3.scale.quantile().range(d3.range(bins)).domain(values.map(columnAccessor)).quantiles()
+  } else if (method === 'jenks') {
+    var valuesInGeoJSON = {
+      "type": "FeatureCollection",
+      "features": values
+    }
+    ramp = jenks(valuesInGeoJSON, column, bins);
+  } else if (method === 'headstails') {
+    var sortedValues = values.map(columnAccessor).sort(function(a, b) {
+      return a - b;
+    });
+    if (sortedValues.length < bins) {
+      error = 'Number of bins should be lower than total number of rows'
+    } else if (sortedValues.length === bins) {
+      ramp = sortedValues;
+    } else {
+      var mean = d3.mean(sortedValues);
+      ramp.push(mean);
+      for (var i = 1; i < bins; i++) {
+        ramp.push(d3.mean(sortedValues.filter(function (v) {
+          return v > ramp[length - 1];
+        })));
+      }
+    }
+  } else {
+    error = new Error('Quantification method ' + method + ' is not supported')
+  }
+  callback(error, ramp)
+}
+
+},{"d3":undefined,"turf-jenks":undefined}],3:[function(require,module,exports){
 var Crossfilter = require('crossfilter')
 var cartodb = require('./')
 var geo = require('./geo')
@@ -113,7 +169,6 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     if (typeof this.tiles[tilePointString] !== 'undefined') return this.getTile(tilePoint)
     var featuresToAdd = []
     collection.features.forEach(function (f) {
-      if (f.geometry.type === 'GeometryCollection') return
       f.properties.tilePoint = tilePoint.x + ':' + tilePoint.y + ':' + tilePoint.zoom
       featuresToAdd.push(f)
     })
@@ -189,12 +244,17 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
       values = this.dimensions[column].top(Infinity)
       this.dimensions[column].filter(this.filters[column])
     }
+    if (values.length === 0) return values
     var uniqueValues = []
     var ids = {}
-    for (var i = 0; i < values.length; i++) {
-      if (!(values[i].properties[this.idField] in ids)) {
-        uniqueValues.push(values[i])
-        ids[values[i].properties[this.idField]] = true
+    if (typeof values[0].properties[this.idField] === 'undefined') {
+      uniqueValues = values
+    } else {
+      for (var i = 0; i < values.length; i++) {
+        if (!(values[i].properties[this.idField] in ids)) {
+          uniqueValues.push(values[i])
+          ids[values[i].properties[this.idField]] = true
+        }
       }
     }
     if (this.visibleTiles.se) {
@@ -238,9 +298,23 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     return this.dimensions[column].groupAll().value()
   },
 
+  surveyRandom: function (sampleSize, fn) {
+    var randomIndices = []
+    var values = this.getValues()
+    for (var i = 0; i < sampleSize; i++) {
+      randomIndices.push(values[Math.floor(Math.random() * values.length)])
+    }
+    return randomIndices.map(fn);
+  },
+
   _createDimension: function (column) {
     if (!this.dimensions[column]) {
-      this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
+      var survey = this.surveyRandom(5, function (f) { return typeof f.properties[column] !== 'undefined' })
+      if (!survey.some(function (b) { return !b })){
+        this.dimensions[column] = this.crossfilter.dimension(function (f) { return f.properties[column] })
+      } else {
+        throw new Error('Couldn\'t create dimension: column ' + column + ' doesn\'t exist.')
+      }
     }
   }
 })
@@ -283,7 +357,7 @@ Filter.reject = function (terms) {
 
 module.exports = Filter
 
-},{"./":4,"./geo":3,"crossfilter":undefined}],3:[function(require,module,exports){
+},{"./":5,"./geo":4,"crossfilter":undefined}],4:[function(require,module,exports){
 module.exports = {
   tile2lon: function (x, z) {
     return (x / Math.pow(2, z) * 360 - 180)
@@ -330,15 +404,33 @@ module.exports = {
 
   contains: function (boundingBox, feature) {
     var self = this
-    if (typeof feature.geometry.coordinates[0] === 'number') {
+    function somePointInBB (line) {
+      line.some(function (point) {
+        return self.pointInBB(boundingBox, point)
+      })
+    }
+    if (feature.geometry.type === 'GeometryCollection') {
+      return feature.geometry.geometries.some(function (geometry) {
+        return geometry.coordinates.some(somePointInBB)
+      })
+    } else if (typeof feature.geometry.coordinates[0] === 'number') {
       return this.pointInBB(boundingBox, feature.geometry.coordinates)
     } else if (feature.geometry.type === 'MultiLineString' || feature.geometry.type === 'MultiPolygon') {
-      feature.geometry.coordinates.forEach(function (line) {
-        line.forEach(function (point) {
-          if (self.pointInBB(boundingBox, point)) return true
-        })
-      })
-      return false
+      var geometries = feature.geometry.coordinates
+      for (var multipoly = 0; multipoly < geometries.length; multipoly++) {
+        for (var poly = 0; poly < geometries[multipoly].length; poly++) {
+          return this.anyPointInBB(boundingBox, geometries[multipoly][poly])
+        }
+      }
+    } else if (feature.geometry.type === 'LineString' || feature.geometry.type === 'Polygon') {
+      return this.anyPointInBB(boundingBox, feature.geometry.coordinates)
+    }
+  },
+
+  anyPointInBB: function (boundingBox, feature) {
+    for (var point = 0; point < feature.length; point++) {
+      var thisPoint = feature[point]
+      if (this.pointInBB(boundingBox, thisPoint)) return true
     }
   },
 
@@ -350,7 +442,7 @@ module.exports = {
   }
 }
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 module.exports.d3 = require('./core')
 require('./leaflet_d3.js')
 var elements = {
@@ -365,7 +457,7 @@ for (var key in elements) {
   module.exports.d3[key] = elements[key]
 }
 
-},{"./core":1,"./filter.js":2,"./geo.js":3,"./leaflet_d3.js":5,"./net.js":6,"./providers":7,"./renderer.js":11,"./util.js":13}],5:[function(require,module,exports){
+},{"./core":1,"./filter.js":3,"./geo.js":4,"./leaflet_d3.js":6,"./net.js":7,"./providers":8,"./renderer.js":12,"./util.js":14}],6:[function(require,module,exports){
 var Renderer = require('./renderer')
 var providers = require('./providers')
 var TileLoader = require('./tileloader')
@@ -644,7 +736,8 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
   setCartoCSS: function (index, cartocss) {
     this.options.styles[index] = cartocss
-    this.renderers[index].setCartoCSS(cartocss)
+    var transition = arguments[2]
+    this.renderers[index].setCartoCSS(cartocss, transition)
   },
 
   _getLoadedTilesPercentage: function (container) {
@@ -685,7 +778,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   }
 })
 
-},{"./geo":3,"./providers":7,"./renderer":11,"./tileloader":12}],6:[function(require,module,exports){
+},{"./geo":4,"./providers":8,"./renderer":12,"./tileloader":13}],7:[function(require,module,exports){
 (function (global){
 var d3 = require('d3')
 
@@ -759,14 +852,14 @@ module.exports.get = function get (url, callback, options) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"d3":undefined}],7:[function(require,module,exports){
+},{"d3":undefined}],8:[function(require,module,exports){
 module.exports = {
   SQLProvider: require('./sql.js'),
   XYZProvider: require('./xyz.js'),
   WindshaftProvider: require('./windshaft.js')
 }
 
-},{"./sql.js":8,"./windshaft.js":9,"./xyz.js":10}],8:[function(require,module,exports){
+},{"./sql.js":9,"./windshaft.js":10,"./xyz.js":11}],9:[function(require,module,exports){
 var d3 = require('d3')
 var geo = require('../geo')
 
@@ -854,7 +947,7 @@ SQLProvider.prototype = {
 
 module.exports = SQLProvider
 
-},{"../geo":3,"d3":undefined}],9:[function(require,module,exports){
+},{"../geo":4,"d3":undefined}],10:[function(require,module,exports){
 var cartodb = require('../')
 var XYZProvider = require('./xyz.js')
 
@@ -913,9 +1006,8 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
 
 module.exports = WindshaftProvider
 
-},{"../":4,"./xyz.js":10}],10:[function(require,module,exports){
+},{"../":5,"./xyz.js":11}],11:[function(require,module,exports){
 var d3 = require('d3')
-var topojson = require('topojson')
 var cartodb = require('../')
 
 function XYZProvider (options) {
@@ -942,10 +1034,6 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
       var self = this
       this.getGeometry(tilePoint, function (err, geometry) {
         if (err) return
-        if (geometry.type === 'Topology') {
-          self.format = 'topojson'
-          geometry = topojson.feature(geometry, geometry.objects.vectile)
-        }
         self.requests[[tilePoint.x, tilePoint.y, tilePoint.zoom].join(':')].complete = true
         callback(tilePoint, geometry)
       })
@@ -1004,7 +1092,7 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
 
 module.exports = XYZProvider
 
-},{"../":4,"d3":undefined,"topojson":undefined}],11:[function(require,module,exports){
+},{"../":5,"d3":undefined}],12:[function(require,module,exports){
 (function (global){
 /** global L **/
 var d3 = global.d3 || require('d3')
@@ -1013,6 +1101,8 @@ var carto = global.carto || require('carto')
 var _ = global._ || require('underscore')
 var geo = require('./geo')
 var Filter = require('./filter')
+var turboCarto = require('turbo-carto')
+var Datasource = require('./datasource')
 
 cartodb.d3 = d3 || {}
 
@@ -1026,12 +1116,13 @@ var Renderer = function (options) {
   this.options = options
   this.idField = options.idField || 'cartodb_id'
   this.index = options.index
+  this.filter = new Filter({ idField: this.idField })
+  this.styleHistory = []
   if (options.cartocss) {
     this.setCartoCSS(options.cartocss)
   }
   this.globalVariables = {}
   this.layer = options.layer
-  this.filter = new Filter({ idField: this.idField })
   this.geometries = {}
 }
 
@@ -1044,7 +1135,7 @@ Renderer.prototype = {
 
   /**
    * changes a global variable in cartocss
-   * it can be used in carotcss in this way:
+   * it can be used in cartocss in this way:
    * [prop < global.variableName] {...}
    *
    * this function can be used passing an object with all the variables or just key value:
@@ -1062,16 +1153,58 @@ Renderer.prototype = {
     }
   },
 
-  setCartoCSS: function (cartocss) {
+  setCartoCSS: function (cartocss, transition) {
+    var self = this
+    if (Renderer.isTurboCarto(cartocss)) {
+      this._applyStyle(cartocss, transition)
+    } else {
+      if (this.layer && (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading))) {
+        this.filter.on('featuresChanged', function () {
+          self._setTurboCarto(cartocss, transition)
+        })
+      } else {
+        self._setTurboCarto(cartocss, transition)
+      }
+    }
+  },
+
+  _setTurboCarto: function (cartocss, transition) {
+    this._preprocessCartoCSS(cartocss, function (err, parsedCartoCSS) {
+      if (err) {
+        console.error(err.message)
+        throw err
+      }
+      this._applyStyle(parsedCartoCSS, transition)
+    }.bind(this))
+  },
+
+  _applyStyle: function (cartocss, transition) {
+    this._addStyleToHistory(cartocss)
     this.renderer = new carto.RendererJS()
+    cartocss = Renderer.cleanCSS(cartocss)
     this.shader = this.renderer.render(cartocss)
     if (this.layer) {
       for (var tileKey in this.layer.svgTiles) {
         var tilePoint = tileKey.split(':')
         tilePoint = {x: tilePoint[0], y: tilePoint[1], zoom: tilePoint[2]}
-        this.render(this.layer.svgTiles[tileKey], null, tilePoint, true)
+        this.render(this.layer.svgTiles[tileKey], null, tilePoint, false, transition)
       }
     }
+  },
+
+  _addStyleToHistory: function (cartocss) {
+    if (this.styleHistory[this.styleHistory.length - 1] !== cartocss) {
+      this.styleHistory.push(cartocss)
+    }
+  },
+
+  restoreCartoCSS: function (transition) {
+    this.setCartoCSS(this.styleHistory[0], transition)
+  },
+
+  _preprocessCartoCSS: function (cartocss, callback) {
+    var datasource = new Datasource(this.filter)
+    turboCarto(cartocss, datasource, callback)
   },
 
   on: function (eventName, callback) {
@@ -1114,6 +1247,14 @@ Renderer.prototype = {
     } else if (eventName === 'featuresChanged') {
       this.filter.on('featuresChanged', callback)
     }
+  },
+
+  inferGeometryType: function () {
+    return this.filter.surveyRandom(5, function (f) {
+      if (f.type === 'Point' || f.geometry.type === 'Point') return 'marker'
+      else if (f.geometry.type.toLowerCase().indexOf('polygon') > -1) return 'polygon'
+      else if (f.geometry.type.toLowerCase().indexOf('line') > -1) return 'line'
+    })[0]
   },
 
   _getLayerPointFromEvent: function (map, event) {
@@ -1205,7 +1346,7 @@ Renderer.prototype = {
         'stroke': function (d) { return d[shaderName]['line-color'] },
         'stroke-width': function (d) { return d[shaderName]['line-width'] },
         'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName][symbolyzer + '-comp-op'] },
         'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
       }
     } else if (symbolyzer === 'markers') {
@@ -1218,13 +1359,13 @@ Renderer.prototype = {
         'radius': function (d) {
           return d[shaderName]['marker-width'] / 2
         },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] },
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName]['marker-comp-op']},
         'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
       }
     } else if (symbolyzer === 'text') {
       return {
         'fill': function (d) { return d[shaderName]['text-fill'] || 'none' },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] }
+        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName]['text-comp-op'] }
       }
     }
   },
@@ -1246,7 +1387,7 @@ Renderer.prototype = {
     }
   },
 
-  render: function (svg, collection, tilePoint, updating) {
+  render: function (svg, collection, tilePoint, updating, transition) {
     var self = this
     collection = this.filter.addTile(tilePoint, collection) // It won't add duplicates
     var g
@@ -1270,7 +1411,7 @@ Renderer.prototype = {
       var children = g[0][0].children
       if (!children[i]) thisGroup = g.append('g')
       else thisGroup = d3.select(children[i])
-      var sym = self._getSymbolizer(layer)
+      var sym = self._getSymbolizers(layer)[0]
       var features
       if (!updating) {
         features = self._createFeatures(layer, collection, thisGroup[0][0])
@@ -1278,13 +1419,13 @@ Renderer.prototype = {
         features = thisGroup.selectAll('.' + sym)
       }
       this.tilePoint = tilePoint
-      self._styleFeatures(layer, features, this)
+      self._styleFeatures(layer, features, this, transition)
     })
     svgSel.attr('class', svgSel.attr('class') + ' leaflet-tile-loaded')
   },
 
-  _styleFeatures: function (layer, features, group) {
-    var sym = this._getSymbolizer(layer)
+  _styleFeatures: function (layer, features, group, transition) {
+    var sym = this._getSymbolizers(layer)[0]
     var self = this
     features.each(function (d) {
       if (!d.properties) d.properties = {}
@@ -1319,16 +1460,22 @@ Renderer.prototype = {
     if (sym === 'text') {
       features = this._transformText(features)
     }
-
-    var styleFn = self.styleForSymbolizer(this._getSymbolizer(layer), 'shader')
-    features.attr('r', styleFn.radius)
-    features.attr('mix-blend-mode', styleFn['mix-blend-mode'])
-    features.style(styleFn)
+    this._getSymbolizers(layer).forEach(function (sym) {
+      var style = self.styleForSymbolizer(sym, 'shader')
+      var delays = {}
+      if (transition) {
+        features.filter(sym === 'markers' ? 'circle' : 'path').transition().duration(500).delay(function (f) {
+            return Math.floor(Math.random() * 500)
+        }).style(style).attr('r', style.radius)
+      } else { 
+        features.filter(sym === 'markers' ? 'circle' : 'path').style(style).attr('r', style.radius)
+      }
+    })
   },
 
   _createFeatures: function (layer, collection, group) {
     var self = this
-    var sym = this._getSymbolizer(layer)
+    var sym = this._getSymbolizers(layer)[0]
     var geometry = collection.features
     var transform = transformForSymbolizer(sym)
     if (transform) {
@@ -1342,33 +1489,36 @@ Renderer.prototype = {
 
     if (sym === 'text') {
       features.enter().append('svg:text').attr('class', sym)
-    } else if (sym === 'markers') {
-      features.enter().append('circle').attr('class', sym)
-      features.each(function (f) {
-        if (f.coordinates[0]) {
-          var coords = self.projection.apply(this, f.coordinates)
-          this.setAttribute('cx', coords.x)
-          this.setAttribute('cy', coords.y)
+    } else {
+      features.enter().append(function (f) {
+        return document.createElementNS('http://www.w3.org/2000/svg', {
+          'Feature': 'path',
+          'Point': 'circle'
+        }[f.type])
+      }).each(function (f) {
+        var selection = d3.select(this)
+        if (f.type === 'Feature') {
+          selection.attr('class', sym).attr('d', self.path)
         } else {
-          this.parentElement.removeChild(this)
+          if (f.coordinates[0]) {
+            var coords = self.projection.apply(this, f.coordinates)
+            selection.attr('class', 'markers').attr('cx', coords.x).attr('cy', coords.y)
+          }
         }
       })
-    } else {
-      features.enter().append('path').attr('class', sym)
-      features.attr('d', this.path)
     }
     features.exit().remove()
     return features
   },
 
-  _getSymbolizer: function (layer) {
+  _getSymbolizers: function (layer) {
     var symbolizers = layer.getSymbolizers()
     symbolizers = _.filter(symbolizers, function (f) {
       return f !== '*'
     })
     // merge line and polygon symbolizers
     symbolizers = _.uniq(symbolizers.map(function (d) { return d === 'line' ? 'polygon' : d }))
-    return symbolizers[0]
+    return symbolizers
   },
 
   _transformText: function (feature) {
@@ -1407,15 +1557,36 @@ Renderer.getIndexFromFeature = function (element) {
   return i
 }
 
+Renderer.isTurboCarto = function (cartocss) {
+  var reservedWords = ['ramp', 'colorbrewer', 'buckets']
+  var isTurbo = reservedWords
+    .map(function (w) {
+      return w + '('
+    })
+    .map(String.prototype.indexOf.bind(cartocss))
+    .every(function (f) { return f === -1 })
+  return isTurbo
+}
+
+Renderer.cleanCSS = function (cartocss) {
+  return cartocss.replace(/\#[^;:}]*?[\{[]/g, function (f) { 
+    return f.replace(f.replace("#","").replace("{","").replace("[","").trim(), "layer")
+  })
+}
+
 function transformForSymbolizer (symbolizer) {
   if (symbolizer === 'markers' || symbolizer === 'labels') {
     var pathC = d3.geo.path().projection(function (d) { return d })
     return function (d) {
-      return d._centroid || (d._centroid = {
-        type: 'Point',
-        properties: d.properties,
-        coordinates: pathC.centroid(d)
-      })
+      if (d.geometry.type === 'Point') {
+        return d._centroid || (d._centroid = {
+          type: 'Point',
+          properties: d.properties,
+          coordinates: pathC.centroid(d)
+        })
+      } else {
+        return d
+      }
     }
   }
   return null
@@ -1424,7 +1595,7 @@ function transformForSymbolizer (symbolizer) {
 module.exports = Renderer
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./filter":2,"./geo":3,"carto":undefined,"d3":undefined,"underscore":undefined}],12:[function(require,module,exports){
+},{"./datasource":2,"./filter":3,"./geo":4,"carto":undefined,"d3":undefined,"turbo-carto":undefined,"underscore":undefined}],13:[function(require,module,exports){
 var L = window.L
 
 module.exports = L.Class.extend({
@@ -1576,7 +1747,7 @@ module.exports = L.Class.extend({
   }
 })
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var L = window.L
 var cartodb = require('../')
 
@@ -1618,5 +1789,5 @@ module.exports = {
   }
 }
 
-},{"../":4}]},{},[4])(4)
+},{"../":5}]},{},[5])(5)
 });
