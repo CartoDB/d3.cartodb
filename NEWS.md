@@ -1,3 +1,16 @@
+### 1.1.0
+* Added turbocarto support
+* Added jenks, quantiles, heads/tails, and linear quantification methods
+* Improved boundingbox filter to support polygons and lines
+* Stopped exclusion of GeometryCollections
+* Added transitions when changing styles
+* Added method to correct layer naming inconsistencies in the cartocss
+* Added check that column exists before creating a dimension
+* Improved the filter's error reporting
+* Removed topojson support
+* Added method to return the layer's geometry type
+* Improved comp-op parsing
+
 ### 1.0.2
 * Tests improvements
 * GeometryCollections are now excluded from renderer
