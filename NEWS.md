@@ -1,3 +1,6 @@
+### 1.1.1
+* Now Polygons are correctly filtered by bounding box
+
 ### 1.1.0
 * Added turbocarto support
 * Added jenks, quantiles, heads/tails, and linear quantification methods
