@@ -45,7 +45,7 @@ module.exports = {
   contains: function (boundingBox, feature) {
     var self = this
     function somePointInBB (line) {
-      line.some(function (point) {
+      return line.some(function (point) {
         return self.pointInBB(boundingBox, point)
       })
     }
@@ -63,7 +63,10 @@ module.exports = {
         }
       }
     } else if (feature.geometry.type === 'LineString' || feature.geometry.type === 'Polygon') {
-      return this.anyPointInBB(boundingBox, feature.geometry.coordinates)
+      var geometries = feature.geometry.coordinates
+      for (var poly = 0; poly < geometries.length; poly++) {
+        return this.anyPointInBB(boundingBox, geometries[poly])
+      }
     }
   },
 
