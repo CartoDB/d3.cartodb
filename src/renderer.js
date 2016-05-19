@@ -473,7 +473,7 @@ Renderer.isTurboCarto = function (cartocss) {
 }
 
 Renderer.cleanCSS = function (cartocss) {
-  return cartocss.replace(/\#[^;:}]*?[\{[]/g, function (f) { 
+  return cartocss.replace(/\#[^\n;:}]*?[\{[]/g, function (f) { 
     return f.replace(f.replace("#","").replace("{","").replace("[","").trim(), "layer")
   })
 }
