@@ -405,7 +405,7 @@ module.exports = {
   contains: function (boundingBox, feature) {
     var self = this
     function somePointInBB (line) {
-      line.some(function (point) {
+      return line.some(function (point) {
         return self.pointInBB(boundingBox, point)
       })
     }
@@ -423,7 +423,10 @@ module.exports = {
         }
       }
     } else if (feature.geometry.type === 'LineString' || feature.geometry.type === 'Polygon') {
-      return this.anyPointInBB(boundingBox, feature.geometry.coordinates)
+      var geometries = feature.geometry.coordinates
+      for (var poly = 0; poly < geometries.length; poly++) {
+        return this.anyPointInBB(boundingBox, geometries[poly])
+      }
     }
   },
 
@@ -598,6 +601,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
     this.tileLoader.loadTiles()
     this._tileContainer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
     this._bgBuffer.setAttribute('class', 'leaflet-zoom-animated leaflet-tile-container')
+    this._container.style.paintOrder = 'stroke'
     this.tileLoader.on('tileAdded', this._renderTile, this)
     this.tileLoader.on('tileRemoved', this._clearTile, this)
     this.tileLoader.on('tilesLoaded', function () {
@@ -1405,8 +1409,8 @@ Renderer.prototype = {
 
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
-
     layers.forEach(function (layer, i) {
+      if (layer.shader.attachment === 'Map::__default__') return;
       var thisGroup
       var children = g[0][0].children
       if (!children[i]) thisGroup = g.append('g')
@@ -1569,7 +1573,7 @@ Renderer.isTurboCarto = function (cartocss) {
 }
 
 Renderer.cleanCSS = function (cartocss) {
-  return cartocss.replace(/\#[^;:}]*?[\{[]/g, function (f) { 
+  return cartocss.replace(/\#[^\n;:}]*?[\{[]/g, function (f) { 
     return f.replace(f.replace("#","").replace("{","").replace("[","").trim(), "layer")
   })
 }
