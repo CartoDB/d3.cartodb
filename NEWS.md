@@ -1,5 +1,8 @@
 ### 1.1.1
 * Now Polygons are correctly filtered by bounding box
+* Fixed an issue with the layer title cleaner function
+* Strokes are now painted first to avoid marker fills shrinking with smaller radii
+* Started support of Map{} headers in CartoCSS
 
 ### 1.1.0
 * Added turbocarto support
