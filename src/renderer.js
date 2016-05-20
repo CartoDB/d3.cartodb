@@ -309,8 +309,8 @@ Renderer.prototype = {
 
     // search for hovers and other special rules for the renderer
     layers = this.processLayersRules(layers)
-
     layers.forEach(function (layer, i) {
+      if (layer.shader.attachment === 'Map::__default__') return;
       var thisGroup
       var children = g[0][0].children
       if (!children[i]) thisGroup = g.append('g')
