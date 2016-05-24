@@ -78,18 +78,36 @@ L.CartoDBd3Layer = L.TileLayer.extend({
 
   applyFilter: function (sublayerIndex, filterType, filterOptions) {
     var sublayer = this.renderers[sublayerIndex]
-    switch (filterType) {
-      case 'accept':
-        sublayer.filter.filterAccept(filterOptions.column, filterOptions.values)
-        break
-      case 'reject':
-        sublayer.filter.filterReject(filterOptions.column, filterOptions.values)
-        break
-      case 'range':
-        sublayer.filter.filterRange(filterOptions.column, [filterOptions.min, filterOptions.max])
-        break
+    if (sublayer) {
+      switch (filterType) {
+        case 'accept':
+          sublayer.filter.filterAccept(filterOptions.column, filterOptions.values)
+          break
+        case 'reject':
+          sublayer.filter.filterReject(filterOptions.column, filterOptions.values)
+          break
+        case 'range':
+          sublayer.filter.filterRange(filterOptions.column, [filterOptions.min, filterOptions.max])
+          break
+      }
+      sublayer.redraw()
+    } else {
+      this.on('renderersReset', function () {
+        switch (filterType) {
+          case 'accept':
+            sublayer.filter.filterAccept(filterOptions.column, filterOptions.values)
+            break
+          case 'reject':
+            sublayer.filter.filterReject(filterOptions.column, filterOptions.values)
+            break
+          case 'range':
+            sublayer.filter.filterRange(filterOptions.column, [filterOptions.min, filterOptions.max])
+            break
+        }
+        sublayer.redraw();
+        this.off('renderersReset');
+      })
     }
-    sublayer.redraw()
   },
 
   setProvider: function (options) {
@@ -206,6 +224,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
         r.on(key, self.eventCallbacks[key])
       }
     })
+    this.fire('renderersReset')
   },
 
   _renderTile: function (data) {
