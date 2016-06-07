@@ -21,7 +21,6 @@ module.exports = function(config) {
       'spec/mocks/populatedplaces.js',
       'vendor/underscore-min.js',
       'vendor/leaflet.js',
-      'vendor/carto.uncompressed.js',
       'vendor/d3.v3.js',
       'dist/d3.cartodb.full.js'
     ],

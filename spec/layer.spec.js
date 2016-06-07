@@ -24,7 +24,6 @@ describe('The layer', function () {
     expect(d3).not.toEqual(undefined)
     expect(L).not.toEqual(undefined)
     expect(_).not.toEqual(undefined)
-    expect(carto).not.toEqual(undefined)
   })
 
   it("shouldn't initialise renderers until layer is added to map", function () {

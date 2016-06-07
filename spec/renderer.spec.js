@@ -11,7 +11,6 @@ describe('The renderer', function () {
     expect(d3).not.toEqual(undefined)
     expect(L).not.toEqual(undefined)
     expect(_).not.toEqual(undefined)
-    expect(carto).not.toEqual(undefined)
   })
   describe('when setting CartoCSS styles', function() {
     it('should update the css renderer', function () {
