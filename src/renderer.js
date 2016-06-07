@@ -336,6 +336,15 @@ Renderer.prototype = {
       var featureHash = geo.hashFeature(d.properties[self.idField], group.tilePoint)
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
+      if (d.geometry) {
+        if (d.geometry.type === 'Polygon' || d.geometry.type === 'MultiPolygon') {
+          d.properties['mapnik::geometry_type'] = 3
+        } else {
+          d.properties['mapnik::geometry_type'] = 2
+        }
+      } else {
+        d.properties['mapnik::geometry_type'] = 1
+      }
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       this.onmousemove = self.events.featureOver
