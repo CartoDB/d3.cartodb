@@ -47,6 +47,15 @@ describe('The renderer', function () {
       expect(circles[2].attributes.r.value).toEqual("2.5")
     })
 
+    it('should render styles with conditional geometries', function () {
+      var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#points["mapnik\:\:geometry_type"=1] {\n  marker-fill-opacity: 1;\n  marker-line-color: #FFF;\n  marker-line-width: 0.5;\n  marker-line-opacity: 1;\n  marker-placement: point;\n  marker-type: ellipse;\n  marker-width: 8;\n  marker-fill: #FABADA;\n  marker-allow-overlap: true;\n}\n#lines["mapnik\:\:geometry_type"=2] {\n  line-color: #000000;\n  line-width: 2;\n  line-opacity: 1;\n}\n#polygons["mapnik\:\:geometry_type"=3] {\n  polygon-fill: #FABADA;\n  polygon-opacity: 1;\n  line-color: #FFF;\n  line-width: 0.5;\n  line-opacity: 1;\n}'})
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      var features = MOCK_TILE_WIDTHS
+      renderer.render(svg, features, {x: 2, y: 1, zoom: 2})
+      var circles = svg
+      expect(circles.children[0].children[0].children[0].style.fill).not.toBeUndefined();
+    })
+
     it('should not try to render a default Map{} layer', function () {
       var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: [population]; marker-fill: #FF6600; }'})
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -58,7 +67,7 @@ describe('The renderer', function () {
     })
 
     it('should render text when text properties are indicated', function () {
-      var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: [population]; marker-fill: #FF6600; } #sensor_log_2015_09_20_12_53::labels { text-name: [population]; text-size: 10; text-label-position-tolerance: 10; text-fill: #000; text-halo-fill: #FFF; text-halo-radius: 1; text-dy: -10; text-allow-overlap: true; text-placement: point; text-placement-type: simple; }'})
+      var renderer = new cartodb.d3.Renderer({index: 0, cartocss: '#snow{ marker-fill-opacity: 0.9; marker-line-color: #FFF; marker-line-width: 1; marker-line-opacity: 1;  marker-width: [population]; marker-fill: #FF6600; } #sensor_log_2015_09_20_12_53\:\:labels { text-name: [population]; text-size: 10; text-label-position-tolerance: 10; text-fill: #000; text-halo-fill: #FFF; text-halo-radius: 1; text-dy: -10; text-allow-overlap: true; text-placement: point; text-placement-type: simple; }'})
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
       var features = MOCK_TILE_WIDTHS
       renderer.render(svg, features, {x: 2, y: 1, zoom: 2})
