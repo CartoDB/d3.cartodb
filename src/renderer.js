@@ -338,12 +338,12 @@ Renderer.prototype = {
       self.geometries[featureHash].push(this)
       if (d.geometry) { // Marker geometries have 'coordinates', not 'geometry'
         if (d.geometry.type === 'Polygon' || d.geometry.type === 'MultiPolygon') {
-          d.properties['mapnik::geometry_type'] = MAPNIK_GEOMETRY_TYPES.POLYGON
+          d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.POLYGON
         } else {
-          d.properties['mapnik::geometry_type'] = MAPNIK_GEOMETRY_TYPES.LINE
+          d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.LINE
         }
       } else {
-        d.properties['mapnik::geometry_type'] = MAPNIK_GEOMETRY_TYPES.POINT
+        d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.POINT
       }
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
