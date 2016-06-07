@@ -336,7 +336,7 @@ Renderer.prototype = {
       var featureHash = geo.hashFeature(d.properties[self.idField], group.tilePoint)
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
-      if (d.geometry) {
+      if (d.geometry) { // Marker geometries have 'coordinates', not 'geometry'
         if (d.geometry.type === 'Polygon' || d.geometry.type === 'MultiPolygon') {
           d.properties['mapnik::geometry_type'] = 3
         } else {
