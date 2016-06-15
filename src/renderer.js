@@ -336,6 +336,15 @@ Renderer.prototype = {
       var featureHash = geo.hashFeature(d.properties[self.idField], group.tilePoint)
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
+      if (d.geometry) { // Marker geometries have 'coordinates', not 'geometry'
+        if (d.geometry.type === 'Polygon' || d.geometry.type === 'MultiPolygon') {
+          d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.POLYGON
+        } else {
+          d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.LINE
+        }
+      } else {
+        d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.POINT
+      }
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       this.onmousemove = self.events.featureOver
@@ -452,6 +461,12 @@ Renderer.prototype = {
     })
     return feature
   }
+}
+
+Renderer.MAPNIK_GEOMETRY_TYPES = {
+  POLYGON: 3,
+  LINE: 2,
+  POINT: 1
 }
 
 Renderer.getIndexFromFeature = function (element) {
