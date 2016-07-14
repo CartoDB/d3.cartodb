@@ -2,7 +2,8 @@ var L = window.L
 var cartodb = require('../')
 
 module.exports = {
-  viz: function (url, map, done) {
+  viz: function (url, map, done, options) {
+    options = options || {};
     cartodb.d3.net.jsonp(url + '?callback=vizjson', function (data) {
       map.setView(JSON.parse(data.center), data.zoom)
       // get base layer, not render anything in case of non ZXY layers
@@ -21,14 +22,15 @@ module.exports = {
           return {
             // fix the \n in sql
             sql: layer.options.sql.replace(/\n/g, ' '),
-            cartocss: layer.options.cartocss
+            cartocss: layer.options.cartocss,
           }
         })
 
         var lyr = new L.CartoDBd3Layer({
           user: cartodbLayer.options.user_name,
           layers: layers,
-          styles: layers.map(function (l) { return l.cartocss })
+          styles: layers.map(function (l) { return l.cartocss }),
+          columns: options.columns
         }).addTo(map)
 
         done(null, lyr, layers)
