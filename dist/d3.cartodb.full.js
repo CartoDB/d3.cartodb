@@ -21444,257 +21444,257 @@ module.exports = require("./crossfilter").crossfilter;
 !function() {
 
 var cartocolor = {Green1: {
-  2: ["#296B3B","#FAFCA4"],
-  3: ["#296B3B","#8EB26A","#FAFCA4"],
-  4: ["#296B3B","#6D9A5A","#B1CB7B","#FAFCA4"],
-  5: ["#296B3B","#5C8E52","#8EB26A","#C2D785","#FAFCA4"],
-  6: ["#296B3B","#52874D","#7AA460","#A3C174","#CDDE8B","#FAFCA4"],
-  7: ["#296B3B","#4C824A","#6D9A5A","#8EB26A","#B1CB7B","#D4E38F","#FAFCA4"]
-},Green2: {
-  2: ["#007553","#cafdd8"],
-  3: ["#007553","#67cda3","#cafdd8"],
-  4: ["#007553","#34b289","#8fe2b8","#cafdd8"],
-  5: ["#007553","#00A47D","#67CDA3","#A2EDC3","#CAFDD8"],
-  6: ["#007553","#009a74","#4bbc94","#7fdab0","#aaf0c7","#cafdd8"],
-  7: ["#007553","#00946f","#34b289","#67cda3","#8fe2b8","#b0f2ca","#cafdd8"]
-},Green3: {
-  2: ["#008080","#dfe895"],
-  3: ["#008080","#7dbb7d","#dfe895"],
-  4: ["#008080","#5da87e","#9bcf7d","#dfe895"],
-  5: ["#008080","#4d9e7f","#7dbb7d","#acd87e","#dfe895"],
-  6: ["#008080","#43987f","#6ab07e","#8fc77d","#b5de7f","#dfe895"],
-  7: ["#008080","#3b947f","#5da87e","#7dbb7d","#9bcf7d","#bce27f","#dfe895"]
-},Green4: {
-  2: ["#0f4b51","#ebf49d"],
-  3: ["#0f4b51","#6da06f","#ebf49d"],
-  4: ["#0f4b51","#518266","#8fbe7b","#ebf49d"],
-  5: ["#0f4b51","#437461","#6da06f","#a6cb83","#ebf49d"],
-  6: ["#0f4b51","#3a6b5d","#5c8e6a","#81b276","#b4d389","#ebf49d"],
-  7: ["#0f4b51","#34665b","#518266","#6da06f","#8fbe7b","#bdd88c","#ebf49d"]
-},Khaki1: {
-  2: ["#324546","#f9ebb2"],
-  3: ["#324546","#909e74","#f9ebb2"],
-  4: ["#324546","#6e7f61","#b4bc89","#f9ebb2"],
-  5: ["#324546","#5e6e5a","#909e74","#c7c894","#f9ebb2"],
-  6: ["#324546","#546455","#7b8b69","#a5b081","#d2d09b","#f9ebb2"],
-  7: ["#324546","#4e5e52","#6e7f61","#909e74","#b4bc89","#DAD59F","#f9ebb2"]
-},Emrld1: {
-  2: ["#074050","#d3f2a3"],
-  3: ["#074050","#4c9b82","#d3f2a3"],
-  4: ["#074050","#217a79","#6cc08b","#d3f2a3"],
-  5: ["#074050","#19696f","#4c9b82","#82d091","#d3f2a3"],
-  6: ["#074050","#145f69","#35877d","#60b187","#8fda94","#d3f2a3"],
-  7: ["#074050","#105965","#217a79","#4c9b82","#6cc08b","#97e196","#d3f2a3"]
-},Blue1: {
-  2: ["#00477b","#e0ece7"],
-  3: ["#00477b","#649baa","#e0ece7"],
-  4: ["#00477b","#437f99","#8cb6bd","#e0ece7"],
-  5: ["#00477B","#317290","#649BAA","#9FC4C7","#E0ECE7"],
-  6: ["#00477b","#2a698c","#518aa0","#7cabb6","#accccd","#e0ece7"],
-  7: ["#00477b","#266389","#437f99","#649baa","#8cb6bd","#b5d1d2","#e0ece7"]
-},Teal1: {
-  2: ["#00718E","#C1F2EB"],
-  3: ["#00718E","#52B1B8","#C1F2EB"],
-  4: ["#00718E","#1F9BA9","#77C7C8","#C1F2EB"],
-  5: ["#00718E","#0090A2","#52B1B8","#89D2D0","#C1F2EB"],
-  6: ["#00718E","#008A9E","#37A4AF","#69BEC1","#94D8D5","#C1F2EB"],
-  7: ["#00718E","#00869B","#1F9BA9","#52B1B8","#77C7C8","#9BDDD9","#C1F2EB"]
-},Teal2: {
-  2: ["#005777","#b2eee6"],
-  3: ["#005777","#37a4ab","#b2eee6"],
-  4: ["#005777","#1a8a98","#69bebf","#b2eee6"],
-  5: ["#005777","#007D8F","#37A4AB","#7ECBC9","#B2EEE6"],
-  6: ["#005777","#01758a","#2794a0","#57b3b7","#89d2cf","#b2eee6"],
-  7: ["#005777","#017087","#1a8a98","#37a4ab","#69bebf","#90d7d3","#b2eee6"]
-},BluYl1: {
-  2: ["#045275","#f7feae"],
-  3: ["#045275","#46aea0","#f7feae"],
-  4: ["#045275","#089099","#7ccba2","#f7feae"],
-  5: ["#045275","#058092","#46aea0","#9bd8a4","#f7feae"],
-  6: ["#045275","#02778e","#2a9c9c","#68bfa1","#ace1a4","#f7feae"],
-  7: ["#045275","#00718b","#089099","#46aea0","#7ccba2","#b7e6a5","#f7feae"]
-},BluYl2: {
-  2: ["#195a7e","#fff2b0"],
-  3: ["#195a7e","#59ae9c","#fff2b0"],
-  4: ["#195a7e","#2a9399","#8dc79d","#fff2b0"],
-  5: ["#195a7e","#168595","#59ae9c","#a8d39e","#fff2b0"],
-  6: ["#195a7e","#0c7c92","#3c9e9a","#77bd9c","#b9daa0","#fff2b0"],
-  7: ["#195a7e","#08778f","#2a9399","#59ae9c","#8dc79d","#c4dea2","#fff2b0"]
-},Mint1: {
-  2: ["#246580","#e3efcd"],
-  3: ["#246580","#4cb2a0","#e3efcd"],
-  4: ["#246580","#399896","#86c6af","#e3efcd"],
-  5: ["#246580","#358b91","#4cb2a0","#9ed0b6","#e3efcd"],
-  6: ["#246580","#32838d","#41a29a","#71bea9","#acd7bb","#e3efcd"],
-  7: ["#246580","#307e8b","#399896","#4cb2a0","#86c6af","#b5dbbe","#e3efcd"]
-},Mint2: {
-  2: ["#0d585f","#e4f1e1"],
-  3: ["#0d585f","#63a6a0","#e4f1e1"],
-  4: ["#0d585f","#448c8a","#89c0b6","#e4f1e1"],
-  5: ["#0D585F","#337F7F","#63A6A0","#9CCDC1","#E4F1E1"],
-  6: ["#0d585f","#2c7778","#509693","#7ab5ad","#abd4c7","#e4f1e1"],
-  7: ["#0d585f","#287274","#448c8a","#63a6a0","#89c0b6","#b4d9cc","#e4f1e1"]
-},Mint3: {
-  2: ["#123f5a","#d2fbd4"],
-  3: ["#123f5a","#559c9e","#d2fbd4"],
-  4: ["#123f5a","#3a7c89","#7bbcb0","#d2fbd4"],
-  5: ["#123f5a","#2b6c7f","#559c9e","#8eccb9","#d2fbd4"],
-  6: ["#123f5a","#266377","#458892","#6cafa9","#9cd5be","#d2fbd4"],
-  7: ["#123f5a","#235d72","#3a7c89","#559c9e","#7bbcb0","#a5dbc2","#d2fbd4"]
-},TealPink1: {
-  2: ["#3094b1","#ffe2ff"],
-  3: ["#3094b1","#a6b9e4","#ffe2ff"],
-  4: ["#3094b1","#83acd7","#c7c5ef","#ffe2ff"],
-  5: ["#3094b1","#70a6cf","#a6b9e4","#d6ccf3","#ffe2ff"],
-  6: ["#3094b1","#64a3c9","#91b1dd","#bac0eb","#dfd0f6","#ffe2ff"],
-  7: ["#3094b1","#5ca0c6","#83acd7","#a6b9e4","#c7c5ef","#e5d3f7","#ffe2ff"]
-},BluPurp1: {
-  2: ["#3e57b5","#f9e1f9"],
-  3: ["#3e57b5","#caaafc","#f9e1f9"],
-  4: ["#3e57b5","#a08ce4","#dfbbf9","#f9e1f9"],
-  5: ["#3e57b5","#8a7ed8","#caaafc","#e7c4f8","#f9e1f9"],
-  6: ["#3e57b5","#7c76d1","#b198ee","#d7b4fa","#ecc9f8","#f9e1f9"],
-  7: ["#3e57b5","#7371cc","#a08ce4","#caaafc","#dfbbf9","#eecdf8","#f9e1f9"]
-},Purp1: {
-  2: ["#5c308c","#ffc2c7"],
-  3: ["#5c308c","#c753a8","#ffc2c7"],
-  4: ["#5c308c","#a640a2","#e76cac","#ffc2c7"],
-  5: ["#5c308c","#953a9e","#c753a8","#f37daf","#ffc2c7"],
-  6: ["#5c308c","#8a379b","#b348a4","#da62aa","#fa86b0","#ffc2c7"],
-  7: ["#5C308C","#833599","#A640A2","#C753A8","#E76CAC","#FF8DB1","#FFC2C7"]
-},Purp2: {
-  2: ["#443f7a","#ffe6ff"],
-  3: ["#443f7a","#ab8cb9","#ffe6ff"],
-  4: ["#443f7a","#8a71a3","#cca9d0","#ffe6ff"],
-  5: ["#443f7a","#796498","#ab8cb9","#dbb8dc","#ffe6ff"],
-  6: ["#443f7a","#6f5c91","#977cac","#bf9dc7","#e5c1e3","#ffe6ff"],
-  7: ["#443F7A","#68578D","#8A71A3","#AB8CB9","#CCA9D0","#EBC7E8","#FFE6FF"]
-},Purp3: {
-  2: ["#5a3783","#ead0d7"],
-  3: ["#5a3783","#ad7bae","#ead0d7"],
-  4: ["#5a3783","#9462a1","#c496bb","#ead0d7"],
-  5: ["#5a3783","#87569a","#ad7bae","#cea4c2","#ead0d7"],
-  6: ["#5a3783","#7e5096","#9e6ca6","#bb8bb6","#d4adc5","#ead0d7"],
-  7: ["#5A3783","#794B93","#9462A1","#AD7BAE","#C496BB","#D8B3C8","#EAD0D7"]
-},Purp4: {
-  2: ["#4b3c80","#ffd1e2"],
-  3: ["#4b3c80","#b97db2","#ffd1e2"],
-  4: ["#4b3c80","#9665a1","#d897c1","#ffd1e2"],
-  5: ["#4B3C80","#855A99","#B97DB2","#E8A5C9","#FFD1E2"],
-  6: ["#4b3c80","#7a5494","#a46fa8","#cc8dbb","#edaece","#ffd1e2"],
-  7: ["#4b3c80","#725091","#9665a1","#b97db2","#d897c1","#f0b4d1","#ffd1e2"]
-},Sunset1: {
-  2: ["#7F56B4","#FFEAB0"],
-  3: ["#7F56B4","#F591B7","#FFEAB0"],
-  4: ["#7F56B4","#D977BC","#FFAFB1","#FFEAB0"],
-  5: ["#7F56B4","#C76CBC","#F591B7","#FFBEAF","#FFEAB0"],
-  6: ["#7F56B4","#BB66BC","#E581BB","#FFA3B4","#FFC7AE","#FFEAB0"],
-  7: ["#7F56B4","#B363BB","#D977BC","#F591B7","#FFAFB1","#FFCDAD","#FFEAB0"]
-},Sunset2: {
-  2: ["#5c53a5","#f3e79b"],
-  3: ["#5c53a5","#eb7f86","#f3e79b"],
-  4: ["#5c53a5","#ce6693","#f8a07e","#f3e79b"],
-  5: ["#5c53a5","#b95e9a","#eb7f86","#fab27f","#f3e79b"],
-  6: ["#5c53a5","#ab5b9e","#dc6f8e","#f59280","#fabc82","#f3e79b"],
-  7: ["#5c53a5","#a059a0","#ce6693","#eb7f86","#f8a07e","#fac484","#f3e79b"]
-},Sunset3: {
-  2: ["#e15383","#fef6b5"],
-  3: ["#e15383","#ffa679","#fef6b5"],
-  4: ["#e15383","#fa8a76","#ffc285","#fef6b5"],
-  5: ["#e15383","#f67b77","#ffa679","#ffd08e","#fef6b5"],
-  6: ["#e15383","#f37378","#fd9576","#ffb77f","#ffd795","#fef6b5"],
-  7: ["#e15383","#f16d7a","#fa8a76","#ffa679","#ffc285","#ffdd9a","#fef6b5"]
-},Magnt1: {
-  2: ["#6f2a72","#ffbec4"],
-  3: ["#6f2a72","#bc3e8b","#ffbec4"],
-  4: ["#6f2a72","#a23784","#d76a97","#ffbec4"],
-  5: ["#6f2a72","#953480","#bc3e8b","#e37fa0","#ffbec4"],
-  6: ["#6f2a72","#8d327e","#ac3a87","#cd5992","#e98ba6","#ffbec4"],
-  7: ["#6f2a72","#88307c","#a23784","#bc3e8b","#d76a97","#ed94aa","#ffbec4"]
-},Burg1: {
-  2: ["#581c3b","#ffd5d2"],
-  3: ["#581c3b","#cc607d","#ffd5d2"],
-  4: ["#581c3b","#ab4269","#e78393","#ffd5d2"],
-  5: ["#581c3b","#97365e","#cc607d","#f097a0","#ffd5d2"],
-  6: ["#581c3b","#8b3058","#b84e71","#dc758a","#f6a3a9","#ffd5d2"],
-  7: ["#581c3b","#832b54","#ab4269","#cc607d","#e78393","#f9abae","#ffd5d2"]
-},Burg2: {
-  2: ["#672044","#ffc6c4"],
-  3: ["#672044","#cc607d","#ffc6c4"],
-  4: ["#672044","#ad466c","#e38191","#ffc6c4"],
-  5: ["#672044","#9e3963","#cc607d","#ee919b","#ffc6c4"],
-  6: ["#672044","#93345d","#b95073","#da7489","#f29ca3","#ffc6c4"],
-  7: ["#672044","#8b3058","#ad466c","#cc607d","#e38191","#f4a3a8","#ffc6c4"]
-},RedOr1: {
-  2: ["#a53460","#f9e0a3"],
-  3: ["#a53460","#dd886b","#f9e0a3"],
-  4: ["#a53460","#ce6b63","#e8a678","#f9e0a3"],
-  5: ["#a53460","#c65d61","#dd886b","#edb480","#f9e0a3"],
-  6: ["#a53460","#c05461","#d47766","#e49a72","#efbd86","#f9e0a3"],
-  7: ["#a53460","#bc4f60","#ce6b63","#dd886b","#e8a678","#f1c38a","#f9e0a3"]
-},OrYel1: {
-  2: ["#f2954b","#fafebd"],
-  3: ["#f2954b","#f3cd7a","#fafebd"],
-  4: ["#f2954b","#f3bb67","#f5de8e","#fafebd"],
-  5: ["#f2954b","#f3b25f","#f3cd7a","#f5e69a","#fafebd"],
-  6: ["#f2954b","#f3ac5a","#f3c26e","#f4d786","#f6eba0","#fafebd"],
-  7: ["#f2954b","#f3a957","#f3bb67","#f3cd7a","#f5de8e","#f7eea5","#fafebd"]
-},Peach1: {
-  3: ["#eb4a40","#f59e72","#fde0c5"],
-  4: ["#eb4a40","#f2855d","#f8b58b","#fde0c5"],
-  5: ["#eb4a40","#f17854","#f59e72","#f9c098","#fde0c5"],
-  6: ["#eb4a40","#f0704f","#f38f65","#f7ac80","#fac7a1","#fde0c5"],
-  7: ["#eb4a40","#ef6a4c","#f2855d","#f59e72","#f8b58b","#facba6","#fde0c5"]
-},PeachYl1: {
-  2: ["#eb4a40","#fff2b0"],
-  3: ["#eb4a40","#f6a85e","#fff2b0"],
-  4: ["#eb4a40","#f38c4d","#f8c275","#fff2b0"],
-  5: ["#eb4a40","#f27d47","#f6a85e","#f9cf82","#fff2b0"],
-  6: ["#eb4a40","#f17444","#f59853","#f7b86b","#fad68b","#fff2b0"],
-  7: ["#eb4a40","#f06e43","#f38c4d","#f6a85e","#f8c275","#fbdb91","#fff2b0"]
-},Brown1: {
-  2: ["#884b3d","#f2d6af"],
-  3: ["#884b3d","#e29859","#f2d6af"],
-  4: ["#884b3d","#c67c51","#e7ad74","#f2d6af"],
-  5: ["#884b3d","#b76f4c","#e29859","#eab882","#f2d6af"],
-  6: ["#884b3d","#ae6749","#d18754","#e5a569","#ebbe8a","#f2d6af"],
-  7: ["#884b3d","#a86247","#c67c51","#e29859","#e7ad74","#ecc290","#f2d6af"]
-},ArmyRose: {
+  2: ["#FAFCA4","#296B3B"],
+  3: ["#FAFCA4","#8EB26A","#296B3B"],
+  4: ["#FAFCA4","#B1CB7B","#6D9A5A","#296B3B"],
+  5: ["#FAFCA4","#C2D785","#8EB26A","#5C8E52","#296B3B"],
+  6: ["#FAFCA4","#CDDE8B","#A3C174","#7AA460","#52874D","#296B3B"],
+  7: ["#FAFCA4","#D4E38F","#B1CB7B","#8EB26A","#6D9A5A","#4C824A","#296B3B"]
+  },Green2: {
+  2: ["#cafdd8","#007553"],
+  3: ["#cafdd8","#67cda3","#007553"],
+  4: ["#cafdd8","#8fe2b8","#34b289","#007553"],
+  5: ["#CAFDD8","#A2EDC3","#67CDA3","#00A47D","#007553"],
+  6: ["#cafdd8","#aaf0c7","#7fdab0","#4bbc94","#009a74","#007553"],
+  7: ["#cafdd8","#b0f2ca","#8fe2b8","#67cda3","#34b289","#00946f","#007553"]
+  },Green3: {
+  2: ["#dfe895","#008080"],
+  3: ["#dfe895","#7dbb7d","#008080"],
+  4: ["#dfe895","#9bcf7d","#5da87e","#008080"],
+  5: ["#dfe895","#acd87e","#7dbb7d","#4d9e7f","#008080"],
+  6: ["#dfe895","#b5de7f","#8fc77d","#6ab07e","#43987f","#008080"],
+  7: ["#dfe895","#bce27f","#9bcf7d","#7dbb7d","#5da87e","#3b947f","#008080"]
+  },Green4: {
+  2: ["#ebf49d","#0f4b51"],
+  3: ["#ebf49d","#6da06f","#0f4b51"],
+  4: ["#ebf49d","#8fbe7b","#518266","#0f4b51"],
+  5: ["#ebf49d","#a6cb83","#6da06f","#437461","#0f4b51"],
+  6: ["#ebf49d","#b4d389","#81b276","#5c8e6a","#3a6b5d","#0f4b51"],
+  7: ["#ebf49d","#bdd88c","#8fbe7b","#6da06f","#518266","#34665b","#0f4b51"]
+  },Khaki1: {
+  2: ["#f9ebb2","#324546"],
+  3: ["#f9ebb2","#909e74","#324546"],
+  4: ["#f9ebb2","#b4bc89","#6e7f61","#324546"],
+  5: ["#f9ebb2","#c7c894","#909e74","#5e6e5a","#324546"],
+  6: ["#f9ebb2","#d2d09b","#a5b081","#7b8b69","#546455","#324546"],
+  7: ["#f9ebb2","#DAD59F","#b4bc89","#909e74","#6e7f61","#4e5e52","#324546"]
+  },Emrld1: {
+  2: ["#d3f2a3","#074050"],
+  3: ["#d3f2a3","#4c9b82","#074050"],
+  4: ["#d3f2a3","#6cc08b","#217a79","#074050"],
+  5: ["#d3f2a3","#82d091","#4c9b82","#19696f","#074050"],
+  6: ["#d3f2a3","#8fda94","#60b187","#35877d","#145f69","#074050"],
+  7: ["#d3f2a3","#97e196","#6cc08b","#4c9b82","#217a79","#105965","#074050"]
+  },Blue1: {
+  2: ["#e0ece7","#00477b"],
+  3: ["#e0ece7","#649baa","#00477b"],
+  4: ["#e0ece7","#8cb6bd","#437f99","#00477b"],
+  5: ["#E0ECE7","#9FC4C7","#649BAA","#317290","#00477B"],
+  6: ["#e0ece7","#accccd","#7cabb6","#518aa0","#2a698c","#00477b"],
+  7: ["#e0ece7","#b5d1d2","#8cb6bd","#649baa","#437f99","#266389","#00477b"]
+  },Teal1: {
+  2: ["#C1F2EB","#00718E"],
+  3: ["#C1F2EB","#52B1B8","#00718E"],
+  4: ["#C1F2EB","#77C7C8","#1F9BA9","#00718E"],
+  5: ["#C1F2EB","#89D2D0","#52B1B8","#0090A2","#00718E"],
+  6: ["#C1F2EB","#94D8D5","#69BEC1","#37A4AF","#008A9E","#00718E"],
+  7: ["#C1F2EB","#9BDDD9","#77C7C8","#52B1B8","#1F9BA9","#00869B","#00718E"]
+  },Teal2: {
+  2: ["#b2eee6","#005777"],
+  3: ["#b2eee6","#37a4ab","#005777"],
+  4: ["#b2eee6","#69bebf","#1a8a98","#005777"],
+  5: ["#B2EEE6","#7ECBC9","#37A4AB","#007D8F","#005777"],
+  6: ["#b2eee6","#89d2cf","#57b3b7","#2794a0","#01758a","#005777"],
+  7: ["#b2eee6","#90d7d3","#69bebf","#37a4ab","#1a8a98","#017087","#005777"]
+  },BluYl1: {
+  2: ["#f7feae","#045275"],
+  3: ["#f7feae","#46aea0","#045275"],
+  4: ["#f7feae","#7ccba2","#089099","#045275"],
+  5: ["#f7feae","#9bd8a4","#46aea0","#058092","#045275"],
+  6: ["#f7feae","#ace1a4","#68bfa1","#2a9c9c","#02778e","#045275"],
+  7: ["#f7feae","#b7e6a5","#7ccba2","#46aea0","#089099","#00718b","#045275"]
+  },BluYl2: {
+  2: ["#fff2b0","#195a7e"],
+  3: ["#fff2b0","#59ae9c","#195a7e"],
+  4: ["#fff2b0","#8dc79d","#2a9399","#195a7e"],
+  5: ["#fff2b0","#a8d39e","#59ae9c","#168595","#195a7e"],
+  6: ["#fff2b0","#b9daa0","#77bd9c","#3c9e9a","#0c7c92","#195a7e"],
+  7: ["#fff2b0","#c4dea2","#8dc79d","#59ae9c","#2a9399","#08778f","#195a7e"]
+  },Mint1: {
+  2: ["#e3efcd","#246580"],
+  3: ["#e3efcd","#4cb2a0","#246580"],
+  4: ["#e3efcd","#86c6af","#399896","#246580"],
+  5: ["#e3efcd","#9ed0b6","#4cb2a0","#358b91","#246580"],
+  6: ["#e3efcd","#acd7bb","#71bea9","#41a29a","#32838d","#246580"],
+  7: ["#e3efcd","#b5dbbe","#86c6af","#4cb2a0","#399896","#307e8b","#246580"]
+  },Mint2: {
+  2: ["#e4f1e1","#0d585f"],
+  3: ["#e4f1e1","#63a6a0","#0d585f"],
+  4: ["#e4f1e1","#89c0b6","#448c8a","#0d585f"],
+  5: ["#E4F1E1","#9CCDC1","#63A6A0","#337F7F","#0D585F"],
+  6: ["#e4f1e1","#abd4c7","#7ab5ad","#509693","#2c7778","#0d585f"],
+  7: ["#e4f1e1","#b4d9cc","#89c0b6","#63a6a0","#448c8a","#287274","#0d585f"]
+  },Mint3: {
+  2: ["#d2fbd4","#123f5a"],
+  3: ["#d2fbd4","#559c9e","#123f5a"],
+  4: ["#d2fbd4","#7bbcb0","#3a7c89","#123f5a"],
+  5: ["#d2fbd4","#8eccb9","#559c9e","#2b6c7f","#123f5a"],
+  6: ["#d2fbd4","#9cd5be","#6cafa9","#458892","#266377","#123f5a"],
+  7: ["#d2fbd4","#a5dbc2","#7bbcb0","#559c9e","#3a7c89","#235d72","#123f5a"]
+  },TealPink1: {
+  2: ["#ffe2ff","#3094b1"],
+  3: ["#ffe2ff","#a6b9e4","#3094b1"],
+  4: ["#ffe2ff","#c7c5ef","#83acd7","#3094b1"],
+  5: ["#ffe2ff","#d6ccf3","#a6b9e4","#70a6cf","#3094b1"],
+  6: ["#ffe2ff","#dfd0f6","#bac0eb","#91b1dd","#64a3c9","#3094b1"],
+  7: ["#ffe2ff","#e5d3f7","#c7c5ef","#a6b9e4","#83acd7","#5ca0c6","#3094b1"]
+  },BluPurp1: {
+  2: ["#f9e1f9","#3e57b5"],
+  3: ["#f9e1f9","#caaafc","#3e57b5"],
+  4: ["#f9e1f9","#dfbbf9","#a08ce4","#3e57b5"],
+  5: ["#f9e1f9","#e7c4f8","#caaafc","#8a7ed8","#3e57b5"],
+  6: ["#f9e1f9","#ecc9f8","#d7b4fa","#b198ee","#7c76d1","#3e57b5"],
+  7: ["#f9e1f9","#eecdf8","#dfbbf9","#caaafc","#a08ce4","#7371cc","#3e57b5"]
+  },Purp1: {
+  2: ["#ffc2c7","#5c308c"],
+  3: ["#ffc2c7","#c753a8","#5c308c"],
+  4: ["#ffc2c7","#e76cac","#a640a2","#5c308c"],
+  5: ["#ffc2c7","#f37daf","#c753a8","#953a9e","#5c308c"],
+  6: ["#ffc2c7","#fa86b0","#da62aa","#b348a4","#8a379b","#5c308c"],
+  7: ["#FFC2C7","#FF8DB1","#E76CAC","#C753A8","#A640A2","#833599","#5C308C"]
+  },Purp2: {
+  2: ["#ffe6ff","#443f7a"],
+  3: ["#ffe6ff","#ab8cb9","#443f7a"],
+  4: ["#ffe6ff","#cca9d0","#8a71a3","#443f7a"],
+  5: ["#ffe6ff","#dbb8dc","#ab8cb9","#796498","#443f7a"],
+  6: ["#ffe6ff","#e5c1e3","#bf9dc7","#977cac","#6f5c91","#443f7a"],
+  7: ["#FFE6FF","#EBC7E8","#CCA9D0","#AB8CB9","#8A71A3","#68578D","#443F7A"]
+  },Purp3: {
+  2: ["#ead0d7","#5a3783"],
+  3: ["#ead0d7","#ad7bae","#5a3783"],
+  4: ["#ead0d7","#c496bb","#9462a1","#5a3783"],
+  5: ["#ead0d7","#cea4c2","#ad7bae","#87569a","#5a3783"],
+  6: ["#ead0d7","#d4adc5","#bb8bb6","#9e6ca6","#7e5096","#5a3783"],
+  7: ["#EAD0D7","#D8B3C8","#C496BB","#AD7BAE","#9462A1","#794B93","#5A3783"]
+  },Purp4: {
+  2: ["#ffd1e2","#4b3c80"],
+  3: ["#ffd1e2","#b97db2","#4b3c80"],
+  4: ["#ffd1e2","#d897c1","#9665a1","#4b3c80"],
+  5: ["#FFD1E2","#E8A5C9","#B97DB2","#855A99","#4B3C80"],
+  6: ["#ffd1e2","#edaece","#cc8dbb","#a46fa8","#7a5494","#4b3c80"],
+  7: ["#ffd1e2","#f0b4d1","#d897c1","#b97db2","#9665a1","#725091","#4b3c80"]
+  },Sunset1: {
+  2: ["#FFEAB0","#7F56B4"],
+  3: ["#FFEAB0","#F591B7","#7F56B4"],
+  4: ["#FFEAB0","#FFAFB1","#D977BC","#7F56B4"],
+  5: ["#FFEAB0","#FFBEAF","#F591B7","#C76CBC","#7F56B4"],
+  6: ["#FFEAB0","#FFC7AE","#FFA3B4","#E581BB","#BB66BC","#7F56B4"],
+  7: ["#FFEAB0","#FFCDAD","#FFAFB1","#F591B7","#D977BC","#B363BB","#7F56B4"]
+  },Sunset2: {
+  2: ["#f3e79b","#5c53a5"],
+  3: ["#f3e79b","#eb7f86","#5c53a5"],
+  4: ["#f3e79b","#f8a07e","#ce6693","#5c53a5"],
+  5: ["#f3e79b","#fab27f","#eb7f86","#b95e9a","#5c53a5"],
+  6: ["#f3e79b","#fabc82","#f59280","#dc6f8e","#ab5b9e","#5c53a5"],
+  7: ["#f3e79b","#fac484","#f8a07e","#eb7f86","#ce6693","#a059a0","#5c53a5"]
+  },Sunset3: {
+  2: ["#fef6b5","#e15383"],
+  3: ["#fef6b5","#ffa679","#e15383"],
+  4: ["#fef6b5","#ffc285","#fa8a76","#e15383"],
+  5: ["#fef6b5","#ffd08e","#ffa679","#f67b77","#e15383"],
+  6: ["#fef6b5","#ffd795","#ffb77f","#fd9576","#f37378","#e15383"],
+  7: ["#fef6b5","#ffdd9a","#ffc285","#ffa679","#fa8a76","#f16d7a","#e15383"]
+  },Magnt1: {
+  2: ["#ffbec4","#6f2a72"],
+  3: ["#ffbec4","#bc3e8b","#6f2a72"],
+  4: ["#ffbec4","#d76a97","#a23784","#6f2a72"],
+  5: ["#ffbec4","#e37fa0","#bc3e8b","#953480","#6f2a72"],
+  6: ["#ffbec4","#e98ba6","#cd5992","#ac3a87","#8d327e","#6f2a72"],
+  7: ["#ffbec4","#ed94aa","#d76a97","#bc3e8b","#a23784","#88307c","#6f2a72"]
+  },Burg1: {
+  2: ["#ffd5d2","#581c3b"],
+  3: ["#ffd5d2","#cc607d","#581c3b"],
+  4: ["#ffd5d2","#e78393","#ab4269","#581c3b"],
+  5: ["#ffd5d2","#f097a0","#cc607d","#97365e","#581c3b"],
+  6: ["#ffd5d2","#f6a3a9","#dc758a","#b84e71","#8b3058","#581c3b"],
+  7: ["#ffd5d2","#f9abae","#e78393","#cc607d","#ab4269","#832b54","#581c3b"]
+  },Burg2: {
+  2: ["#ffc6c4","#672044"],
+  3: ["#ffc6c4","#cc607d","#672044"],
+  4: ["#ffc6c4","#e38191","#ad466c","#672044"],
+  5: ["#ffc6c4","#ee919b","#cc607d","#9e3963","#672044"],
+  6: ["#ffc6c4","#f29ca3","#da7489","#b95073","#93345d","#672044"],
+  7: ["#ffc6c4","#f4a3a8","#e38191","#cc607d","#ad466c","#8b3058","#672044"]
+  },RedOr1: {
+  2: ["#f9e0a3","#a53460"],
+  3: ["#f9e0a3","#dd886b","#a53460"],
+  4: ["#f9e0a3","#e8a678","#ce6b63","#a53460"],
+  5: ["#f9e0a3","#edb480","#dd886b","#c65d61","#a53460"],
+  6: ["#f9e0a3","#efbd86","#e49a72","#d47766","#c05461","#a53460"],
+  7: ["#f9e0a3","#f1c38a","#e8a678","#dd886b","#ce6b63","#bc4f60","#a53460"]
+  },OrYel1: {
+  2: ["#fafebd","#f2954b"],
+  3: ["#fafebd","#f3cd7a","#f2954b"],
+  4: ["#fafebd","#f5de8e","#f3bb67","#f2954b"],
+  5: ["#fafebd","#f5e69a","#f3cd7a","#f3b25f","#f2954b"],
+  6: ["#fafebd","#f6eba0","#f4d786","#f3c26e","#f3ac5a","#f2954b"],
+  7: ["#fafebd","#f7eea5","#f5de8e","#f3cd7a","#f3bb67","#f3a957","#f2954b"]
+  },Peach1: {
+  3: ["#fde0c5","#f59e72","#eb4a40"],
+  4: ["#fde0c5","#f8b58b","#f2855d","#eb4a40"],
+  5: ["#fde0c5","#f9c098","#f59e72","#f17854","#eb4a40"],
+  6: ["#fde0c5","#fac7a1","#f7ac80","#f38f65","#f0704f","#eb4a40"],
+  7: ["#fde0c5","#facba6","#f8b58b","#f59e72","#f2855d","#ef6a4c","#eb4a40"]
+  },PeachYl1: {
+  2: ["#fff2b0","#eb4a40"],
+  3: ["#fff2b0","#f6a85e","#eb4a40"],
+  4: ["#fff2b0","#f8c275","#f38c4d","#eb4a40"],
+  5: ["#fff2b0","#f9cf82","#f6a85e","#f27d47","#eb4a40"],
+  6: ["#fff2b0","#fad68b","#f7b86b","#f59853","#f17444","#eb4a40"],
+  7: ["#fff2b0","#fbdb91","#f8c275","#f6a85e","#f38c4d","#f06e43","#eb4a40"]
+  },Brown1: {
+  2: ["#f2d6af","#884b3d"],
+  3: ["#f2d6af","#e29859","#884b3d"],
+  4: ["#f2d6af","#e7ad74","#c67c51","#884b3d"],
+  5: ["#f2d6af","#eab882","#e29859","#b76f4c","#884b3d"],
+  6: ["#f2d6af","#ebbe8a","#e5a569","#d18754","#ae6749","#884b3d"],
+  7: ["#f2d6af","#ecc290","#e7ad74","#e29859","#c67c51","#a86247","#884b3d"]
+  },ArmyRose: {
   2: ["#db8195","#929b4f"],
   3: ["#df91a3","#fdfbe4","#a3ad62"],
   4: ["#db8195","#f3d1ca","#d9dbaf","#929b4f"],
   5: ["#d8758b","#ebb4b8","#fdfbe4","#c1c68c","#879043"],
   6: ["#d66d85","#e4a0ac","#f6ddd1","#e3e4be","#b0b874","#7f883b"],
   7: ["#d46780","#df91a3","#f0c6c3","#fdfbe4","#d0d3a2","#a3ad62","#798234"]
-},Fall: {
+  },Fall: {
   2: ["#ca562c","#3d5941"],
   3: ["#ca562c","#f6edbd","#3d5941"],
   4: ["#ca562c","#edbb8a","#b5b991","#3d5941"],
   5: ["#ca562c","#e6a272","#f6edbd","#96a07c","#3d5941"],
   6: ["#ca562c","#e19464","#f1cf9e","#cecea2","#839170","#3d5941"],
   7: ["#ca562c","#de8a5a","#edbb8a","#f6edbd","#b5b991","#778868","#3d5941"]
-},Geyser: {
+  },Geyser: {
   2: ["#ca562c","#008080"],
   3: ["#ca562c","#f6edbd","#008080"],
   4: ["#ca562c","#edbb8a","#b4c8a8","#008080"],
   5: ["#ca562c","#e6a272","#f6edbd","#92b69e","#008080"],
   6: ["#ca562c","#e19464","#f1cf9e","#ced7b1","#7eab98","#008080"],
   7: ["#ca562c","#de8a5a","#edbb8a","#f6edbd","#b4c8a8","#70a494","#008080"]
-},Tropic: {
+  },Tropic: {
   2: ["#009B9E","#C75DAB"],
   3: ["#009B9E","#F1F1F1","#C75DAB"],
   4: ["#009B9E","#A7D3D4","#E4C1D9","#C75DAB"],
   5: ["#009B9E","#7CC5C6","#F1F1F1","#DDA9CD","#C75DAB"],
   6: ["#009B9E","#5DBCBE","#C6DFDF","#E9D4E2","#D99BC6","#C75DAB"],
   7: ["#009B9E","#42B7B9","#A7D3D4","#F1F1F1","#E4C1D9","#D691C1","#C75DAB"]
-},Earth: {
+  },Earth: {
   2: ["#2887a1","#A16928"],
   3: ["#2887a1","#edeac2","#A16928"],
   4: ["#2887a1","#b5c8b8","#d6bd8d","#A16928"],
   5: ["#2887a1","#98b7b2","#edeac2","#caa873","#A16928"],
   6: ["#2887a1","#85adaf","#cbd5bc","#e0cfa2","#c29b64","#A16928"],
   7: ["#2887a1","#79a7ac","#b5c8b8","#edeac2","#d6bd8d","#bd925a","#A16928"]
-},Bold: {
+  },Bold: {
   2: ["#7F3C8D","#11A579"],
   3: ["#7F3C8D","#11A579","#3969AC"],
   4: ["#7F3C8D","#11A579","#3969AC","#F2B701"],
@@ -21703,9 +21703,9 @@ var cartocolor = {Green1: {
   7: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310"],
   8: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695"],
   9: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695","#CF1C90"],
-  10:["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695","#CF1C90","#f97b72"],
-  11:["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695","#CF1C90","#f97b72","#A5AA99"]
-},Vivid: {
+  10: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695","#CF1C90","#f97b72"],
+  11: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695","#CF1C90","#f97b72","#A5AA99"]
+  },Vivid: {
   2: ["#E58606","#5D69B1"],
   3: ["#E58606","#5D69B1","#52BCA3"],
   4: ["#E58606","#5D69B1","#52BCA3","#99C945"],
@@ -21714,9 +21714,9 @@ var cartocolor = {Green1: {
   7: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f"],
   8: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f"],
   9: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f","#ed645a"],
-  10:["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f","#ed645a","#CC61B0"],
-  11:["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f","#ed645a","#CC61B0","#A5AA99"]
-},Pastel: {
+  10: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f","#ed645a","#CC61B0"],
+  11: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f","#ed645a","#CC61B0","#A5AA99"]
+  },Pastel: {
   2: ["#78BDC8","#F4C34C"],
   3: ["#78BDC8","#F4C34C","#DCB0F2"],
   4: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F"],
@@ -21725,9 +21725,9 @@ var cartocolor = {Green1: {
   7: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1"],
   8: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0"],
   9: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0","#C9DB74"],
-  10:["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0","#C9DB74","#8BE0A4"],
-  11:["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0","#C9DB74","#8BE0A4","#9DB8C1"]
-},Antique: {
+  10: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0","#C9DB74","#8BE0A4"],
+  11: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0","#C9DB74","#8BE0A4","#9DB8C1"]
+  },Antique: {
   2: ["#75445C","#D5A75B"],
   3: ["#75445C","#D5A75B","#AF6458"],
   4: ["#75445C","#D5A75B","#AF6458","#736F4C"],
@@ -21736,9 +21736,9 @@ var cartocolor = {Green1: {
   7: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f"],
   8: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d"],
   9: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d","#af5878"],
-  10:["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d","#af5878","#5c4c73"],
-  11:["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d","#af5878","#5c4c73","#6C6D6F"]
-},Safe: {
+  10: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d","#af5878","#5c4c73"],
+  11: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d","#af5878","#5c4c73","#6C6D6F"]
+  },Safe: {
   2: ["#88CCEE","#CC6677"],
   3: ["#88CCEE","#CC6677","#DDCC77"],
   4: ["#88CCEE","#CC6677","#DDCC77","#117733"],
@@ -21747,8 +21747,8 @@ var cartocolor = {Green1: {
   7: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99"],
   8: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933"],
   9: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933","#882255"],
-  10:["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933","#882255","#661100"],
-  11:["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933","#882255","#661100","#888888"]
+  10: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933","#882255","#661100"],
+  11: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933","#882255","#661100","#888888"]
 }};
 
 if (typeof define === "function" && define.amd) {
@@ -30788,6 +30788,26 @@ module.exports = false;
 
 require('es6-promise').polyfill();
 
+var debug = require('../helper/debug')('fn-factory');
+
+module.exports = function () {
+  return function fn$anonymousTuple () {
+    debug('fn$anonymousTuple(%j)', arguments);
+    var args = arguments;
+    return new Promise(function (resolve) {
+      var tupleValues = Object.keys(args).map(function (k) { return args[k]; });
+      resolve(tupleValues);
+    });
+  };
+};
+
+module.exports.fnName = 'anonymousTuple';
+
+},{"../helper/debug":114,"es6-promise":60}],104:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
 var columnName = require('../helper/column-name');
 var debug = require('../helper/debug')('fn-factory');
 var postcss = require('postcss');
@@ -30842,7 +30862,7 @@ function getRamp (datasource, column, method) {
 
 module.exports.fnName = 'buckets';
 
-},{"../helper/column-name":112,"../helper/debug":113,"es6-promise":60,"postcss":78}],104:[function(require,module,exports){
+},{"../helper/column-name":113,"../helper/debug":114,"es6-promise":60,"postcss":78}],105:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
@@ -30889,7 +30909,7 @@ FnBuilder.prototype.exec = function () {
   return Promise.all(executorsExec);
 };
 
-},{"./fn-executor":108,"es6-promise":60}],105:[function(require,module,exports){
+},{"./fn-executor":109,"es6-promise":60}],106:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
@@ -30914,7 +30934,7 @@ module.exports = function () {
 
 module.exports.fnName = 'cartocolor';
 
-},{"../helper/debug":113,"cartocolor":54,"es6-promise":60}],106:[function(require,module,exports){
+},{"../helper/debug":114,"cartocolor":54,"es6-promise":60}],107:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
@@ -30940,27 +30960,13 @@ module.exports = function () {
 
 module.exports.fnName = 'colorbrewer';
 
-},{"../helper/debug":113,"colorbrewer":56,"es6-promise":60}],107:[function(require,module,exports){
+},{"../helper/debug":114,"colorbrewer":56,"es6-promise":60}],108:[function(require,module,exports){
 'use strict';
 
-require('es6-promise').polyfill();
-
-var debug = require('../helper/debug')('fn-factory');
-
-module.exports = function () {
-  return function fn$colors () {
-    var args = arguments;
-    debug('fn$colors(%j)', arguments);
-    return new Promise(function (resolve) {
-      var colors = Object.keys(args).map(function (k) { return args[k]; });
-      resolve(colors);
-    });
-  };
-};
-
+module.exports = require('./fn-anonymous-tuple');
 module.exports.fnName = 'colors';
 
-},{"../helper/debug":113,"es6-promise":60}],108:[function(require,module,exports){
+},{"./fn-anonymous-tuple":103}],109:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
@@ -31020,7 +31026,7 @@ FnExecutor.prototype.execFn = function (nestedFnIndex) {
     });
 };
 
-},{"../helper/debug":113,"./fn-factory":109,"es6-promise":60}],109:[function(require,module,exports){
+},{"../helper/debug":114,"./fn-factory":110,"es6-promise":60}],110:[function(require,module,exports){
 'use strict';
 
 var fns = [
@@ -31030,14 +31036,22 @@ var fns = [
   require('./fn-buckets'),
   require('./fn-colors')
 ];
+var fnMap = fns.reduce(function (fnMap, fn) {
+  fnMap[fn.fnName] = fn;
+  return fnMap;
+}, {});
 var fnIdentity = require('./fn-identity');
+var fnAnonymousTuple = require('./fn-anonymous-tuple');
 
 var FnFactory = {
   create: function (fnName, datasource, decl) {
-    for (var i = 0; i < fns.length; i++) {
-      if (fns[i].fnName === fnName) {
-        return fns[i](datasource, decl);
-      }
+    if (fnName === '') {
+      return fnAnonymousTuple();
+    }
+
+    var fn = fnMap[fnName];
+    if (fn) {
+      return fn(datasource, decl);
     }
 
     return fnIdentity(fnName);
@@ -31046,7 +31060,7 @@ var FnFactory = {
 
 module.exports = FnFactory;
 
-},{"./fn-buckets":103,"./fn-cartocolor":105,"./fn-colorbrew":106,"./fn-colors":107,"./fn-identity":110,"./fn-ramp":111}],110:[function(require,module,exports){
+},{"./fn-anonymous-tuple":103,"./fn-buckets":104,"./fn-cartocolor":106,"./fn-colorbrew":107,"./fn-colors":108,"./fn-identity":111,"./fn-ramp":112}],111:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
@@ -31073,14 +31087,66 @@ module.exports = function (fnName) {
 
 module.exports.fnName = 'pass';
 
-},{"../helper/debug":113,"es6-promise":60}],111:[function(require,module,exports){
+},{"../helper/debug":114,"es6-promise":60}],112:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
 
 var debug = require('../helper/debug')('fn-factory');
 var columnName = require('../helper/column-name');
+var TurboCartoError = require('../helper/turbo-carto-error');
+var buckets = require('../helper/linear-buckets');
 var postcss = require('postcss');
+
+function createSplitStrategy (selector) {
+  return function splitStrategy (column, rampResult, decl) {
+    var defaultValue = rampResult[1];
+    var initialDecl = postcss.decl({ prop: decl.prop, value: defaultValue });
+    decl.replaceWith(initialDecl);
+
+    var previousNode = initialDecl;
+    for (var i = 2, until = rampResult.length; i < until; i += 2) {
+      var rule = postcss.rule({
+        selector: selector(column, rampResult[i])
+      });
+      rule.append(postcss.decl({ prop: decl.prop, value: rampResult[i + 1] }));
+
+      rule.moveAfter(previousNode);
+      previousNode = rule;
+    }
+
+    return rampResult;
+  };
+}
+
+var strategy = {
+  max: function maxStrategy (column, rampResult, decl) {
+    var defaultValue = rampResult[1];
+    var initialDecl = postcss.decl({ prop: decl.prop, value: defaultValue });
+    decl.replaceWith(initialDecl);
+
+    var previousNode = initialDecl;
+    for (var i = 0, until = rampResult.length - 2; i < until; i += 2) {
+      var rule = postcss.rule({
+        selector: '[ ' + column + ' > ' + rampResult[i] + ' ]'
+      });
+      rule.append(postcss.decl({ prop: decl.prop, value: rampResult[i + 3] }));
+
+      rule.moveAfter(previousNode);
+      previousNode = rule;
+    }
+
+    return rampResult;
+  },
+
+  split: createSplitStrategy(function gtSelector (column, value) {
+    return '[ ' + column + ' > ' + value + ' ]';
+  }),
+
+  exact: createSplitStrategy(function exactSelector (column, value) {
+    return '[ ' + column + ' = \'' + value + '\' ]';
+  })
+};
 
 module.exports = function (datasource, decl) {
   return function fn$ramp (column, /* ... */args) {
@@ -31091,24 +31157,21 @@ module.exports = function (datasource, decl) {
 
     return ramp(datasource, column, args)
       .then(function (rampResult) {
-        var parent = decl.parent;
-        var defaultValue = rampResult[1];
-
-        column = columnName(column);
-
-        parent.append(postcss.decl({ prop: decl.prop, value: defaultValue }));
-
-        for (var i = 0, until = rampResult.length - 2; i < until; i += 2) {
-          var rule = postcss.rule({
-            selector: '[ ' + column + ' > ' + rampResult[i] + ' ]'
-          });
-          rule.append(postcss.decl({ prop: decl.prop, value: rampResult[i + 3] }));
-          parent.append(rule);
+        var strategyFn = strategy.hasOwnProperty(rampResult.strategy) ? strategy[rampResult.strategy] : strategy.max;
+        return strategyFn(columnName(column), rampResult.ramp, decl);
+      })
+      .catch(function (err) {
+        var context = {};
+        if (decl.parent) {
+          context.selector = decl.parent.selector;
         }
-
-        decl.remove();
-
-        return rampResult;
+        if (decl.source) {
+          context.source = {
+            start: decl.source.start,
+            end: decl.source.end
+          };
+        }
+        throw new TurboCartoError('Unable to process "' + decl.prop + '"', err, context);
       });
   };
 };
@@ -31139,84 +31202,107 @@ module.exports = function (datasource, decl) {
  *  <Number>minVal, <Number>maxValue, <String>method
  *
  * [10            , 20,             , 4]
- *  <Number>minVal, <Number>maxValue, <Number>buckets
+ *  <Number>minVal, <Number>maxValue, <Number>numBuckets
  *
  * [10            , 20,             , 4              , jenks]
- *  <Number>minVal, <Number>maxValue, <Number>buckets, <String>method
+ *  <Number>minVal, <Number>maxValue, <Number>numBuckets, <String>method
  */
 function ramp (datasource, column, args) {
   var method;
 
+  var tuple = [];
+
+  if (args.length === 0) {
+    return Promise.reject(
+      new TurboCartoError('Invalid number of arguments')
+    );
+  }
+
   if (Array.isArray(args[0])) {
-    var scheme = args[0];
+    tuple = args[0];
     method = args[1];
+  } else {
+    if (args.length < 2) {
+      return Promise.reject(
+        new TurboCartoError('Invalid number of arguments')
+      );
+    }
 
-    return colorRamp(datasource, column, scheme, method);
+    var min = +args[0];
+    var max = +args[1];
+
+    var numBuckets = 5;
+    method = args[2];
+
+    if (Number.isFinite(+args[2])) {
+      numBuckets = +args[2];
+      method = args[3];
+    }
+
+    tuple = buckets(min, max, numBuckets);
   }
 
-  var min = +args[0];
-  var max = +args[1];
-
-  var buckets = 5;
-  method = args[2];
-
-  if (Number.isFinite(+args[2])) {
-    buckets = +args[2];
-    method = args[3];
-  }
-
-  return numericRamp(datasource, column, min, max, buckets, method);
+  return tupleRamp(datasource, column, tuple, method);
 }
 
 function getRamp (datasource, column, buckets, method) {
   return new Promise(function (resolve, reject) {
     datasource.getRamp(columnName(column), buckets, method, function (err, ramp) {
       if (err) {
-        return reject(err);
+        return reject(
+          new TurboCartoError('Unable to compute ramp', err)
+        );
       }
       resolve(ramp);
     });
   });
 }
 
-function colorRamp (datasource, column, scheme, method) {
-  var buckets = scheme.length;
-  return getRamp(datasource, column, buckets, method)
-    .then(function (ramp) {
-      var i;
-      var rampResult = [];
+function tupleRamp (datasource, column, tuple, method) {
+  if (Array.isArray(method)) {
+    var ramp = method;
+    if (tuple.length !== ramp.length) {
+      return Promise.reject(
+        new TurboCartoError('Invalid ramp length. Got ' + ramp.length + ' values, expected ' + tuple.length)
+      );
+    }
+    var strategy = ramp.map(function numberMapper (n) { return +n; }).every(Number.isFinite) ? 'split' : 'exact';
+    return Promise.resolve({ramp: ramp, strategy: strategy}).then(createRampFn(tuple));
+  }
 
-      for (i = 0; i < buckets; i++) {
-        rampResult.push(ramp[i]);
-        rampResult.push(scheme[i]);
-      }
+  // normalize method
+  if (method) {
+    method = method.toLowerCase();
+  }
 
-      return rampResult;
-    });
+  return getRamp(datasource, column, tuple.length, method).then(createRampFn(tuple));
 }
 
-function numericRamp (datasource, column, min, max, buckets, method) {
-  return getRamp(datasource, column, buckets, method)
-    .then(function (ramp) {
-      var i;
-      var rampResult = [];
+function createRampFn (tuple) {
+  return function prepareRamp (ramp) {
+    var strategy = 'max';
+    if (!Array.isArray(ramp)) {
+      strategy = ramp.strategy || 'max';
+      ramp = ramp.ramp;
+    }
 
-      min = +min;
-      max = +max;
-      var range = max - min;
-      var width = range / buckets;
-      for (i = 0; i < buckets; i++) {
-        rampResult.push(ramp[i]);
-        rampResult.push(min + ((i + 1) * width));
-      }
+    var buckets = tuple.length;
 
-      return rampResult;
-    });
+    var i;
+    var rampResult = [];
+
+    for (i = 0; i < buckets; i++) {
+      rampResult.push(ramp[i]);
+      rampResult.push(tuple[i]);
+    }
+
+    return { ramp: rampResult, strategy: strategy };
+  };
 }
 
 module.exports.fnName = 'ramp';
 
-},{"../helper/column-name":112,"../helper/debug":113,"es6-promise":60,"postcss":78}],112:[function(require,module,exports){
+},{"../helper/column-name":113,"../helper/debug":114,"../helper/linear-buckets":115,"../helper/turbo-carto-error":116,"es6-promise":60,"postcss":78}],113:[function(require,module,exports){
 'use strict';
 
 function columnName (column) {
@@ -31225,7 +31311,7 @@ function columnName (column) {
 
 module.exports = columnName;
 
-},{}],113:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 'use strict';
 
 var debug = require('debug');
@@ -31233,7 +31319,42 @@ module.exports = function turboCartoDebug (ns) {
   return debug(['turbo-carto', ns].join(':'));
 };
 
-},{"debug":57}],114:[function(require,module,exports){
+},{"debug":57}],115:[function(require,module,exports){
+'use strict';
+
+module.exports = function (min, max, numBuckets) {
+  var buckets = [];
+  var range = max - min;
+  var width = range / (numBuckets - 1);
+  for (var i = 0; i < numBuckets; i++) {
+    buckets.push(min + i * width);
+  }
+  return buckets;
+};
+
+},{}],116:[function(require,module,exports){
+'use strict';
+
+function TurboCartoError (message, originalErr, context) {
+  Error.captureStackTrace(this, this.constructor);
+  this.name = this.constructor.name;
+
+  if (originalErr) {
+    message += '. Reason: ' + originalErr.message;
+  }
+
+  if (context) {
+    message += '. Context: ' + JSON.stringify(context);
+  }
+
+  this.message = message;
+}
+
+require('util').inherits(TurboCartoError, Error);
+
+module.exports = TurboCartoError;
+
+},{"util":11}],117:[function(require,module,exports){
 'use strict';
 
 var postcss = require('postcss');
@@ -31252,7 +31373,7 @@ function turbocarto (cartocss, datasource, callback) {
 
 module.exports = turbocarto;
 
-},{"./postcss-turbo-carto":115,"postcss":78}],115:[function(require,module,exports){
+},{"./postcss-turbo-carto":118,"postcss":78}],118:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
@@ -31288,7 +31409,7 @@ PostcssTurboCarto.prototype.getPlugin = function () {
   });
 };
 
-},{"./fn/fn-builder":104,"es6-promise":60,"postcss":78,"postcss-value-parser":61}],116:[function(require,module,exports){
+},{"./fn/fn-builder":105,"es6-promise":60,"postcss":78,"postcss-value-parser":61}],119:[function(require,module,exports){
 var ss = require('simple-statistics');
 
 /**
@@ -31370,7 +31491,7 @@ module.exports = function(fc, field, num){
   return breaks;
 };
 
-},{"simple-statistics":117}],117:[function(require,module,exports){
+},{"simple-statistics":120}],120:[function(require,module,exports){
 'use strict';
 // # simple-statistics
 //
@@ -32946,7 +33067,7 @@ module.exports = function(fc, field, num){
 
 })(this);
 
-},{}],118:[function(require,module,exports){
+},{}],121:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -34496,7 +34617,7 @@ module.exports = function(fc, field, num){
   }
 }.call(this));
 
-},{}],119:[function(require,module,exports){
+},{}],122:[function(require,module,exports){
 (function (global){
 var Event = {}
 Event.on = function (evt, callback) {
@@ -34591,7 +34712,7 @@ module.exports = {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],120:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 var d3 = require('d3')
 var jenks = require('turf-jenks')
 
@@ -34647,7 +34768,7 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
   callback(error, ramp)
 }
 
-},{"d3":52,"turf-jenks":116}],121:[function(require,module,exports){
+},{"d3":52,"turf-jenks":119}],124:[function(require,module,exports){
 var Crossfilter = require('crossfilter')
 var cartodb = require('./')
 var geo = require('./geo')
@@ -34672,6 +34793,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     })
     this.crossfilter.add(featuresToAdd)
     this.tiles[tilePointString] = true
+    this.fire('featuresChanged');
     return this.getTile(tilePoint)
   },
 
@@ -34855,7 +34977,7 @@ Filter.reject = function (terms) {
 
 module.exports = Filter
 
-},{"./":123,"./geo":122,"crossfilter":51}],122:[function(require,module,exports){
+},{"./":126,"./geo":125,"crossfilter":51}],125:[function(require,module,exports){
 module.exports = {
   tile2lon: function (x, z) {
     return (x / Math.pow(2, z) * 360 - 180)
@@ -34943,7 +35065,7 @@ module.exports = {
   }
 }
 
-},{}],123:[function(require,module,exports){
+},{}],126:[function(require,module,exports){
 module.exports.d3 = require('./core')
 require('./leaflet_d3.js')
 var elements = {
@@ -34958,7 +35080,7 @@ for (var key in elements) {
   module.exports.d3[key] = elements[key]
 }
 
-},{"./core":119,"./filter.js":121,"./geo.js":122,"./leaflet_d3.js":124,"./net.js":125,"./providers":126,"./renderer.js":130,"./util.js":132}],124:[function(require,module,exports){
+},{"./core":122,"./filter.js":124,"./geo.js":125,"./leaflet_d3.js":127,"./net.js":128,"./providers":129,"./renderer.js":133,"./util.js":135}],127:[function(require,module,exports){
 var Renderer = require('./renderer')
 var providers = require('./providers')
 var TileLoader = require('./tileloader')
@@ -35280,7 +35402,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   }
 })
 
-},{"./geo":122,"./providers":126,"./renderer":130,"./tileloader":131}],125:[function(require,module,exports){
+},{"./geo":125,"./providers":129,"./renderer":133,"./tileloader":134}],128:[function(require,module,exports){
 (function (global){
 var d3 = require('d3')
 
@@ -35354,14 +35476,14 @@ module.exports.get = function get (url, callback, options) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"d3":52}],126:[function(require,module,exports){
+},{"d3":52}],129:[function(require,module,exports){
 module.exports = {
   SQLProvider: require('./sql.js'),
   XYZProvider: require('./xyz.js'),
   WindshaftProvider: require('./windshaft.js')
 }
 
-},{"./sql.js":127,"./windshaft.js":128,"./xyz.js":129}],127:[function(require,module,exports){
+},{"./sql.js":130,"./windshaft.js":131,"./xyz.js":132}],130:[function(require,module,exports){
 var d3 = require('d3')
 var geo = require('../geo')
 
@@ -35449,7 +35571,7 @@ SQLProvider.prototype = {
 
 module.exports = SQLProvider
 
-},{"../geo":122,"d3":52}],128:[function(require,module,exports){
+},{"../geo":125,"d3":52}],131:[function(require,module,exports){
 var cartodb = require('../')
 var XYZProvider = require('./xyz.js')
 
@@ -35460,14 +35582,15 @@ function WindshaftProvider (options) {
   this.format = options.format
   this.options = options
   this._tileQueue = []
-  this.initialize()
+  this.initialize(options)
   this._ready = false
   this.requests = {}
 }
 
 cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
 
-  initialize: function () {
+  initialize: function (options) {
+    this.options = options;
     this.tiler_template = this.tiler_template.replace('{user}', this.user)
     var mapconfig = this._generateMapconfig(this.table)
     var url = this.tiler_template + '/api/v1/map?config=' + encodeURIComponent(JSON.stringify(mapconfig))
@@ -35489,10 +35612,11 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
   allTilesLoaded: XYZProvider.prototype.allTilesLoaded,
 
   _generateMapconfig: function (table) {
+    var self = this;
     var mapconfig = {
       'version': '1.0.1',
       'layers': this.layers.map(function(layer) {
-         return {
+         var layerOptions =  {
            'type': 'cartodb',
            'options': {
              'sql': layer.sql,
@@ -35500,6 +35624,10 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
              'cartocss_version': '2.1.1'
            }
          }
+         if (self.options.columns) {
+          layerOptions.options.columns = self.options.columns
+         }
+         return layerOptions
       })
     };
     return mapconfig
@@ -35508,7 +35636,7 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
 
 module.exports = WindshaftProvider
 
-},{"../":123,"./xyz.js":129}],129:[function(require,module,exports){
+},{"../":126,"./xyz.js":132}],132:[function(require,module,exports){
 var d3 = require('d3')
 var cartodb = require('../')
 
@@ -35594,7 +35722,7 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
 
 module.exports = XYZProvider
 
-},{"../":123,"d3":52}],130:[function(require,module,exports){
+},{"../":126,"d3":52}],133:[function(require,module,exports){
 (function (global){
 /** global L **/
 var d3 = global.d3 || require('d3')
@@ -35657,16 +35785,12 @@ Renderer.prototype = {
 
   setCartoCSS: function (cartocss, transition) {
     var self = this
-    if (Renderer.isTurboCarto(cartocss)) {
-      this._applyStyle(cartocss, transition)
-    } else {
-      if (this.layer && (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading))) {
-        this.filter.on('featuresChanged', function () {
-          self._setTurboCarto(cartocss, transition)
-        })
-      } else {
+    if (!this.layer || !this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading)) {
+      this.filter.on('featuresChanged', function () {
         self._setTurboCarto(cartocss, transition)
-      }
+      })
+    } else {
+      self._setTurboCarto(cartocss, transition);
     }
   },
 
@@ -35843,31 +35967,66 @@ Renderer.prototype = {
   styleForSymbolizer: function (symbolyzer, shaderName) {
     if (symbolyzer === 'polygon' || symbolyzer === 'line') {
       return {
-        'fill': function (d) { return d[shaderName]['polygon-fill'] || 'none' },
-        'fill-opacity': function (d) { return d[shaderName]['polygon-opacity'] },
-        'stroke': function (d) { return d[shaderName]['line-color'] },
-        'stroke-width': function (d) { return d[shaderName]['line-width'] },
-        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName][symbolyzer + '-comp-op'] },
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
+        'fill': function (d) { 
+          return d[shaderName]['polygon-fill'] || 'none' 
+        },
+        'fill-opacity': function (d) { 
+          return d[shaderName]['polygon-opacity'] 
+        },
+        'stroke': function (d) { 
+          return d[shaderName]['line-color'] 
+        },
+        'stroke-width': function (d) { 
+          return d[shaderName]['line-width'] 
+        },
+        'stroke-opacity': function (d) { 
+          return d[shaderName]['line-opacity'] 
+        },
+        'mix-blend-mode': function (d) { 
+          var geometryType = 'marker';
+          if (d.geometry.type.toLowerCase().indexOf('line') > -1) geometryType = 'line';
+          else if (d.geometry.type.toLowerCase().indexOf('polygon') > -1) geometryType = 'polygon';
+          return d[shaderName]['comp-op'] || d[shaderName][geometryType + '-comp-op'] 
+        },
+        'stroke-dasharray': function (d) { 
+          return d[shaderName]['line-dasharray']
+           }
       }
     } else if (symbolyzer === 'markers') {
       return {
-        'fill': function (d) { return d[shaderName]['marker-fill'] || 'none' },
-        'fill-opacity': function (d) { return d[shaderName]['marker-fill-opacity'] },
-        'stroke': function (d) { return d[shaderName]['marker-line-color'] },
-        'stroke-opacity': function (d) { return d[shaderName]['marker-line-opacity'] },
-        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] },
+        'fill': function (d) { 
+          return d[shaderName]['marker-fill'] || 'none' 
+        },
+        'fill-opacity': function (d) { 
+          return d[shaderName]['marker-fill-opacity'] 
+        },
+        'stroke': function (d) { 
+          return d[shaderName]['marker-line-color'] 
+        },
+        'stroke-opacity': function (d) { 
+          return d[shaderName]['marker-line-opacity'] 
+        },
+        'stroke-width': function (d) { 
+          return d[shaderName]['marker-line-width'] 
+        },
         'radius': function (d) {
           return d[shaderName]['marker-width'] / 2
         },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName]['marker-comp-op']},
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
+        'mix-blend-mode': function (d) { 
+          return d[shaderName]['comp-op'] || d[shaderName]['marker-comp-op']
+        },
+        'stroke-dasharray': function (d) { 
+          return d[shaderName]['line-dasharray']
+           }
       }
     } else if (symbolyzer === 'text') {
       return {
-        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName]['text-comp-op'] }
+        'fill': function (d) { 
+          return d[shaderName]['text-fill'] || 'none' 
+        },
+        'mix-blend-mode': function (d) { 
+          return d[shaderName]['comp-op'] || d[shaderName]['text-comp-op']
+           }
       }
     }
   },
@@ -35934,6 +36093,15 @@ Renderer.prototype = {
       var featureHash = geo.hashFeature(d.properties[self.idField], group.tilePoint)
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
+      if (d.geometry) { // Marker geometries have 'coordinates', not 'geometry'
+        if (d.geometry.type === 'Polygon' || d.geometry.type === 'MultiPolygon') {
+          d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.POLYGON
+        } else {
+          d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.LINE
+        }
+      } else {
+        d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.POINT
+      }
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       this.onmousemove = self.events.featureOver
@@ -36052,6 +36220,12 @@ Renderer.prototype = {
   }
 }
 
+Renderer.MAPNIK_GEOMETRY_TYPES = {
+  POLYGON: 3,
+  LINE: 2,
+  POINT: 1
+}
+
 Renderer.getIndexFromFeature = function (element) {
   var i = 0
   var node = element.parentElement.parentElement
@@ -36097,7 +36271,7 @@ function transformForSymbolizer (symbolizer) {
 module.exports = Renderer
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./datasource":120,"./filter":121,"./geo":122,"carto":13,"d3":52,"turbo-carto":114,"underscore":118}],131:[function(require,module,exports){
+},{"./datasource":123,"./filter":124,"./geo":125,"carto":13,"d3":52,"turbo-carto":117,"underscore":121}],134:[function(require,module,exports){
 var L = window.L
 
 module.exports = L.Class.extend({
@@ -36249,12 +36423,13 @@ module.exports = L.Class.extend({
   }
 })
 
-},{}],132:[function(require,module,exports){
+},{}],135:[function(require,module,exports){
 var L = window.L
 var cartodb = require('../')
 
 module.exports = {
-  viz: function (url, map, done) {
+  viz: function (url, map, done, options) {
+    options = options || {};
     cartodb.d3.net.jsonp(url + '?callback=vizjson', function (data) {
       map.setView(JSON.parse(data.center), data.zoom)
       // get base layer, not render anything in case of non ZXY layers
@@ -36273,14 +36448,15 @@ module.exports = {
           return {
             // fix the \n in sql
             sql: layer.options.sql.replace(/\n/g, ' '),
-            cartocss: layer.options.cartocss
+            cartocss: layer.options.cartocss,
           }
         })
 
         var lyr = new L.CartoDBd3Layer({
           user: cartodbLayer.options.user_name,
           layers: layers,
-          styles: layers.map(function (l) { return l.cartocss })
+          styles: layers.map(function (l) { return l.cartocss }),
+          columns: options.columns
         }).addTo(map)
 
         done(null, lyr, layers)
@@ -36291,5 +36467,5 @@ module.exports = {
   }
 }
 
-},{"../":123}]},{},[123])(123)
+},{"../":126}]},{},[126])(126)
 });

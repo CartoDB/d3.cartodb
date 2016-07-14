@@ -174,6 +174,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     })
     this.crossfilter.add(featuresToAdd)
     this.tiles[tilePointString] = true
+    this.fire('featuresChanged');
     return this.getTile(tilePoint)
   },
 
@@ -962,14 +963,15 @@ function WindshaftProvider (options) {
   this.format = options.format
   this.options = options
   this._tileQueue = []
-  this.initialize()
+  this.initialize(options)
   this._ready = false
   this.requests = {}
 }
 
 cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
 
-  initialize: function () {
+  initialize: function (options) {
+    this.options = options;
     this.tiler_template = this.tiler_template.replace('{user}', this.user)
     var mapconfig = this._generateMapconfig(this.table)
     var url = this.tiler_template + '/api/v1/map?config=' + encodeURIComponent(JSON.stringify(mapconfig))
@@ -991,10 +993,11 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
   allTilesLoaded: XYZProvider.prototype.allTilesLoaded,
 
   _generateMapconfig: function (table) {
+    var self = this;
     var mapconfig = {
       'version': '1.0.1',
       'layers': this.layers.map(function(layer) {
-         return {
+         var layerOptions =  {
            'type': 'cartodb',
            'options': {
              'sql': layer.sql,
@@ -1002,6 +1005,10 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
              'cartocss_version': '2.1.1'
            }
          }
+         if (self.options.columns) {
+          layerOptions.options.columns = self.options.columns
+         }
+         return layerOptions
       })
     };
     return mapconfig
@@ -1159,16 +1166,12 @@ Renderer.prototype = {
 
   setCartoCSS: function (cartocss, transition) {
     var self = this
-    if (Renderer.isTurboCarto(cartocss)) {
-      this._applyStyle(cartocss, transition)
-    } else {
-      if (this.layer && (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading))) {
-        this.filter.on('featuresChanged', function () {
-          self._setTurboCarto(cartocss, transition)
-        })
-      } else {
+    if (!this.layer || !this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading)) {
+      this.filter.on('featuresChanged', function () {
         self._setTurboCarto(cartocss, transition)
-      }
+      })
+    } else {
+      self._setTurboCarto(cartocss, transition);
     }
   },
 
@@ -1345,31 +1348,66 @@ Renderer.prototype = {
   styleForSymbolizer: function (symbolyzer, shaderName) {
     if (symbolyzer === 'polygon' || symbolyzer === 'line') {
       return {
-        'fill': function (d) { return d[shaderName]['polygon-fill'] || 'none' },
-        'fill-opacity': function (d) { return d[shaderName]['polygon-opacity'] },
-        'stroke': function (d) { return d[shaderName]['line-color'] },
-        'stroke-width': function (d) { return d[shaderName]['line-width'] },
-        'stroke-opacity': function (d) { return d[shaderName]['line-opacity'] },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName][symbolyzer + '-comp-op'] },
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
+        'fill': function (d) { 
+          return d[shaderName]['polygon-fill'] || 'none' 
+        },
+        'fill-opacity': function (d) { 
+          return d[shaderName]['polygon-opacity'] 
+        },
+        'stroke': function (d) { 
+          return d[shaderName]['line-color'] 
+        },
+        'stroke-width': function (d) { 
+          return d[shaderName]['line-width'] 
+        },
+        'stroke-opacity': function (d) { 
+          return d[shaderName]['line-opacity'] 
+        },
+        'mix-blend-mode': function (d) { 
+          var geometryType = 'marker';
+          if (d.geometry.type.toLowerCase().indexOf('line') > -1) geometryType = 'line';
+          else if (d.geometry.type.toLowerCase().indexOf('polygon') > -1) geometryType = 'polygon';
+          return d[shaderName]['comp-op'] || d[shaderName][geometryType + '-comp-op'] 
+        },
+        'stroke-dasharray': function (d) { 
+          return d[shaderName]['line-dasharray']
+           }
       }
     } else if (symbolyzer === 'markers') {
       return {
-        'fill': function (d) { return d[shaderName]['marker-fill'] || 'none' },
-        'fill-opacity': function (d) { return d[shaderName]['marker-fill-opacity'] },
-        'stroke': function (d) { return d[shaderName]['marker-line-color'] },
-        'stroke-opacity': function (d) { return d[shaderName]['marker-line-opacity'] },
-        'stroke-width': function (d) { return d[shaderName]['marker-line-width'] },
+        'fill': function (d) { 
+          return d[shaderName]['marker-fill'] || 'none' 
+        },
+        'fill-opacity': function (d) { 
+          return d[shaderName]['marker-fill-opacity'] 
+        },
+        'stroke': function (d) { 
+          return d[shaderName]['marker-line-color'] 
+        },
+        'stroke-opacity': function (d) { 
+          return d[shaderName]['marker-line-opacity'] 
+        },
+        'stroke-width': function (d) { 
+          return d[shaderName]['marker-line-width'] 
+        },
         'radius': function (d) {
           return d[shaderName]['marker-width'] / 2
         },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName]['marker-comp-op']},
-        'stroke-dasharray': function (d) { return d[shaderName]['line-dasharray'] }
+        'mix-blend-mode': function (d) { 
+          return d[shaderName]['comp-op'] || d[shaderName]['marker-comp-op']
+        },
+        'stroke-dasharray': function (d) { 
+          return d[shaderName]['line-dasharray']
+           }
       }
     } else if (symbolyzer === 'text') {
       return {
-        'fill': function (d) { return d[shaderName]['text-fill'] || 'none' },
-        'mix-blend-mode': function (d) { return d[shaderName]['comp-op'] || d[shaderName]['text-comp-op'] }
+        'fill': function (d) { 
+          return d[shaderName]['text-fill'] || 'none' 
+        },
+        'mix-blend-mode': function (d) { 
+          return d[shaderName]['comp-op'] || d[shaderName]['text-comp-op']
+           }
       }
     }
   },
@@ -1436,6 +1474,15 @@ Renderer.prototype = {
       var featureHash = geo.hashFeature(d.properties[self.idField], group.tilePoint)
       if (!self.geometries[featureHash]) self.geometries[featureHash] = []
       self.geometries[featureHash].push(this)
+      if (d.geometry) { // Marker geometries have 'coordinates', not 'geometry'
+        if (d.geometry.type === 'Polygon' || d.geometry.type === 'MultiPolygon') {
+          d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.POLYGON
+        } else {
+          d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.LINE
+        }
+      } else {
+        d.properties['mapnik::geometry_type'] = Renderer.MAPNIK_GEOMETRY_TYPES.POINT
+      }
       d.properties.global = self.globalVariables
       d.shader = layer.getStyle(d.properties, {zoom: group.tilePoint.zoom, time: self.time})
       this.onmousemove = self.events.featureOver
@@ -1552,6 +1599,12 @@ Renderer.prototype = {
     })
     return feature
   }
+}
+
+Renderer.MAPNIK_GEOMETRY_TYPES = {
+  POLYGON: 3,
+  LINE: 2,
+  POINT: 1
 }
 
 Renderer.getIndexFromFeature = function (element) {
@@ -1756,7 +1809,8 @@ var L = window.L
 var cartodb = require('../')
 
 module.exports = {
-  viz: function (url, map, done) {
+  viz: function (url, map, done, options) {
+    options = options || {};
     cartodb.d3.net.jsonp(url + '?callback=vizjson', function (data) {
       map.setView(JSON.parse(data.center), data.zoom)
       // get base layer, not render anything in case of non ZXY layers
@@ -1775,14 +1829,15 @@ module.exports = {
           return {
             // fix the \n in sql
             sql: layer.options.sql.replace(/\n/g, ' '),
-            cartocss: layer.options.cartocss
+            cartocss: layer.options.cartocss,
           }
         })
 
         var lyr = new L.CartoDBd3Layer({
           user: cartodbLayer.options.user_name,
           layers: layers,
-          styles: layers.map(function (l) { return l.cartocss })
+          styles: layers.map(function (l) { return l.cartocss }),
+          columns: options.columns
         }).addTo(map)
 
         done(null, lyr, layers)
