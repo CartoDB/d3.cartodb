@@ -8,14 +8,15 @@ function WindshaftProvider (options) {
   this.format = options.format
   this.options = options
   this._tileQueue = []
-  this.initialize()
+  this.initialize(options)
   this._ready = false
   this.requests = {}
 }
 
 cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
 
-  initialize: function () {
+  initialize: function (options) {
+    this.options = options;
     this.tiler_template = this.tiler_template.replace('{user}', this.user)
     var mapconfig = this._generateMapconfig(this.table)
     var url = this.tiler_template + '/api/v1/map?config=' + encodeURIComponent(JSON.stringify(mapconfig))
@@ -37,6 +38,7 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
   allTilesLoaded: XYZProvider.prototype.allTilesLoaded,
 
   _generateMapconfig: function (table) {
+    var self = this;
     var mapconfig = {
       'version': '1.0.1',
       'layers': this.layers.map(function(layer) {
@@ -45,7 +47,8 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
            'options': {
              'sql': layer.sql,
              'cartocss': layer.cartocss,
-             'cartocss_version': '2.1.1'
+             'cartocss_version': '2.1.1',
+             'columns': self.options.columns
            }
          }
       })
