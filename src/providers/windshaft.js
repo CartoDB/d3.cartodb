@@ -42,15 +42,18 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
     var mapconfig = {
       'version': '1.0.1',
       'layers': this.layers.map(function(layer) {
-         return {
+         var layerOptions =  {
            'type': 'cartodb',
            'options': {
              'sql': layer.sql,
              'cartocss': layer.cartocss,
-             'cartocss_version': '2.1.1',
-             'columns': self.options.columns
+             'cartocss_version': '2.1.1'
            }
          }
+         if (self.options.columns) {
+          layerOptions.options.columns = self.options.columns
+         }
+         return layerOptions
       })
     };
     return mapconfig
