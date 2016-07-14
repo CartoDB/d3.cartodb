@@ -22,6 +22,7 @@ cartodb.d3.extend(Filter.prototype, cartodb.d3.Event, {
     })
     this.crossfilter.add(featuresToAdd)
     this.tiles[tilePointString] = true
+    this.fire('featuresChanged');
     return this.getTile(tilePoint)
   },
 
