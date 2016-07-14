@@ -59,16 +59,12 @@ Renderer.prototype = {
 
   setCartoCSS: function (cartocss, transition) {
     var self = this
-    if (Renderer.isTurboCarto(cartocss)) {
-      this._applyStyle(cartocss, transition)
-    } else {
-      if (this.layer && (!this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading))) {
-        this.filter.on('featuresChanged', function () {
-          self._setTurboCarto(cartocss, transition)
-        })
-      } else {
+    if (!this.layer || !this.layer.tileLoader || !_.isEmpty(this.layer.tileLoader._tilesLoading)) {
+      this.filter.on('featuresChanged', function () {
         self._setTurboCarto(cartocss, transition)
-      }
+      })
+    } else {
+      self._setTurboCarto(cartocss, transition);
     }
   },
 
