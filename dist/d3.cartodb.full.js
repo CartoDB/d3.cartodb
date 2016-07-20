@@ -2389,6 +2389,31 @@ var substr = 'ab'.substr(-1) === 'b'
 // shim for using process in browser
 
 var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+(function () {
+  try {
+    cachedSetTimeout = setTimeout;
+  } catch (e) {
+    cachedSetTimeout = function () {
+      throw new Error('setTimeout is not defined');
+    }
+  }
+  try {
+    cachedClearTimeout = clearTimeout;
+  } catch (e) {
+    cachedClearTimeout = function () {
+      throw new Error('clearTimeout is not defined');
+    }
+  }
+} ())
 var queue = [];
 var draining = false;
 var currentQueue;
@@ -2413,7 +2438,7 @@ function drainQueue() {
     if (draining) {
         return;
     }
-    var timeout = setTimeout(cleanUpNextTick);
+    var timeout = cachedSetTimeout(cleanUpNextTick);
     draining = true;
 
     var len = queue.length;
@@ -2430,7 +2455,7 @@ function drainQueue() {
     }
     currentQueue = null;
     draining = false;
-    clearTimeout(timeout);
+    cachedClearTimeout(timeout);
 }
 
 process.nextTick = function (fun) {
@@ -2442,7 +2467,7 @@ process.nextTick = function (fun) {
     }
     queue.push(new Item(fun, args));
     if (queue.length === 1 && !draining) {
-        setTimeout(drainQueue, 0);
+        cachedSetTimeout(drainQueue, 0);
     }
 };
 
@@ -3411,7 +3436,7 @@ function stylize(str, style) {
 }
 
 }).call(this,require('_process'),"/node_modules/carto/lib/carto")
-},{"../../package.json":49,"./functions":12,"./parser":14,"./renderer":15,"./renderer_js":16,"./torque-reference":17,"./tree":18,"./tree/call":19,"./tree/color":20,"./tree/comment":21,"./tree/definition":22,"./tree/dimension":23,"./tree/element":24,"./tree/expression":25,"./tree/field":26,"./tree/filter":27,"./tree/filterset":28,"./tree/fontset":29,"./tree/frame_offset":30,"./tree/imagefilter":31,"./tree/invalid":32,"./tree/keyword":33,"./tree/layer":34,"./tree/literal":35,"./tree/operation":36,"./tree/quoted":37,"./tree/reference":38,"./tree/rule":39,"./tree/ruleset":40,"./tree/selector":41,"./tree/style":42,"./tree/url":43,"./tree/value":44,"./tree/variable":45,"./tree/zoom":46,"_process":9,"fs":1,"path":8,"util":11}],14:[function(require,module,exports){
+},{"../../package.json":48,"./functions":12,"./parser":14,"./renderer":15,"./renderer_js":16,"./torque-reference":17,"./tree":18,"./tree/call":19,"./tree/color":20,"./tree/comment":21,"./tree/definition":22,"./tree/dimension":23,"./tree/element":24,"./tree/expression":25,"./tree/field":26,"./tree/filter":27,"./tree/filterset":28,"./tree/fontset":29,"./tree/frame_offset":30,"./tree/imagefilter":31,"./tree/invalid":32,"./tree/keyword":33,"./tree/layer":34,"./tree/literal":35,"./tree/operation":36,"./tree/quoted":37,"./tree/reference":38,"./tree/rule":39,"./tree/ruleset":40,"./tree/selector":41,"./tree/style":42,"./tree/url":43,"./tree/value":44,"./tree/variable":45,"./tree/zoom":46,"_process":9,"fs":1,"path":8,"util":11}],14:[function(require,module,exports){
 (function (global){
 var carto = exports,
     tree = require('./tree'),
@@ -3529,8 +3554,9 @@ carto.Parser = function Parser(env) {
     // - `index`: Char. index where the error occurred.
     function makeError(err) {
         var einput;
+        var errorTemplate;
 
-        _(err).defaults({
+        _.defaults(err, {
             index: furthest,
             filename: env.filename,
             message: 'Parse error.',
@@ -3548,8 +3574,8 @@ carto.Parser = function Parser(env) {
         for (var n = err.index; n >= 0 && einput.charAt(n) !== '\n'; n--) {
             err.column++;
         }
-
-        return new Error(_('<%=filename%>:<%=line%>:<%=column%> <%=message%>').template(err));
+        errorTemplate = _.template('<%=filename%>:<%=line%>:<%=column%> <%=message%>');
+        return new Error(errorTemplate(err));
     }
 
     this.env = env = env || {};
@@ -3891,6 +3917,7 @@ carto.Parser = function Parser(env) {
                         return new tree.Dimension(value[1], value[2], memo);
                     }
                 }
+
             },
 
             // The variable part of a variable definition.
@@ -4139,10 +4166,22 @@ carto.Parser = function Parser(env) {
             },
             // A sub-expression, contained by parenthensis
             sub: function() {
-                var e;
+                var e, expressions = [];
 
-                if ($('(') && (e = $(this.expression)) && $(')')) {
-                    return e;
+                if ($('(')) {
+                  while (e = $(this.expression)) {
+                      expressions.push(e);
+                      if (! $(',')) { break; }
+                  }
+                  $(')');
+                }
+
+                if (expressions.length > 1) {
+                    return new tree.Value(expressions.map(function(e) {
+                        return e.value[0];
+                    }));
+                } else if (expressions.length === 1) {
+                    return new tree.Value(expressions);
                 }
             },
             // This is a misnomer because it actually handles multiplication
@@ -4196,7 +4235,7 @@ carto.Parser = function Parser(env) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./tree":18,"underscore":48}],15:[function(require,module,exports){
+},{"./tree":18,"underscore":132}],15:[function(require,module,exports){
 (function (global){
 var _ = global._ || require('underscore');
 var carto = require('./index');
@@ -4216,7 +4255,7 @@ carto.Renderer = function Renderer(env, options) {
 carto.Renderer.prototype.renderMSS = function render(data) {
     // effects is a container for side-effects, which currently
     // are limited to FontSets.
-    var env = _(this.env).defaults({
+    var env = _.defaults(this.env, {
         benchmark: false,
         validation_data: false,
         effects: []
@@ -4270,7 +4309,7 @@ carto.Renderer.prototype.renderMSS = function render(data) {
 carto.Renderer.prototype.render = function render(m) {
     // effects is a container for side-effects, which currently
     // are limited to FontSets.
-    var env = _(this.env).defaults({
+    var env = _.defaults(this.env, {
         benchmark: false,
         validation_data: false,
         effects: [],
@@ -4284,14 +4323,14 @@ carto.Renderer.prototype.render = function render(m) {
     var output = [];
 
     // Transform stylesheets into definitions.
-    var definitions = _(m.Stylesheet).chain()
+    var definitions = _.chain(m.Stylesheet)
         .map(function(s) {
             if (typeof s == 'string') {
                 throw new Error("Stylesheet object is expected not a string: '" + s + "'");
             }
             // Passing the environment from stylesheet to stylesheet,
             // allows frames and effects to be maintained.
-            env = _(env).extend({filename:s.id});
+            env = _.extend(env, {filename:s.id});
 
             var time = +new Date(),
                 root = (carto.Parser(env)).parse(s.data);
@@ -4352,7 +4391,7 @@ carto.Renderer.prototype.render = function render(m) {
     if (env.errors) throw env.errors;
 
     // Pass TileJSON and other custom parameters through to Mapnik XML.
-    var parameters = _(m).reduce(function(memo, v, k) {
+    var parameters = _.reduce(m, function(memo, v, k) {
         if (!v && v !== 0) return memo;
 
         switch (k) {
@@ -4405,7 +4444,7 @@ carto.Renderer.prototype.render = function render(m) {
         '\n</Parameters>\n'
     );
 
-    var properties = _(map_properties).map(function(v) { return ' ' + v; }).join('');
+    var properties = _.map(map_properties, function(v) { return ' ' + v; }).join('');
 
     output.unshift(
         '<?xml version="1.0" ' +
@@ -4602,7 +4641,7 @@ module.exports.inheritDefinitions = inheritDefinitions;
 module.exports.sortStyles = sortStyles;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./index":13,"underscore":48}],16:[function(require,module,exports){
+},{"./index":13,"underscore":132}],16:[function(require,module,exports){
 (function (global){
 (function(carto) {
 var tree = require('./tree');
@@ -4894,7 +4933,7 @@ if(typeof(module) !== 'undefined') {
 })(require('../carto'));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../carto":13,"./torque-reference":17,"./tree":18,"underscore":48}],17:[function(require,module,exports){
+},{"../carto":13,"./torque-reference":17,"./tree":18,"underscore":132}],17:[function(require,module,exports){
 var _mapnik_reference_latest = {
     "version": "2.1.1",
     "style": {
@@ -5063,7 +5102,17 @@ var _mapnik_reference_latest = {
                     ["sharpen", 0],
                     ["colorize-alpha", -1],
                     ["color-to-alpha", 1],
-                    ["scale-hsla", 8]
+                    ["scale-hsla", 8],
+                    ["buckets", -1],
+                    ["category", -1],
+                    ["equal", -1],
+                    ["headtails", -1],
+                    ["jenks", -1],
+                    ["quantiles", -1],
+                    ["cartocolor", -1],
+                    ["colorbrewer", -1],
+                    ["range", -1],
+                    ["ramp", -1]
                 ],
                 "doc": "A list of image filters."
             },
@@ -5190,7 +5239,8 @@ var _mapnik_reference_latest = {
                 "type": "color",
                 "default-value": "rgba(128,128,128,1)",
                 "default-meaning": "gray and fully opaque (alpha = 1), same as rgb(128,128,128)",
-                "doc": "Fill color to assign to a polygon"
+                "doc": "Fill color to assign to a polygon",
+                "expression": true
             },
             "fill-opacity": {
                 "css": "polygon-opacity",
@@ -5298,13 +5348,15 @@ var _mapnik_reference_latest = {
                 "default-value": "rgba(0,0,0,1)",
                 "type": "color",
                 "default-meaning": "black and fully opaque (alpha = 1), same as rgb(0,0,0)",
-                "doc": "The color of a drawn line"
+                "doc": "The color of a drawn line",
+                "expression": true
             },
             "stroke-width": {
                 "css": "line-width",
                 "default-value": 1,
                 "type": "float",
-                "doc": "The width of a line in pixels"
+                "doc": "The width of a line in pixels",
+                "expression": true
             },
             "stroke-opacity": {
                 "css": "line-opacity",
@@ -5553,7 +5605,8 @@ var _mapnik_reference_latest = {
                 "css": "marker-fill",
                 "default-value": "blue",
                 "doc": "The color of the area of the marker.",
-                "type": "color"
+                "type": "color",
+                "expression": true
             },
             "allow-overlap": {
                 "css": "marker-allow-overlap",
@@ -6937,7 +6990,7 @@ tree.Call.prototype = {
 })(require('../tree'));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../tree":18,"underscore":48}],20:[function(require,module,exports){
+},{"../tree":18,"underscore":132}],20:[function(require,module,exports){
 (function(tree) {
 // RGB Colors - #ff0014, #eee
 // can be initialized with a 3 or 6 char string or a 3 or 4 element
@@ -7314,7 +7367,7 @@ tree.Definition.prototype.toJS = function(env) {
 })(require('../tree'));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../tree":18,"assert":2,"underscore":48}],23:[function(require,module,exports){
+},{"../tree":18,"assert":2,"underscore":132}],23:[function(require,module,exports){
 (function (global){
 (function(tree) {
 var _ = global._ || require('underscore');
@@ -7417,7 +7470,7 @@ tree.Dimension.prototype = {
 })(require('../tree'));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../tree":18,"underscore":48}],24:[function(require,module,exports){
+},{"../tree":18,"underscore":132}],24:[function(require,module,exports){
 (function(tree) {
 
 // An element is an id or class selector
@@ -7837,7 +7890,7 @@ tree.Filterset.prototype.add = function(filter, env) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../tree":18,"underscore":48}],29:[function(require,module,exports){
+},{"../tree":18,"underscore":132}],29:[function(require,module,exports){
 (function(tree) {
 
 tree._getFontSet = function(env, fonts) {
@@ -8381,7 +8434,7 @@ tree.Reference = ref;
 })(require('../tree'));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../tree":18,"mapnik-reference":47,"underscore":48}],39:[function(require,module,exports){
+},{"../tree":18,"mapnik-reference":47,"underscore":132}],39:[function(require,module,exports){
 (function(tree) {
 // a rule is a single property and value combination, or variable
 // name and value combination, like
@@ -8783,7 +8836,7 @@ tree.StyleXML = function(name, attachment, definitions, env) {
 })(require('../tree'));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../tree":18,"underscore":48}],43:[function(require,module,exports){
+},{"../tree":18,"underscore":132}],43:[function(require,module,exports){
 (function(tree) {
 
 tree.URL = function URL(val, paths) {
@@ -9049,1351 +9102,6 @@ refs.map(function(version) {
 
 }).call(this,"/node_modules/carto/node_modules/mapnik-reference")
 },{"fs":1,"path":8}],48:[function(require,module,exports){
-//     Underscore.js 1.6.0
-//     http://underscorejs.org
-//     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-//     Underscore may be freely distributed under the MIT license.
-
-(function() {
-
-  // Baseline setup
-  // --------------
-
-  // Establish the root object, `window` in the browser, or `exports` on the server.
-  var root = this;
-
-  // Save the previous value of the `_` variable.
-  var previousUnderscore = root._;
-
-  // Establish the object that gets returned to break out of a loop iteration.
-  var breaker = {};
-
-  // Save bytes in the minified (but not gzipped) version:
-  var ArrayProto = Array.prototype, ObjProto = Object.prototype, FuncProto = Function.prototype;
-
-  // Create quick reference variables for speed access to core prototypes.
-  var
-    push             = ArrayProto.push,
-    slice            = ArrayProto.slice,
-    concat           = ArrayProto.concat,
-    toString         = ObjProto.toString,
-    hasOwnProperty   = ObjProto.hasOwnProperty;
-
-  // All **ECMAScript 5** native function implementations that we hope to use
-  // are declared here.
-  var
-    nativeForEach      = ArrayProto.forEach,
-    nativeMap          = ArrayProto.map,
-    nativeReduce       = ArrayProto.reduce,
-    nativeReduceRight  = ArrayProto.reduceRight,
-    nativeFilter       = ArrayProto.filter,
-    nativeEvery        = ArrayProto.every,
-    nativeSome         = ArrayProto.some,
-    nativeIndexOf      = ArrayProto.indexOf,
-    nativeLastIndexOf  = ArrayProto.lastIndexOf,
-    nativeIsArray      = Array.isArray,
-    nativeKeys         = Object.keys,
-    nativeBind         = FuncProto.bind;
-
-  // Create a safe reference to the Underscore object for use below.
-  var _ = function(obj) {
-    if (obj instanceof _) return obj;
-    if (!(this instanceof _)) return new _(obj);
-    this._wrapped = obj;
-  };
-
-  // Export the Underscore object for **Node.js**, with
-  // backwards-compatibility for the old `require()` API. If we're in
-  // the browser, add `_` as a global object via a string identifier,
-  // for Closure Compiler "advanced" mode.
-  if (typeof exports !== 'undefined') {
-    if (typeof module !== 'undefined' && module.exports) {
-      exports = module.exports = _;
-    }
-    exports._ = _;
-  } else {
-    root._ = _;
-  }
-
-  // Current version.
-  _.VERSION = '1.6.0';
-
-  // Collection Functions
-  // --------------------
-
-  // The cornerstone, an `each` implementation, aka `forEach`.
-  // Handles objects with the built-in `forEach`, arrays, and raw objects.
-  // Delegates to **ECMAScript 5**'s native `forEach` if available.
-  var each = _.each = _.forEach = function(obj, iterator, context) {
-    if (obj == null) return obj;
-    if (nativeForEach && obj.forEach === nativeForEach) {
-      obj.forEach(iterator, context);
-    } else if (obj.length === +obj.length) {
-      for (var i = 0, length = obj.length; i < length; i++) {
-        if (iterator.call(context, obj[i], i, obj) === breaker) return;
-      }
-    } else {
-      var keys = _.keys(obj);
-      for (var i = 0, length = keys.length; i < length; i++) {
-        if (iterator.call(context, obj[keys[i]], keys[i], obj) === breaker) return;
-      }
-    }
-    return obj;
-  };
-
-  // Return the results of applying the iterator to each element.
-  // Delegates to **ECMAScript 5**'s native `map` if available.
-  _.map = _.collect = function(obj, iterator, context) {
-    var results = [];
-    if (obj == null) return results;
-    if (nativeMap && obj.map === nativeMap) return obj.map(iterator, context);
-    each(obj, function(value, index, list) {
-      results.push(iterator.call(context, value, index, list));
-    });
-    return results;
-  };
-
-  var reduceError = 'Reduce of empty array with no initial value';
-
-  // **Reduce** builds up a single result from a list of values, aka `inject`,
-  // or `foldl`. Delegates to **ECMAScript 5**'s native `reduce` if available.
-  _.reduce = _.foldl = _.inject = function(obj, iterator, memo, context) {
-    var initial = arguments.length > 2;
-    if (obj == null) obj = [];
-    if (nativeReduce && obj.reduce === nativeReduce) {
-      if (context) iterator = _.bind(iterator, context);
-      return initial ? obj.reduce(iterator, memo) : obj.reduce(iterator);
-    }
-    each(obj, function(value, index, list) {
-      if (!initial) {
-        memo = value;
-        initial = true;
-      } else {
-        memo = iterator.call(context, memo, value, index, list);
-      }
-    });
-    if (!initial) throw new TypeError(reduceError);
-    return memo;
-  };
-
-  // The right-associative version of reduce, also known as `foldr`.
-  // Delegates to **ECMAScript 5**'s native `reduceRight` if available.
-  _.reduceRight = _.foldr = function(obj, iterator, memo, context) {
-    var initial = arguments.length > 2;
-    if (obj == null) obj = [];
-    if (nativeReduceRight && obj.reduceRight === nativeReduceRight) {
-      if (context) iterator = _.bind(iterator, context);
-      return initial ? obj.reduceRight(iterator, memo) : obj.reduceRight(iterator);
-    }
-    var length = obj.length;
-    if (length !== +length) {
-      var keys = _.keys(obj);
-      length = keys.length;
-    }
-    each(obj, function(value, index, list) {
-      index = keys ? keys[--length] : --length;
-      if (!initial) {
-        memo = obj[index];
-        initial = true;
-      } else {
-        memo = iterator.call(context, memo, obj[index], index, list);
-      }
-    });
-    if (!initial) throw new TypeError(reduceError);
-    return memo;
-  };
-
-  // Return the first value which passes a truth test. Aliased as `detect`.
-  _.find = _.detect = function(obj, predicate, context) {
-    var result;
-    any(obj, function(value, index, list) {
-      if (predicate.call(context, value, index, list)) {
-        result = value;
-        return true;
-      }
-    });
-    return result;
-  };
-
-  // Return all the elements that pass a truth test.
-  // Delegates to **ECMAScript 5**'s native `filter` if available.
-  // Aliased as `select`.
-  _.filter = _.select = function(obj, predicate, context) {
-    var results = [];
-    if (obj == null) return results;
-    if (nativeFilter && obj.filter === nativeFilter) return obj.filter(predicate, context);
-    each(obj, function(value, index, list) {
-      if (predicate.call(context, value, index, list)) results.push(value);
-    });
-    return results;
-  };
-
-  // Return all the elements for which a truth test fails.
-  _.reject = function(obj, predicate, context) {
-    return _.filter(obj, function(value, index, list) {
-      return !predicate.call(context, value, index, list);
-    }, context);
-  };
-
-  // Determine whether all of the elements match a truth test.
-  // Delegates to **ECMAScript 5**'s native `every` if available.
-  // Aliased as `all`.
-  _.every = _.all = function(obj, predicate, context) {
-    predicate || (predicate = _.identity);
-    var result = true;
-    if (obj == null) return result;
-    if (nativeEvery && obj.every === nativeEvery) return obj.every(predicate, context);
-    each(obj, function(value, index, list) {
-      if (!(result = result && predicate.call(context, value, index, list))) return breaker;
-    });
-    return !!result;
-  };
-
-  // Determine if at least one element in the object matches a truth test.
-  // Delegates to **ECMAScript 5**'s native `some` if available.
-  // Aliased as `any`.
-  var any = _.some = _.any = function(obj, predicate, context) {
-    predicate || (predicate = _.identity);
-    var result = false;
-    if (obj == null) return result;
-    if (nativeSome && obj.some === nativeSome) return obj.some(predicate, context);
-    each(obj, function(value, index, list) {
-      if (result || (result = predicate.call(context, value, index, list))) return breaker;
-    });
-    return !!result;
-  };
-
-  // Determine if the array or object contains a given value (using `===`).
-  // Aliased as `include`.
-  _.contains = _.include = function(obj, target) {
-    if (obj == null) return false;
-    if (nativeIndexOf && obj.indexOf === nativeIndexOf) return obj.indexOf(target) != -1;
-    return any(obj, function(value) {
-      return value === target;
-    });
-  };
-
-  // Invoke a method (with arguments) on every item in a collection.
-  _.invoke = function(obj, method) {
-    var args = slice.call(arguments, 2);
-    var isFunc = _.isFunction(method);
-    return _.map(obj, function(value) {
-      return (isFunc ? method : value[method]).apply(value, args);
-    });
-  };
-
-  // Convenience version of a common use case of `map`: fetching a property.
-  _.pluck = function(obj, key) {
-    return _.map(obj, _.property(key));
-  };
-
-  // Convenience version of a common use case of `filter`: selecting only objects
-  // containing specific `key:value` pairs.
-  _.where = function(obj, attrs) {
-    return _.filter(obj, _.matches(attrs));
-  };
-
-  // Convenience version of a common use case of `find`: getting the first object
-  // containing specific `key:value` pairs.
-  _.findWhere = function(obj, attrs) {
-    return _.find(obj, _.matches(attrs));
-  };
-
-  // Return the maximum element or (element-based computation).
-  // Can't optimize arrays of integers longer than 65,535 elements.
-  // See [WebKit Bug 80797](https://bugs.webkit.org/show_bug.cgi?id=80797)
-  _.max = function(obj, iterator, context) {
-    if (!iterator && _.isArray(obj) && obj[0] === +obj[0] && obj.length < 65535) {
-      return Math.max.apply(Math, obj);
-    }
-    var result = -Infinity, lastComputed = -Infinity;
-    each(obj, function(value, index, list) {
-      var computed = iterator ? iterator.call(context, value, index, list) : value;
-      if (computed > lastComputed) {
-        result = value;
-        lastComputed = computed;
-      }
-    });
-    return result;
-  };
-
-  // Return the minimum element (or element-based computation).
-  _.min = function(obj, iterator, context) {
-    if (!iterator && _.isArray(obj) && obj[0] === +obj[0] && obj.length < 65535) {
-      return Math.min.apply(Math, obj);
-    }
-    var result = Infinity, lastComputed = Infinity;
-    each(obj, function(value, index, list) {
-      var computed = iterator ? iterator.call(context, value, index, list) : value;
-      if (computed < lastComputed) {
-        result = value;
-        lastComputed = computed;
-      }
-    });
-    return result;
-  };
-
-  // Shuffle an array, using the modern version of the
-  // [Fisher-Yates shuffle](http://en.wikipedia.org/wiki/Fisher–Yates_shuffle).
-  _.shuffle = function(obj) {
-    var rand;
-    var index = 0;
-    var shuffled = [];
-    each(obj, function(value) {
-      rand = _.random(index++);
-      shuffled[index - 1] = shuffled[rand];
-      shuffled[rand] = value;
-    });
-    return shuffled;
-  };
-
-  // Sample **n** random values from a collection.
-  // If **n** is not specified, returns a single random element.
-  // The internal `guard` argument allows it to work with `map`.
-  _.sample = function(obj, n, guard) {
-    if (n == null || guard) {
-      if (obj.length !== +obj.length) obj = _.values(obj);
-      return obj[_.random(obj.length - 1)];
-    }
-    return _.shuffle(obj).slice(0, Math.max(0, n));
-  };
-
-  // An internal function to generate lookup iterators.
-  var lookupIterator = function(value) {
-    if (value == null) return _.identity;
-    if (_.isFunction(value)) return value;
-    return _.property(value);
-  };
-
-  // Sort the object's values by a criterion produced by an iterator.
-  _.sortBy = function(obj, iterator, context) {
-    iterator = lookupIterator(iterator);
-    return _.pluck(_.map(obj, function(value, index, list) {
-      return {
-        value: value,
-        index: index,
-        criteria: iterator.call(context, value, index, list)
-      };
-    }).sort(function(left, right) {
-      var a = left.criteria;
-      var b = right.criteria;
-      if (a !== b) {
-        if (a > b || a === void 0) return 1;
-        if (a < b || b === void 0) return -1;
-      }
-      return left.index - right.index;
-    }), 'value');
-  };
-
-  // An internal function used for aggregate "group by" operations.
-  var group = function(behavior) {
-    return function(obj, iterator, context) {
-      var result = {};
-      iterator = lookupIterator(iterator);
-      each(obj, function(value, index) {
-        var key = iterator.call(context, value, index, obj);
-        behavior(result, key, value);
-      });
-      return result;
-    };
-  };
-
-  // Groups the object's values by a criterion. Pass either a string attribute
-  // to group by, or a function that returns the criterion.
-  _.groupBy = group(function(result, key, value) {
-    _.has(result, key) ? result[key].push(value) : result[key] = [value];
-  });
-
-  // Indexes the object's values by a criterion, similar to `groupBy`, but for
-  // when you know that your index values will be unique.
-  _.indexBy = group(function(result, key, value) {
-    result[key] = value;
-  });
-
-  // Counts instances of an object that group by a certain criterion. Pass
-  // either a string attribute to count by, or a function that returns the
-  // criterion.
-  _.countBy = group(function(result, key) {
-    _.has(result, key) ? result[key]++ : result[key] = 1;
-  });
-
-  // Use a comparator function to figure out the smallest index at which
-  // an object should be inserted so as to maintain order. Uses binary search.
-  _.sortedIndex = function(array, obj, iterator, context) {
-    iterator = lookupIterator(iterator);
-    var value = iterator.call(context, obj);
-    var low = 0, high = array.length;
-    while (low < high) {
-      var mid = (low + high) >>> 1;
-      iterator.call(context, array[mid]) < value ? low = mid + 1 : high = mid;
-    }
-    return low;
-  };
-
-  // Safely create a real, live array from anything iterable.
-  _.toArray = function(obj) {
-    if (!obj) return [];
-    if (_.isArray(obj)) return slice.call(obj);
-    if (obj.length === +obj.length) return _.map(obj, _.identity);
-    return _.values(obj);
-  };
-
-  // Return the number of elements in an object.
-  _.size = function(obj) {
-    if (obj == null) return 0;
-    return (obj.length === +obj.length) ? obj.length : _.keys(obj).length;
-  };
-
-  // Array Functions
-  // ---------------
-
-  // Get the first element of an array. Passing **n** will return the first N
-  // values in the array. Aliased as `head` and `take`. The **guard** check
-  // allows it to work with `_.map`.
-  _.first = _.head = _.take = function(array, n, guard) {
-    if (array == null) return void 0;
-    if ((n == null) || guard) return array[0];
-    if (n < 0) return [];
-    return slice.call(array, 0, n);
-  };
-
-  // Returns everything but the last entry of the array. Especially useful on
-  // the arguments object. Passing **n** will return all the values in
-  // the array, excluding the last N. The **guard** check allows it to work with
-  // `_.map`.
-  _.initial = function(array, n, guard) {
-    return slice.call(array, 0, array.length - ((n == null) || guard ? 1 : n));
-  };
-
-  // Get the last element of an array. Passing **n** will return the last N
-  // values in the array. The **guard** check allows it to work with `_.map`.
-  _.last = function(array, n, guard) {
-    if (array == null) return void 0;
-    if ((n == null) || guard) return array[array.length - 1];
-    return slice.call(array, Math.max(array.length - n, 0));
-  };
-
-  // Returns everything but the first entry of the array. Aliased as `tail` and `drop`.
-  // Especially useful on the arguments object. Passing an **n** will return
-  // the rest N values in the array. The **guard**
-  // check allows it to work with `_.map`.
-  _.rest = _.tail = _.drop = function(array, n, guard) {
-    return slice.call(array, (n == null) || guard ? 1 : n);
-  };
-
-  // Trim out all falsy values from an array.
-  _.compact = function(array) {
-    return _.filter(array, _.identity);
-  };
-
-  // Internal implementation of a recursive `flatten` function.
-  var flatten = function(input, shallow, output) {
-    if (shallow && _.every(input, _.isArray)) {
-      return concat.apply(output, input);
-    }
-    each(input, function(value) {
-      if (_.isArray(value) || _.isArguments(value)) {
-        shallow ? push.apply(output, value) : flatten(value, shallow, output);
-      } else {
-        output.push(value);
-      }
-    });
-    return output;
-  };
-
-  // Flatten out an array, either recursively (by default), or just one level.
-  _.flatten = function(array, shallow) {
-    return flatten(array, shallow, []);
-  };
-
-  // Return a version of the array that does not contain the specified value(s).
-  _.without = function(array) {
-    return _.difference(array, slice.call(arguments, 1));
-  };
-
-  // Split an array into two arrays: one whose elements all satisfy the given
-  // predicate, and one whose elements all do not satisfy the predicate.
-  _.partition = function(array, predicate) {
-    var pass = [], fail = [];
-    each(array, function(elem) {
-      (predicate(elem) ? pass : fail).push(elem);
-    });
-    return [pass, fail];
-  };
-
-  // Produce a duplicate-free version of the array. If the array has already
-  // been sorted, you have the option of using a faster algorithm.
-  // Aliased as `unique`.
-  _.uniq = _.unique = function(array, isSorted, iterator, context) {
-    if (_.isFunction(isSorted)) {
-      context = iterator;
-      iterator = isSorted;
-      isSorted = false;
-    }
-    var initial = iterator ? _.map(array, iterator, context) : array;
-    var results = [];
-    var seen = [];
-    each(initial, function(value, index) {
-      if (isSorted ? (!index || seen[seen.length - 1] !== value) : !_.contains(seen, value)) {
-        seen.push(value);
-        results.push(array[index]);
-      }
-    });
-    return results;
-  };
-
-  // Produce an array that contains the union: each distinct element from all of
-  // the passed-in arrays.
-  _.union = function() {
-    return _.uniq(_.flatten(arguments, true));
-  };
-
-  // Produce an array that contains every item shared between all the
-  // passed-in arrays.
-  _.intersection = function(array) {
-    var rest = slice.call(arguments, 1);
-    return _.filter(_.uniq(array), function(item) {
-      return _.every(rest, function(other) {
-        return _.contains(other, item);
-      });
-    });
-  };
-
-  // Take the difference between one array and a number of other arrays.
-  // Only the elements present in just the first array will remain.
-  _.difference = function(array) {
-    var rest = concat.apply(ArrayProto, slice.call(arguments, 1));
-    return _.filter(array, function(value){ return !_.contains(rest, value); });
-  };
-
-  // Zip together multiple lists into a single array -- elements that share
-  // an index go together.
-  _.zip = function() {
-    var length = _.max(_.pluck(arguments, 'length').concat(0));
-    var results = new Array(length);
-    for (var i = 0; i < length; i++) {
-      results[i] = _.pluck(arguments, '' + i);
-    }
-    return results;
-  };
-
-  // Converts lists into objects. Pass either a single array of `[key, value]`
-  // pairs, or two parallel arrays of the same length -- one of keys, and one of
-  // the corresponding values.
-  _.object = function(list, values) {
-    if (list == null) return {};
-    var result = {};
-    for (var i = 0, length = list.length; i < length; i++) {
-      if (values) {
-        result[list[i]] = values[i];
-      } else {
-        result[list[i][0]] = list[i][1];
-      }
-    }
-    return result;
-  };
-
-  // If the browser doesn't supply us with indexOf (I'm looking at you, **MSIE**),
-  // we need this function. Return the position of the first occurrence of an
-  // item in an array, or -1 if the item is not included in the array.
-  // Delegates to **ECMAScript 5**'s native `indexOf` if available.
-  // If the array is large and already in sort order, pass `true`
-  // for **isSorted** to use binary search.
-  _.indexOf = function(array, item, isSorted) {
-    if (array == null) return -1;
-    var i = 0, length = array.length;
-    if (isSorted) {
-      if (typeof isSorted == 'number') {
-        i = (isSorted < 0 ? Math.max(0, length + isSorted) : isSorted);
-      } else {
-        i = _.sortedIndex(array, item);
-        return array[i] === item ? i : -1;
-      }
-    }
-    if (nativeIndexOf && array.indexOf === nativeIndexOf) return array.indexOf(item, isSorted);
-    for (; i < length; i++) if (array[i] === item) return i;
-    return -1;
-  };
-
-  // Delegates to **ECMAScript 5**'s native `lastIndexOf` if available.
-  _.lastIndexOf = function(array, item, from) {
-    if (array == null) return -1;
-    var hasIndex = from != null;
-    if (nativeLastIndexOf && array.lastIndexOf === nativeLastIndexOf) {
-      return hasIndex ? array.lastIndexOf(item, from) : array.lastIndexOf(item);
-    }
-    var i = (hasIndex ? from : array.length);
-    while (i--) if (array[i] === item) return i;
-    return -1;
-  };
-
-  // Generate an integer Array containing an arithmetic progression. A port of
-  // the native Python `range()` function. See
-  // [the Python documentation](http://docs.python.org/library/functions.html#range).
-  _.range = function(start, stop, step) {
-    if (arguments.length <= 1) {
-      stop = start || 0;
-      start = 0;
-    }
-    step = arguments[2] || 1;
-
-    var length = Math.max(Math.ceil((stop - start) / step), 0);
-    var idx = 0;
-    var range = new Array(length);
-
-    while(idx < length) {
-      range[idx++] = start;
-      start += step;
-    }
-
-    return range;
-  };
-
-  // Function (ahem) Functions
-  // ------------------
-
-  // Reusable constructor function for prototype setting.
-  var ctor = function(){};
-
-  // Create a function bound to a given object (assigning `this`, and arguments,
-  // optionally). Delegates to **ECMAScript 5**'s native `Function.bind` if
-  // available.
-  _.bind = function(func, context) {
-    var args, bound;
-    if (nativeBind && func.bind === nativeBind) return nativeBind.apply(func, slice.call(arguments, 1));
-    if (!_.isFunction(func)) throw new TypeError;
-    args = slice.call(arguments, 2);
-    return bound = function() {
-      if (!(this instanceof bound)) return func.apply(context, args.concat(slice.call(arguments)));
-      ctor.prototype = func.prototype;
-      var self = new ctor;
-      ctor.prototype = null;
-      var result = func.apply(self, args.concat(slice.call(arguments)));
-      if (Object(result) === result) return result;
-      return self;
-    };
-  };
-
-  // Partially apply a function by creating a version that has had some of its
-  // arguments pre-filled, without changing its dynamic `this` context. _ acts
-  // as a placeholder, allowing any combination of arguments to be pre-filled.
-  _.partial = function(func) {
-    var boundArgs = slice.call(arguments, 1);
-    return function() {
-      var position = 0;
-      var args = boundArgs.slice();
-      for (var i = 0, length = args.length; i < length; i++) {
-        if (args[i] === _) args[i] = arguments[position++];
-      }
-      while (position < arguments.length) args.push(arguments[position++]);
-      return func.apply(this, args);
-    };
-  };
-
-  // Bind a number of an object's methods to that object. Remaining arguments
-  // are the method names to be bound. Useful for ensuring that all callbacks
-  // defined on an object belong to it.
-  _.bindAll = function(obj) {
-    var funcs = slice.call(arguments, 1);
-    if (funcs.length === 0) throw new Error('bindAll must be passed function names');
-    each(funcs, function(f) { obj[f] = _.bind(obj[f], obj); });
-    return obj;
-  };
-
-  // Memoize an expensive function by storing its results.
-  _.memoize = function(func, hasher) {
-    var memo = {};
-    hasher || (hasher = _.identity);
-    return function() {
-      var key = hasher.apply(this, arguments);
-      return _.has(memo, key) ? memo[key] : (memo[key] = func.apply(this, arguments));
-    };
-  };
-
-  // Delays a function for the given number of milliseconds, and then calls
-  // it with the arguments supplied.
-  _.delay = function(func, wait) {
-    var args = slice.call(arguments, 2);
-    return setTimeout(function(){ return func.apply(null, args); }, wait);
-  };
-
-  // Defers a function, scheduling it to run after the current call stack has
-  // cleared.
-  _.defer = function(func) {
-    return _.delay.apply(_, [func, 1].concat(slice.call(arguments, 1)));
-  };
-
-  // Returns a function, that, when invoked, will only be triggered at most once
-  // during a given window of time. Normally, the throttled function will run
-  // as much as it can, without ever going more than once per `wait` duration;
-  // but if you'd like to disable the execution on the leading edge, pass
-  // `{leading: false}`. To disable execution on the trailing edge, ditto.
-  _.throttle = function(func, wait, options) {
-    var context, args, result;
-    var timeout = null;
-    var previous = 0;
-    options || (options = {});
-    var later = function() {
-      previous = options.leading === false ? 0 : _.now();
-      timeout = null;
-      result = func.apply(context, args);
-      context = args = null;
-    };
-    return function() {
-      var now = _.now();
-      if (!previous && options.leading === false) previous = now;
-      var remaining = wait - (now - previous);
-      context = this;
-      args = arguments;
-      if (remaining <= 0) {
-        clearTimeout(timeout);
-        timeout = null;
-        previous = now;
-        result = func.apply(context, args);
-        context = args = null;
-      } else if (!timeout && options.trailing !== false) {
-        timeout = setTimeout(later, remaining);
-      }
-      return result;
-    };
-  };
-
-  // Returns a function, that, as long as it continues to be invoked, will not
-  // be triggered. The function will be called after it stops being called for
-  // N milliseconds. If `immediate` is passed, trigger the function on the
-  // leading edge, instead of the trailing.
-  _.debounce = function(func, wait, immediate) {
-    var timeout, args, context, timestamp, result;
-
-    var later = function() {
-      var last = _.now() - timestamp;
-      if (last < wait) {
-        timeout = setTimeout(later, wait - last);
-      } else {
-        timeout = null;
-        if (!immediate) {
-          result = func.apply(context, args);
-          context = args = null;
-        }
-      }
-    };
-
-    return function() {
-      context = this;
-      args = arguments;
-      timestamp = _.now();
-      var callNow = immediate && !timeout;
-      if (!timeout) {
-        timeout = setTimeout(later, wait);
-      }
-      if (callNow) {
-        result = func.apply(context, args);
-        context = args = null;
-      }
-
-      return result;
-    };
-  };
-
-  // Returns a function that will be executed at most one time, no matter how
-  // often you call it. Useful for lazy initialization.
-  _.once = function(func) {
-    var ran = false, memo;
-    return function() {
-      if (ran) return memo;
-      ran = true;
-      memo = func.apply(this, arguments);
-      func = null;
-      return memo;
-    };
-  };
-
-  // Returns the first function passed as an argument to the second,
-  // allowing you to adjust arguments, run code before and after, and
-  // conditionally execute the original function.
-  _.wrap = function(func, wrapper) {
-    return _.partial(wrapper, func);
-  };
-
-  // Returns a function that is the composition of a list of functions, each
-  // consuming the return value of the function that follows.
-  _.compose = function() {
-    var funcs = arguments;
-    return function() {
-      var args = arguments;
-      for (var i = funcs.length - 1; i >= 0; i--) {
-        args = [funcs[i].apply(this, args)];
-      }
-      return args[0];
-    };
-  };
-
-  // Returns a function that will only be executed after being called N times.
-  _.after = function(times, func) {
-    return function() {
-      if (--times < 1) {
-        return func.apply(this, arguments);
-      }
-    };
-  };
-
-  // Object Functions
-  // ----------------
-
-  // Retrieve the names of an object's properties.
-  // Delegates to **ECMAScript 5**'s native `Object.keys`
-  _.keys = function(obj) {
-    if (!_.isObject(obj)) return [];
-    if (nativeKeys) return nativeKeys(obj);
-    var keys = [];
-    for (var key in obj) if (_.has(obj, key)) keys.push(key);
-    return keys;
-  };
-
-  // Retrieve the values of an object's properties.
-  _.values = function(obj) {
-    var keys = _.keys(obj);
-    var length = keys.length;
-    var values = new Array(length);
-    for (var i = 0; i < length; i++) {
-      values[i] = obj[keys[i]];
-    }
-    return values;
-  };
-
-  // Convert an object into a list of `[key, value]` pairs.
-  _.pairs = function(obj) {
-    var keys = _.keys(obj);
-    var length = keys.length;
-    var pairs = new Array(length);
-    for (var i = 0; i < length; i++) {
-      pairs[i] = [keys[i], obj[keys[i]]];
-    }
-    return pairs;
-  };
-
-  // Invert the keys and values of an object. The values must be serializable.
-  _.invert = function(obj) {
-    var result = {};
-    var keys = _.keys(obj);
-    for (var i = 0, length = keys.length; i < length; i++) {
-      result[obj[keys[i]]] = keys[i];
-    }
-    return result;
-  };
-
-  // Return a sorted list of the function names available on the object.
-  // Aliased as `methods`
-  _.functions = _.methods = function(obj) {
-    var names = [];
-    for (var key in obj) {
-      if (_.isFunction(obj[key])) names.push(key);
-    }
-    return names.sort();
-  };
-
-  // Extend a given object with all the properties in passed-in object(s).
-  _.extend = function(obj) {
-    each(slice.call(arguments, 1), function(source) {
-      if (source) {
-        for (var prop in source) {
-          obj[prop] = source[prop];
-        }
-      }
-    });
-    return obj;
-  };
-
-  // Return a copy of the object only containing the whitelisted properties.
-  _.pick = function(obj) {
-    var copy = {};
-    var keys = concat.apply(ArrayProto, slice.call(arguments, 1));
-    each(keys, function(key) {
-      if (key in obj) copy[key] = obj[key];
-    });
-    return copy;
-  };
-
-   // Return a copy of the object without the blacklisted properties.
-  _.omit = function(obj) {
-    var copy = {};
-    var keys = concat.apply(ArrayProto, slice.call(arguments, 1));
-    for (var key in obj) {
-      if (!_.contains(keys, key)) copy[key] = obj[key];
-    }
-    return copy;
-  };
-
-  // Fill in a given object with default properties.
-  _.defaults = function(obj) {
-    each(slice.call(arguments, 1), function(source) {
-      if (source) {
-        for (var prop in source) {
-          if (obj[prop] === void 0) obj[prop] = source[prop];
-        }
-      }
-    });
-    return obj;
-  };
-
-  // Create a (shallow-cloned) duplicate of an object.
-  _.clone = function(obj) {
-    if (!_.isObject(obj)) return obj;
-    return _.isArray(obj) ? obj.slice() : _.extend({}, obj);
-  };
-
-  // Invokes interceptor with the obj, and then returns obj.
-  // The primary purpose of this method is to "tap into" a method chain, in
-  // order to perform operations on intermediate results within the chain.
-  _.tap = function(obj, interceptor) {
-    interceptor(obj);
-    return obj;
-  };
-
-  // Internal recursive comparison function for `isEqual`.
-  var eq = function(a, b, aStack, bStack) {
-    // Identical objects are equal. `0 === -0`, but they aren't identical.
-    // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
-    if (a === b) return a !== 0 || 1 / a == 1 / b;
-    // A strict comparison is necessary because `null == undefined`.
-    if (a == null || b == null) return a === b;
-    // Unwrap any wrapped objects.
-    if (a instanceof _) a = a._wrapped;
-    if (b instanceof _) b = b._wrapped;
-    // Compare `[[Class]]` names.
-    var className = toString.call(a);
-    if (className != toString.call(b)) return false;
-    switch (className) {
-      // Strings, numbers, dates, and booleans are compared by value.
-      case '[object String]':
-        // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
-        // equivalent to `new String("5")`.
-        return a == String(b);
-      case '[object Number]':
-        // `NaN`s are equivalent, but non-reflexive. An `egal` comparison is performed for
-        // other numeric values.
-        return a != +a ? b != +b : (a == 0 ? 1 / a == 1 / b : a == +b);
-      case '[object Date]':
-      case '[object Boolean]':
-        // Coerce dates and booleans to numeric primitive values. Dates are compared by their
-        // millisecond representations. Note that invalid dates with millisecond representations
-        // of `NaN` are not equivalent.
-        return +a == +b;
-      // RegExps are compared by their source patterns and flags.
-      case '[object RegExp]':
-        return a.source == b.source &&
-               a.global == b.global &&
-               a.multiline == b.multiline &&
-               a.ignoreCase == b.ignoreCase;
-    }
-    if (typeof a != 'object' || typeof b != 'object') return false;
-    // Assume equality for cyclic structures. The algorithm for detecting cyclic
-    // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
-    var length = aStack.length;
-    while (length--) {
-      // Linear search. Performance is inversely proportional to the number of
-      // unique nested structures.
-      if (aStack[length] == a) return bStack[length] == b;
-    }
-    // Objects with different constructors are not equivalent, but `Object`s
-    // from different frames are.
-    var aCtor = a.constructor, bCtor = b.constructor;
-    if (aCtor !== bCtor && !(_.isFunction(aCtor) && (aCtor instanceof aCtor) &&
-                             _.isFunction(bCtor) && (bCtor instanceof bCtor))
-                        && ('constructor' in a && 'constructor' in b)) {
-      return false;
-    }
-    // Add the first object to the stack of traversed objects.
-    aStack.push(a);
-    bStack.push(b);
-    var size = 0, result = true;
-    // Recursively compare objects and arrays.
-    if (className == '[object Array]') {
-      // Compare array lengths to determine if a deep comparison is necessary.
-      size = a.length;
-      result = size == b.length;
-      if (result) {
-        // Deep compare the contents, ignoring non-numeric properties.
-        while (size--) {
-          if (!(result = eq(a[size], b[size], aStack, bStack))) break;
-        }
-      }
-    } else {
-      // Deep compare objects.
-      for (var key in a) {
-        if (_.has(a, key)) {
-          // Count the expected number of properties.
-          size++;
-          // Deep compare each member.
-          if (!(result = _.has(b, key) && eq(a[key], b[key], aStack, bStack))) break;
-        }
-      }
-      // Ensure that both objects contain the same number of properties.
-      if (result) {
-        for (key in b) {
-          if (_.has(b, key) && !(size--)) break;
-        }
-        result = !size;
-      }
-    }
-    // Remove the first object from the stack of traversed objects.
-    aStack.pop();
-    bStack.pop();
-    return result;
-  };
-
-  // Perform a deep comparison to check if two objects are equal.
-  _.isEqual = function(a, b) {
-    return eq(a, b, [], []);
-  };
-
-  // Is a given array, string, or object empty?
-  // An "empty" object has no enumerable own-properties.
-  _.isEmpty = function(obj) {
-    if (obj == null) return true;
-    if (_.isArray(obj) || _.isString(obj)) return obj.length === 0;
-    for (var key in obj) if (_.has(obj, key)) return false;
-    return true;
-  };
-
-  // Is a given value a DOM element?
-  _.isElement = function(obj) {
-    return !!(obj && obj.nodeType === 1);
-  };
-
-  // Is a given value an array?
-  // Delegates to ECMA5's native Array.isArray
-  _.isArray = nativeIsArray || function(obj) {
-    return toString.call(obj) == '[object Array]';
-  };
-
-  // Is a given variable an object?
-  _.isObject = function(obj) {
-    return obj === Object(obj);
-  };
-
-  // Add some isType methods: isArguments, isFunction, isString, isNumber, isDate, isRegExp.
-  each(['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'], function(name) {
-    _['is' + name] = function(obj) {
-      return toString.call(obj) == '[object ' + name + ']';
-    };
-  });
-
-  // Define a fallback version of the method in browsers (ahem, IE), where
-  // there isn't any inspectable "Arguments" type.
-  if (!_.isArguments(arguments)) {
-    _.isArguments = function(obj) {
-      return !!(obj && _.has(obj, 'callee'));
-    };
-  }
-
-  // Optimize `isFunction` if appropriate.
-  if (typeof (/./) !== 'function') {
-    _.isFunction = function(obj) {
-      return typeof obj === 'function';
-    };
-  }
-
-  // Is a given object a finite number?
-  _.isFinite = function(obj) {
-    return isFinite(obj) && !isNaN(parseFloat(obj));
-  };
-
-  // Is the given value `NaN`? (NaN is the only number which does not equal itself).
-  _.isNaN = function(obj) {
-    return _.isNumber(obj) && obj != +obj;
-  };
-
-  // Is a given value a boolean?
-  _.isBoolean = function(obj) {
-    return obj === true || obj === false || toString.call(obj) == '[object Boolean]';
-  };
-
-  // Is a given value equal to null?
-  _.isNull = function(obj) {
-    return obj === null;
-  };
-
-  // Is a given variable undefined?
-  _.isUndefined = function(obj) {
-    return obj === void 0;
-  };
-
-  // Shortcut function for checking if an object has a given property directly
-  // on itself (in other words, not on a prototype).
-  _.has = function(obj, key) {
-    return hasOwnProperty.call(obj, key);
-  };
-
-  // Utility Functions
-  // -----------------
-
-  // Run Underscore.js in *noConflict* mode, returning the `_` variable to its
-  // previous owner. Returns a reference to the Underscore object.
-  _.noConflict = function() {
-    root._ = previousUnderscore;
-    return this;
-  };
-
-  // Keep the identity function around for default iterators.
-  _.identity = function(value) {
-    return value;
-  };
-
-  _.constant = function(value) {
-    return function () {
-      return value;
-    };
-  };
-
-  _.property = function(key) {
-    return function(obj) {
-      return obj[key];
-    };
-  };
-
-  // Returns a predicate for checking whether an object has a given set of `key:value` pairs.
-  _.matches = function(attrs) {
-    return function(obj) {
-      if (obj === attrs) return true; //avoid comparing an object to itself.
-      for (var key in attrs) {
-        if (attrs[key] !== obj[key])
-          return false;
-      }
-      return true;
-    }
-  };
-
-  // Run a function **n** times.
-  _.times = function(n, iterator, context) {
-    var accum = Array(Math.max(0, n));
-    for (var i = 0; i < n; i++) accum[i] = iterator.call(context, i);
-    return accum;
-  };
-
-  // Return a random integer between min and max (inclusive).
-  _.random = function(min, max) {
-    if (max == null) {
-      max = min;
-      min = 0;
-    }
-    return min + Math.floor(Math.random() * (max - min + 1));
-  };
-
-  // A (possibly faster) way to get the current timestamp as an integer.
-  _.now = Date.now || function() { return new Date().getTime(); };
-
-  // List of HTML entities for escaping.
-  var entityMap = {
-    escape: {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#x27;'
-    }
-  };
-  entityMap.unescape = _.invert(entityMap.escape);
-
-  // Regexes containing the keys and values listed immediately above.
-  var entityRegexes = {
-    escape:   new RegExp('[' + _.keys(entityMap.escape).join('') + ']', 'g'),
-    unescape: new RegExp('(' + _.keys(entityMap.unescape).join('|') + ')', 'g')
-  };
-
-  // Functions for escaping and unescaping strings to/from HTML interpolation.
-  _.each(['escape', 'unescape'], function(method) {
-    _[method] = function(string) {
-      if (string == null) return '';
-      return ('' + string).replace(entityRegexes[method], function(match) {
-        return entityMap[method][match];
-      });
-    };
-  });
-
-  // If the value of the named `property` is a function then invoke it with the
-  // `object` as context; otherwise, return it.
-  _.result = function(object, property) {
-    if (object == null) return void 0;
-    var value = object[property];
-    return _.isFunction(value) ? value.call(object) : value;
-  };
-
-  // Add your own custom functions to the Underscore object.
-  _.mixin = function(obj) {
-    each(_.functions(obj), function(name) {
-      var func = _[name] = obj[name];
-      _.prototype[name] = function() {
-        var args = [this._wrapped];
-        push.apply(args, arguments);
-        return result.call(this, func.apply(_, args));
-      };
-    });
-  };
-
-  // Generate a unique integer id (unique within the entire client session).
-  // Useful for temporary DOM ids.
-  var idCounter = 0;
-  _.uniqueId = function(prefix) {
-    var id = ++idCounter + '';
-    return prefix ? prefix + id : id;
-  };
-
-  // By default, Underscore uses ERB-style template delimiters, change the
-  // following template settings to use alternative delimiters.
-  _.templateSettings = {
-    evaluate    : /<%([\s\S]+?)%>/g,
-    interpolate : /<%=([\s\S]+?)%>/g,
-    escape      : /<%-([\s\S]+?)%>/g
-  };
-
-  // When customizing `templateSettings`, if you don't want to define an
-  // interpolation, evaluation or escaping regex, we need one that is
-  // guaranteed not to match.
-  var noMatch = /(.)^/;
-
-  // Certain characters need to be escaped so that they can be put into a
-  // string literal.
-  var escapes = {
-    "'":      "'",
-    '\\':     '\\',
-    '\r':     'r',
-    '\n':     'n',
-    '\t':     't',
-    '\u2028': 'u2028',
-    '\u2029': 'u2029'
-  };
-
-  var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
-
-  // JavaScript micro-templating, similar to John Resig's implementation.
-  // Underscore templating handles arbitrary delimiters, preserves whitespace,
-  // and correctly escapes quotes within interpolated code.
-  _.template = function(text, data, settings) {
-    var render;
-    settings = _.defaults({}, settings, _.templateSettings);
-
-    // Combine delimiters into one regular expression via alternation.
-    var matcher = new RegExp([
-      (settings.escape || noMatch).source,
-      (settings.interpolate || noMatch).source,
-      (settings.evaluate || noMatch).source
-    ].join('|') + '|$', 'g');
-
-    // Compile the template source, escaping string literals appropriately.
-    var index = 0;
-    var source = "__p+='";
-    text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
-      source += text.slice(index, offset)
-        .replace(escaper, function(match) { return '\\' + escapes[match]; });
-
-      if (escape) {
-        source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
-      }
-      if (interpolate) {
-        source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
-      }
-      if (evaluate) {
-        source += "';\n" + evaluate + "\n__p+='";
-      }
-      index = offset + match.length;
-      return match;
-    });
-    source += "';\n";
-
-    // If a variable is not specified, place data values in local scope.
-    if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
-
-    source = "var __t,__p='',__j=Array.prototype.join," +
-      "print=function(){__p+=__j.call(arguments,'');};\n" +
-      source + "return __p;\n";
-
-    try {
-      render = new Function(settings.variable || 'obj', '_', source);
-    } catch (e) {
-      e.source = source;
-      throw e;
-    }
-
-    if (data) return render(data, _);
-    var template = function(data) {
-      return render.call(this, data, _);
-    };
-
-    // Provide the compiled function source as a convenience for precompilation.
-    template.source = 'function(' + (settings.variable || 'obj') + '){\n' + source + '}';
-
-    return template;
-  };
-
-  // Add a "chain" function, which will delegate to the wrapper.
-  _.chain = function(obj) {
-    return _(obj).chain();
-  };
-
-  // OOP
-  // ---------------
-  // If Underscore is called as a function, it returns a wrapped object that
-  // can be used OO-style. This wrapper holds altered versions of all the
-  // underscore functions. Wrapped objects may be chained.
-
-  // Helper function to continue chaining intermediate results.
-  var result = function(obj) {
-    return this._chain ? _(obj).chain() : obj;
-  };
-
-  // Add all of the Underscore functions to the wrapper object.
-  _.mixin(_);
-
-  // Add all mutator Array functions to the wrapper.
-  each(['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'], function(name) {
-    var method = ArrayProto[name];
-    _.prototype[name] = function() {
-      var obj = this._wrapped;
-      method.apply(obj, arguments);
-      if ((name == 'shift' || name == 'splice') && obj.length === 0) delete obj[0];
-      return result.call(this, obj);
-    };
-  });
-
-  // Add all accessor Array functions to the wrapper.
-  each(['concat', 'join', 'slice'], function(name) {
-    var method = ArrayProto[name];
-    _.prototype[name] = function() {
-      return result.call(this, method.apply(this._wrapped, arguments));
-    };
-  });
-
-  _.extend(_.prototype, {
-
-    // Start chaining a wrapped Underscore object.
-    chain: function() {
-      this._chain = true;
-      return this;
-    },
-
-    // Extracts the result from a wrapped and chained object.
-    value: function() {
-      return this._wrapped;
-    }
-
-  });
-
-  // AMD registration happens at the end for compatibility with AMD loaders
-  // that may not enforce next-turn semantics on modules. Even though general
-  // practice for AMD registration is to be anonymous, underscore registers
-  // as a named module because, like jQuery, it is a base library that is
-  // popular enough to be bundled in a third party lib, but not be part of
-  // an AMD load request. Those cases could generate an error when an
-  // anonymous define() is called outside of a loader request.
-  if (typeof define === 'function' && define.amd) {
-    define('underscore', [], function() {
-      return _;
-    });
-  }
-}).call(this);
-
-},{}],49:[function(require,module,exports){
 module.exports={
   "name": "carto",
   "version": "0.15.1-cdb1",
@@ -10449,7 +9157,7 @@ module.exports={
     "node": ">=0.4.x"
   },
   "dependencies": {
-    "underscore": "~1.6.0",
+    "underscore": "1.8.3",
     "mapnik-reference": "~6.0.2",
     "optimist": "~0.6.0"
   },
@@ -10467,19 +9175,20 @@ module.exports={
     "test": "mocha -R spec",
     "coverage": "istanbul cover ./node_modules/.bin/_mocha && coveralls < ./coverage/lcov.info"
   },
-  "readme": "# CartoCSS\n\n[![Build Status](https://secure.travis-ci.org/mapbox/carto.png)](http://travis-ci.org/mapbox/carto)\n\nIs as stylesheet renderer for javascript, It's an evolution of the Mapnik renderer from Mapbox.\nPlease, see original [Mapbox repo](http://github.com/mapbox/carto) for more information and credits\n\n## Quick Start\n\n```javascript\n// shader is a CartoCSS object\n\nvar cartocss = [\n    '#layer {',\n    ' marker-width: [property]',\n    ' marker-fill: red',\n    '}'\n].join('')\nvar shader = new carto.RendererJS().render(cartocss);\nvar layers = shader.getLayers()\nfor (var i = 0; i < layers.length; ++i) {\n    var layer = layers[i];\n    console.log(\"layer name: \", layer.fullName())\n    console.log(\"- frames: \", layer.frames())\n    console.log(\"- attachment: \", layer.attachment())\n\n    var layerShader = layer.getStyle({ property: 1 }, { zoom: 10 })\n    console.log(layerShader['marker-width']) // 1\n    console.log(layerShader['marker-fill']) // #FF0000\n}\n\n```\n\n# API\n\n## RendererJS\n\n### render(cartocss)\n\n## CartoCSS\n\ncompiled cartocss object\n\n### getLayers\n\nreturn the layers, an array of ``CartoCSS.Layer`` object\n\n### getDefault\n\nreturn the default layer (``CartoCSS.Layer``), usually the Map layer\n\n\n### findLayer(where)\n\nfind a layer using where object.\n\n```\nshader.findLayer({ name: 'test' })\n```\n\n## CartoCSS.Layer\n\n### getStyle(props, context)\n\nreturn the evaluated style:\n    - props: object containing properties needed to render the style. If the cartocss style uses\n      some variables they should be passed in this object\n    - context: rendering context variables like ``zoom`` or animation ``frame``\n\n\n\n\n\n\n\n\n\n\n## Reference Documentation\n\n* [mapbox.com/carto](http://mapbox.com/carto/)\n\n\n",
+  "gitHead": "f17aea8657ea27f2a660db15dd13b57127e823f9",
+  "readme": "# CartoCSS\n\n[![Build Status](https://travis-ci.org/CartoDB/carto.png?branch=master)](https://travis-ci.org/CartoDB/carto)\n\nIs as stylesheet renderer for javascript, It's an evolution of the Mapnik renderer from Mapbox.\nPlease, see original [Mapbox repo](http://github.com/mapbox/carto) for more information and credits\n\n## Quick Start\n\n```javascript\n// shader is a CartoCSS object\n\nvar cartocss = [\n    '#layer {',\n    ' marker-width: [property]',\n    ' marker-fill: red',\n    '}'\n].join('')\nvar shader = new carto.RendererJS().render(cartocss);\nvar layers = shader.getLayers()\nfor (var i = 0; i < layers.length; ++i) {\n    var layer = layers[i];\n    console.log(\"layer name: \", layer.fullName())\n    console.log(\"- frames: \", layer.frames())\n    console.log(\"- attachment: \", layer.attachment())\n\n    var layerShader = layer.getStyle({ property: 1 }, { zoom: 10 })\n    console.log(layerShader['marker-width']) // 1\n    console.log(layerShader['marker-fill']) // #FF0000\n}\n\n```\n\n# API\n\n## RendererJS\n\n### render(cartocss)\n\n## CartoCSS\n\ncompiled cartocss object\n\n### getLayers\n\nreturn the layers, an array of ``CartoCSS.Layer`` object\n\n### getDefault\n\nreturn the default layer (``CartoCSS.Layer``), usually the Map layer\n\n\n### findLayer(where)\n\nfind a layer using where object.\n\n```\nshader.findLayer({ name: 'test' })\n```\n\n## CartoCSS.Layer\n\n### getStyle(props, context)\n\nreturn the evaluated style:\n    - props: object containing properties needed to render the style. If the cartocss style uses\n      some variables they should be passed in this object\n    - context: rendering context variables like ``zoom`` or animation ``frame``\n\n\n\n\n\n\n\n\n\n\n## Reference Documentation\n\n* [mapbox.com/carto](http://mapbox.com/carto/)\n\n\n",
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/cartodb/carto/issues"
   },
   "homepage": "https://github.com/cartodb/carto#readme",
   "_id": "carto@0.15.1-cdb1",
-  "_shasum": "22109c5b6227f90b8dbdf8d30af9e7da2b5d3cf8",
-  "_resolved": "https://github.com/CartoDB/carto/tarball/0.15.1-cdb2",
-  "_from": "https://github.com/CartoDB/carto/tarball/0.15.1-cdb2"
+  "_shasum": "ef698b2929bdaf77fa57ce5b7a19a4bb9bba6984",
+  "_from": "cartodb/carto#master",
+  "_resolved": "git://github.com/cartodb/carto.git#f17aea8657ea27f2a660db15dd13b57127e823f9"
 }
 
-},{}],50:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 (function(exports){
 crossfilter.version = "1.3.12";
 function crossfilter_identity(d) {
@@ -11882,10 +10591,10 @@ function crossfilter_capacity(w) {
 }
 })(typeof exports !== 'undefined' && exports || this);
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 module.exports = require("./crossfilter").crossfilter;
 
-},{"./crossfilter":50}],52:[function(require,module,exports){
+},{"./crossfilter":49}],51:[function(require,module,exports){
 !function() {
   var d3 = {
     version: "3.5.17"
@@ -21440,316 +20149,363 @@ module.exports = require("./crossfilter").crossfilter;
   });
   if (typeof define === "function" && define.amd) this.d3 = d3, define(d3); else if (typeof module === "object" && module.exports) module.exports = d3; else this.d3 = d3;
 }();
-},{}],53:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 !function() {
 
-var cartocolor = {Green1: {
-  2: ["#FAFCA4","#296B3B"],
-  3: ["#FAFCA4","#8EB26A","#296B3B"],
-  4: ["#FAFCA4","#B1CB7B","#6D9A5A","#296B3B"],
-  5: ["#FAFCA4","#C2D785","#8EB26A","#5C8E52","#296B3B"],
-  6: ["#FAFCA4","#CDDE8B","#A3C174","#7AA460","#52874D","#296B3B"],
-  7: ["#FAFCA4","#D4E38F","#B1CB7B","#8EB26A","#6D9A5A","#4C824A","#296B3B"]
-  },Green2: {
-  2: ["#cafdd8","#007553"],
-  3: ["#cafdd8","#67cda3","#007553"],
-  4: ["#cafdd8","#8fe2b8","#34b289","#007553"],
-  5: ["#CAFDD8","#A2EDC3","#67CDA3","#00A47D","#007553"],
-  6: ["#cafdd8","#aaf0c7","#7fdab0","#4bbc94","#009a74","#007553"],
-  7: ["#cafdd8","#b0f2ca","#8fe2b8","#67cda3","#34b289","#00946f","#007553"]
-  },Green3: {
-  2: ["#dfe895","#008080"],
-  3: ["#dfe895","#7dbb7d","#008080"],
-  4: ["#dfe895","#9bcf7d","#5da87e","#008080"],
-  5: ["#dfe895","#acd87e","#7dbb7d","#4d9e7f","#008080"],
-  6: ["#dfe895","#b5de7f","#8fc77d","#6ab07e","#43987f","#008080"],
-  7: ["#dfe895","#bce27f","#9bcf7d","#7dbb7d","#5da87e","#3b947f","#008080"]
-  },Green4: {
-  2: ["#ebf49d","#0f4b51"],
-  3: ["#ebf49d","#6da06f","#0f4b51"],
-  4: ["#ebf49d","#8fbe7b","#518266","#0f4b51"],
-  5: ["#ebf49d","#a6cb83","#6da06f","#437461","#0f4b51"],
-  6: ["#ebf49d","#b4d389","#81b276","#5c8e6a","#3a6b5d","#0f4b51"],
-  7: ["#ebf49d","#bdd88c","#8fbe7b","#6da06f","#518266","#34665b","#0f4b51"]
-  },Khaki1: {
-  2: ["#f9ebb2","#324546"],
-  3: ["#f9ebb2","#909e74","#324546"],
-  4: ["#f9ebb2","#b4bc89","#6e7f61","#324546"],
-  5: ["#f9ebb2","#c7c894","#909e74","#5e6e5a","#324546"],
-  6: ["#f9ebb2","#d2d09b","#a5b081","#7b8b69","#546455","#324546"],
-  7: ["#f9ebb2","#DAD59F","#b4bc89","#909e74","#6e7f61","#4e5e52","#324546"]
-  },Emrld1: {
-  2: ["#d3f2a3","#074050"],
-  3: ["#d3f2a3","#4c9b82","#074050"],
-  4: ["#d3f2a3","#6cc08b","#217a79","#074050"],
-  5: ["#d3f2a3","#82d091","#4c9b82","#19696f","#074050"],
-  6: ["#d3f2a3","#8fda94","#60b187","#35877d","#145f69","#074050"],
-  7: ["#d3f2a3","#97e196","#6cc08b","#4c9b82","#217a79","#105965","#074050"]
-  },Blue1: {
-  2: ["#e0ece7","#00477b"],
-  3: ["#e0ece7","#649baa","#00477b"],
-  4: ["#e0ece7","#8cb6bd","#437f99","#00477b"],
-  5: ["#E0ECE7","#9FC4C7","#649BAA","#317290","#00477B"],
-  6: ["#e0ece7","#accccd","#7cabb6","#518aa0","#2a698c","#00477b"],
-  7: ["#e0ece7","#b5d1d2","#8cb6bd","#649baa","#437f99","#266389","#00477b"]
-  },Teal1: {
-  2: ["#C1F2EB","#00718E"],
-  3: ["#C1F2EB","#52B1B8","#00718E"],
-  4: ["#C1F2EB","#77C7C8","#1F9BA9","#00718E"],
-  5: ["#C1F2EB","#89D2D0","#52B1B8","#0090A2","#00718E"],
-  6: ["#C1F2EB","#94D8D5","#69BEC1","#37A4AF","#008A9E","#00718E"],
-  7: ["#C1F2EB","#9BDDD9","#77C7C8","#52B1B8","#1F9BA9","#00869B","#00718E"]
-  },Teal2: {
-  2: ["#b2eee6","#005777"],
-  3: ["#b2eee6","#37a4ab","#005777"],
-  4: ["#b2eee6","#69bebf","#1a8a98","#005777"],
-  5: ["#B2EEE6","#7ECBC9","#37A4AB","#007D8F","#005777"],
-  6: ["#b2eee6","#89d2cf","#57b3b7","#2794a0","#01758a","#005777"],
-  7: ["#b2eee6","#90d7d3","#69bebf","#37a4ab","#1a8a98","#017087","#005777"]
-  },BluYl1: {
-  2: ["#f7feae","#045275"],
-  3: ["#f7feae","#46aea0","#045275"],
-  4: ["#f7feae","#7ccba2","#089099","#045275"],
-  5: ["#f7feae","#9bd8a4","#46aea0","#058092","#045275"],
-  6: ["#f7feae","#ace1a4","#68bfa1","#2a9c9c","#02778e","#045275"],
-  7: ["#f7feae","#b7e6a5","#7ccba2","#46aea0","#089099","#00718b","#045275"]
-  },BluYl2: {
-  2: ["#fff2b0","#195a7e"],
-  3: ["#fff2b0","#59ae9c","#195a7e"],
-  4: ["#fff2b0","#8dc79d","#2a9399","#195a7e"],
-  5: ["#fff2b0","#a8d39e","#59ae9c","#168595","#195a7e"],
-  6: ["#fff2b0","#b9daa0","#77bd9c","#3c9e9a","#0c7c92","#195a7e"],
-  7: ["#fff2b0","#c4dea2","#8dc79d","#59ae9c","#2a9399","#08778f","#195a7e"]
-  },Mint1: {
-  2: ["#e3efcd","#246580"],
-  3: ["#e3efcd","#4cb2a0","#246580"],
-  4: ["#e3efcd","#86c6af","#399896","#246580"],
-  5: ["#e3efcd","#9ed0b6","#4cb2a0","#358b91","#246580"],
-  6: ["#e3efcd","#acd7bb","#71bea9","#41a29a","#32838d","#246580"],
-  7: ["#e3efcd","#b5dbbe","#86c6af","#4cb2a0","#399896","#307e8b","#246580"]
-  },Mint2: {
-  2: ["#e4f1e1","#0d585f"],
-  3: ["#e4f1e1","#63a6a0","#0d585f"],
-  4: ["#e4f1e1","#89c0b6","#448c8a","#0d585f"],
-  5: ["#E4F1E1","#9CCDC1","#63A6A0","#337F7F","#0D585F"],
-  6: ["#e4f1e1","#abd4c7","#7ab5ad","#509693","#2c7778","#0d585f"],
-  7: ["#e4f1e1","#b4d9cc","#89c0b6","#63a6a0","#448c8a","#287274","#0d585f"]
-  },Mint3: {
-  2: ["#d2fbd4","#123f5a"],
-  3: ["#d2fbd4","#559c9e","#123f5a"],
-  4: ["#d2fbd4","#7bbcb0","#3a7c89","#123f5a"],
-  5: ["#d2fbd4","#8eccb9","#559c9e","#2b6c7f","#123f5a"],
-  6: ["#d2fbd4","#9cd5be","#6cafa9","#458892","#266377","#123f5a"],
-  7: ["#d2fbd4","#a5dbc2","#7bbcb0","#559c9e","#3a7c89","#235d72","#123f5a"]
-  },TealPink1: {
-  2: ["#ffe2ff","#3094b1"],
-  3: ["#ffe2ff","#a6b9e4","#3094b1"],
-  4: ["#ffe2ff","#c7c5ef","#83acd7","#3094b1"],
-  5: ["#ffe2ff","#d6ccf3","#a6b9e4","#70a6cf","#3094b1"],
-  6: ["#ffe2ff","#dfd0f6","#bac0eb","#91b1dd","#64a3c9","#3094b1"],
-  7: ["#ffe2ff","#e5d3f7","#c7c5ef","#a6b9e4","#83acd7","#5ca0c6","#3094b1"]
-  },BluPurp1: {
-  2: ["#f9e1f9","#3e57b5"],
-  3: ["#f9e1f9","#caaafc","#3e57b5"],
-  4: ["#f9e1f9","#dfbbf9","#a08ce4","#3e57b5"],
-  5: ["#f9e1f9","#e7c4f8","#caaafc","#8a7ed8","#3e57b5"],
-  6: ["#f9e1f9","#ecc9f8","#d7b4fa","#b198ee","#7c76d1","#3e57b5"],
-  7: ["#f9e1f9","#eecdf8","#dfbbf9","#caaafc","#a08ce4","#7371cc","#3e57b5"]
-  },Purp1: {
-  2: ["#ffc2c7","#5c308c"],
-  3: ["#ffc2c7","#c753a8","#5c308c"],
-  4: ["#ffc2c7","#e76cac","#a640a2","#5c308c"],
-  5: ["#ffc2c7","#f37daf","#c753a8","#953a9e","#5c308c"],
-  6: ["#ffc2c7","#fa86b0","#da62aa","#b348a4","#8a379b","#5c308c"],
-  7: ["#FFC2C7","#FF8DB1","#E76CAC","#C753A8","#A640A2","#833599","#5C308C"]
-  },Purp2: {
-  2: ["#ffe6ff","#443f7a"],
-  3: ["#ffe6ff","#ab8cb9","#443f7a"],
-  4: ["#ffe6ff","#cca9d0","#8a71a3","#443f7a"],
-  5: ["#ffe6ff","#dbb8dc","#ab8cb9","#796498","#443f7a"],
-  6: ["#ffe6ff","#e5c1e3","#bf9dc7","#977cac","#6f5c91","#443f7a"],
-  7: ["#FFE6FF","#EBC7E8","#CCA9D0","#AB8CB9","#8A71A3","#68578D","#443F7A"]
-  },Purp3: {
-  2: ["#ead0d7","#5a3783"],
-  3: ["#ead0d7","#ad7bae","#5a3783"],
-  4: ["#ead0d7","#c496bb","#9462a1","#5a3783"],
-  5: ["#ead0d7","#cea4c2","#ad7bae","#87569a","#5a3783"],
-  6: ["#ead0d7","#d4adc5","#bb8bb6","#9e6ca6","#7e5096","#5a3783"],
-  7: ["#EAD0D7","#D8B3C8","#C496BB","#AD7BAE","#9462A1","#794B93","#5A3783"]
-  },Purp4: {
-  2: ["#ffd1e2","#4b3c80"],
-  3: ["#ffd1e2","#b97db2","#4b3c80"],
-  4: ["#ffd1e2","#d897c1","#9665a1","#4b3c80"],
-  5: ["#FFD1E2","#E8A5C9","#B97DB2","#855A99","#4B3C80"],
-  6: ["#ffd1e2","#edaece","#cc8dbb","#a46fa8","#7a5494","#4b3c80"],
-  7: ["#ffd1e2","#f0b4d1","#d897c1","#b97db2","#9665a1","#725091","#4b3c80"]
-  },Sunset1: {
-  2: ["#FFEAB0","#7F56B4"],
-  3: ["#FFEAB0","#F591B7","#7F56B4"],
-  4: ["#FFEAB0","#FFAFB1","#D977BC","#7F56B4"],
-  5: ["#FFEAB0","#FFBEAF","#F591B7","#C76CBC","#7F56B4"],
-  6: ["#FFEAB0","#FFC7AE","#FFA3B4","#E581BB","#BB66BC","#7F56B4"],
-  7: ["#FFEAB0","#FFCDAD","#FFAFB1","#F591B7","#D977BC","#B363BB","#7F56B4"]
-  },Sunset2: {
-  2: ["#f3e79b","#5c53a5"],
-  3: ["#f3e79b","#eb7f86","#5c53a5"],
-  4: ["#f3e79b","#f8a07e","#ce6693","#5c53a5"],
-  5: ["#f3e79b","#fab27f","#eb7f86","#b95e9a","#5c53a5"],
-  6: ["#f3e79b","#fabc82","#f59280","#dc6f8e","#ab5b9e","#5c53a5"],
-  7: ["#f3e79b","#fac484","#f8a07e","#eb7f86","#ce6693","#a059a0","#5c53a5"]
-  },Sunset3: {
-  2: ["#fef6b5","#e15383"],
-  3: ["#fef6b5","#ffa679","#e15383"],
-  4: ["#fef6b5","#ffc285","#fa8a76","#e15383"],
-  5: ["#fef6b5","#ffd08e","#ffa679","#f67b77","#e15383"],
-  6: ["#fef6b5","#ffd795","#ffb77f","#fd9576","#f37378","#e15383"],
-  7: ["#fef6b5","#ffdd9a","#ffc285","#ffa679","#fa8a76","#f16d7a","#e15383"]
-  },Magnt1: {
-  2: ["#ffbec4","#6f2a72"],
-  3: ["#ffbec4","#bc3e8b","#6f2a72"],
-  4: ["#ffbec4","#d76a97","#a23784","#6f2a72"],
-  5: ["#ffbec4","#e37fa0","#bc3e8b","#953480","#6f2a72"],
-  6: ["#ffbec4","#e98ba6","#cd5992","#ac3a87","#8d327e","#6f2a72"],
-  7: ["#ffbec4","#ed94aa","#d76a97","#bc3e8b","#a23784","#88307c","#6f2a72"]
-  },Burg1: {
-  2: ["#ffd5d2","#581c3b"],
-  3: ["#ffd5d2","#cc607d","#581c3b"],
-  4: ["#ffd5d2","#e78393","#ab4269","#581c3b"],
-  5: ["#ffd5d2","#f097a0","#cc607d","#97365e","#581c3b"],
-  6: ["#ffd5d2","#f6a3a9","#dc758a","#b84e71","#8b3058","#581c3b"],
-  7: ["#ffd5d2","#f9abae","#e78393","#cc607d","#ab4269","#832b54","#581c3b"]
-  },Burg2: {
-  2: ["#ffc6c4","#672044"],
-  3: ["#ffc6c4","#cc607d","#672044"],
-  4: ["#ffc6c4","#e38191","#ad466c","#672044"],
-  5: ["#ffc6c4","#ee919b","#cc607d","#9e3963","#672044"],
-  6: ["#ffc6c4","#f29ca3","#da7489","#b95073","#93345d","#672044"],
-  7: ["#ffc6c4","#f4a3a8","#e38191","#cc607d","#ad466c","#8b3058","#672044"]
-  },RedOr1: {
-  2: ["#f9e0a3","#a53460"],
-  3: ["#f9e0a3","#dd886b","#a53460"],
-  4: ["#f9e0a3","#e8a678","#ce6b63","#a53460"],
-  5: ["#f9e0a3","#edb480","#dd886b","#c65d61","#a53460"],
-  6: ["#f9e0a3","#efbd86","#e49a72","#d47766","#c05461","#a53460"],
-  7: ["#f9e0a3","#f1c38a","#e8a678","#dd886b","#ce6b63","#bc4f60","#a53460"]
-  },OrYel1: {
-  2: ["#fafebd","#f2954b"],
-  3: ["#fafebd","#f3cd7a","#f2954b"],
-  4: ["#fafebd","#f5de8e","#f3bb67","#f2954b"],
-  5: ["#fafebd","#f5e69a","#f3cd7a","#f3b25f","#f2954b"],
-  6: ["#fafebd","#f6eba0","#f4d786","#f3c26e","#f3ac5a","#f2954b"],
-  7: ["#fafebd","#f7eea5","#f5de8e","#f3cd7a","#f3bb67","#f3a957","#f2954b"]
-  },Peach1: {
-  3: ["#fde0c5","#f59e72","#eb4a40"],
-  4: ["#fde0c5","#f8b58b","#f2855d","#eb4a40"],
-  5: ["#fde0c5","#f9c098","#f59e72","#f17854","#eb4a40"],
-  6: ["#fde0c5","#fac7a1","#f7ac80","#f38f65","#f0704f","#eb4a40"],
-  7: ["#fde0c5","#facba6","#f8b58b","#f59e72","#f2855d","#ef6a4c","#eb4a40"]
-  },PeachYl1: {
-  2: ["#fff2b0","#eb4a40"],
-  3: ["#fff2b0","#f6a85e","#eb4a40"],
-  4: ["#fff2b0","#f8c275","#f38c4d","#eb4a40"],
-  5: ["#fff2b0","#f9cf82","#f6a85e","#f27d47","#eb4a40"],
-  6: ["#fff2b0","#fad68b","#f7b86b","#f59853","#f17444","#eb4a40"],
-  7: ["#fff2b0","#fbdb91","#f8c275","#f6a85e","#f38c4d","#f06e43","#eb4a40"]
-  },Brown1: {
-  2: ["#f2d6af","#884b3d"],
-  3: ["#f2d6af","#e29859","#884b3d"],
-  4: ["#f2d6af","#e7ad74","#c67c51","#884b3d"],
-  5: ["#f2d6af","#eab882","#e29859","#b76f4c","#884b3d"],
-  6: ["#f2d6af","#ebbe8a","#e5a569","#d18754","#ae6749","#884b3d"],
-  7: ["#f2d6af","#ecc290","#e7ad74","#e29859","#c67c51","#a86247","#884b3d"]
-  },ArmyRose: {
-  2: ["#db8195","#929b4f"],
-  3: ["#df91a3","#fdfbe4","#a3ad62"],
-  4: ["#db8195","#f3d1ca","#d9dbaf","#929b4f"],
-  5: ["#d8758b","#ebb4b8","#fdfbe4","#c1c68c","#879043"],
-  6: ["#d66d85","#e4a0ac","#f6ddd1","#e3e4be","#b0b874","#7f883b"],
-  7: ["#d46780","#df91a3","#f0c6c3","#fdfbe4","#d0d3a2","#a3ad62","#798234"]
-  },Fall: {
-  2: ["#ca562c","#3d5941"],
-  3: ["#ca562c","#f6edbd","#3d5941"],
-  4: ["#ca562c","#edbb8a","#b5b991","#3d5941"],
-  5: ["#ca562c","#e6a272","#f6edbd","#96a07c","#3d5941"],
-  6: ["#ca562c","#e19464","#f1cf9e","#cecea2","#839170","#3d5941"],
-  7: ["#ca562c","#de8a5a","#edbb8a","#f6edbd","#b5b991","#778868","#3d5941"]
-  },Geyser: {
-  2: ["#ca562c","#008080"],
-  3: ["#ca562c","#f6edbd","#008080"],
-  4: ["#ca562c","#edbb8a","#b4c8a8","#008080"],
-  5: ["#ca562c","#e6a272","#f6edbd","#92b69e","#008080"],
-  6: ["#ca562c","#e19464","#f1cf9e","#ced7b1","#7eab98","#008080"],
-  7: ["#ca562c","#de8a5a","#edbb8a","#f6edbd","#b4c8a8","#70a494","#008080"]
-  },Tropic: {
-  2: ["#009B9E","#C75DAB"],
-  3: ["#009B9E","#F1F1F1","#C75DAB"],
-  4: ["#009B9E","#A7D3D4","#E4C1D9","#C75DAB"],
-  5: ["#009B9E","#7CC5C6","#F1F1F1","#DDA9CD","#C75DAB"],
-  6: ["#009B9E","#5DBCBE","#C6DFDF","#E9D4E2","#D99BC6","#C75DAB"],
-  7: ["#009B9E","#42B7B9","#A7D3D4","#F1F1F1","#E4C1D9","#D691C1","#C75DAB"]
-  },Earth: {
-  2: ["#2887a1","#A16928"],
-  3: ["#2887a1","#edeac2","#A16928"],
-  4: ["#2887a1","#b5c8b8","#d6bd8d","#A16928"],
-  5: ["#2887a1","#98b7b2","#edeac2","#caa873","#A16928"],
-  6: ["#2887a1","#85adaf","#cbd5bc","#e0cfa2","#c29b64","#A16928"],
-  7: ["#2887a1","#79a7ac","#b5c8b8","#edeac2","#d6bd8d","#bd925a","#A16928"]
-  },Bold: {
-  2: ["#7F3C8D","#11A579"],
-  3: ["#7F3C8D","#11A579","#3969AC"],
-  4: ["#7F3C8D","#11A579","#3969AC","#F2B701"],
-  5: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74"],
-  6: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A"],
-  7: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310"],
-  8: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695"],
-  9: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695","#CF1C90"],
-  10: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695","#CF1C90","#f97b72"],
-  11: ["#7F3C8D","#11A579","#3969AC","#F2B701","#E73F74","#80BA5A","#E68310","#008695","#CF1C90","#f97b72","#A5AA99"]
-  },Vivid: {
-  2: ["#E58606","#5D69B1"],
-  3: ["#E58606","#5D69B1","#52BCA3"],
-  4: ["#E58606","#5D69B1","#52BCA3","#99C945"],
-  5: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4"],
-  6: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C"],
-  7: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f"],
-  8: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f"],
-  9: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f","#ed645a"],
-  10: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f","#ed645a","#CC61B0"],
-  11: ["#E58606","#5D69B1","#52BCA3","#99C945","#2F8AC4","#24796C","#cc2d7f","#764e9f","#ed645a","#CC61B0","#A5AA99"]
-  },Pastel: {
-  2: ["#78BDC8","#F4C34C"],
-  3: ["#78BDC8","#F4C34C","#DCB0F2"],
-  4: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F"],
-  5: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3"],
-  6: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74"],
-  7: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1"],
-  8: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0"],
-  9: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0","#C9DB74"],
-  10: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0","#C9DB74","#8BE0A4"],
-  11: ["#78BDC8","#F4C34C","#DCB0F2","#87C55F","#9EB9F3","#F89C74","#FE88B1","#48C1C0","#C9DB74","#8BE0A4","#9DB8C1"]
-  },Antique: {
-  2: ["#75445C","#D5A75B"],
-  3: ["#75445C","#D5A75B","#AF6458"],
-  4: ["#75445C","#D5A75B","#AF6458","#736F4C"],
-  5: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e"],
-  6: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F"],
-  7: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f"],
-  8: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d"],
-  9: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d","#af5878"],
-  10: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d","#af5878","#5c4c73"],
-  11: ["#75445C","#D5A75B","#AF6458","#736F4C","#5b788e","#4C4E8F","#6c4c8f","#44755d","#af5878","#5c4c73","#6C6D6F"]
-  },Safe: {
-  2: ["#88CCEE","#CC6677"],
-  3: ["#88CCEE","#CC6677","#DDCC77"],
-  4: ["#88CCEE","#CC6677","#DDCC77","#117733"],
-  5: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288"],
-  6: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499"],
-  7: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99"],
-  8: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933"],
-  9: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933","#882255"],
-  10: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933","#882255","#661100"],
-  11: ["#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499","#44AA99","#999933","#882255","#661100","#888888"]
-}};
+var cartocolor = {
+"Antique": {
+        "2": ["#75445C", "#D5A75B"],
+        "3": ["#75445C", "#D5A75B", "#AF6458"],
+        "4": ["#75445C", "#D5A75B", "#AF6458", "#736F4C"],
+        "5": ["#75445C", "#D5A75B", "#AF6458", "#736F4C", "#5b788e"],
+        "6": ["#75445C", "#D5A75B", "#AF6458", "#736F4C", "#5b788e", "#4C4E8F"],
+        "7": ["#75445C", "#D5A75B", "#AF6458", "#736F4C", "#5b788e", "#4C4E8F", "#6c4c8f"],
+        "8": ["#75445C", "#D5A75B", "#AF6458", "#736F4C", "#5b788e", "#4C4E8F", "#6c4c8f", "#44755d"],
+        "9": ["#75445C", "#D5A75B", "#AF6458", "#736F4C", "#5b788e", "#4C4E8F", "#6c4c8f", "#44755d", "#af5878"],
+        "10": ["#75445C", "#D5A75B", "#AF6458", "#736F4C", "#5b788e", "#4C4E8F", "#6c4c8f", "#44755d", "#af5878", "#5c4c73"],
+        "11": ["#75445C", "#D5A75B", "#AF6458", "#736F4C", "#5b788e", "#4C4E8F", "#6c4c8f", "#44755d", "#af5878", "#5c4c73", "#6C6D6F"],
+        "tags": ["qualitative"]
+    },
+"ArmyRose": {
+        "2": ["#929b4f", "#db8195"],
+        "3": ["#a3ad62", "#fdfbe4", "#df91a3"],
+        "4": ["#929b4f", "#d9dbaf", "#f3d1ca", "#db8195"],
+        "5": ["#879043", "#c1c68c", "#fdfbe4", "#ebb4b8", "#d8758b"],
+        "6": ["#7f883b", "#b0b874", "#e3e4be", "#f6ddd1", "#e4a0ac", "#d66d85"],
+        "7": ["#798234", "#a3ad62", "#d0d3a2", "#fdfbe4", "#f0c6c3", "#df91a3", "#d46780"],
+        "tags": ["diverging"]
+    },
+"BluGrn": {
+        "2": ["#1d4f60", "#c4e6c3"],
+        "3": ["#1d4f60", "#4da284", "#c4e6c3"],
+        "4": ["#1d4f60", "#36877a", "#6dbc90", "#c4e6c3"],
+        "5": ["#1d4f60", "#2d7974", "#4da284", "#80c799", "#c4e6c3"],
+        "6": ["#1d4f60", "#297071", "#3e927e", "#5fb28b", "#8dce9f", "#c4e6c3"],
+        "7": ["#1d4f60", "#266b6e", "#36877a", "#4da284", "#6dbc90", "#96d2a4", "#c4e6c3"],
+        "tags": ["quantitative"]
+    },
+"BluYl": {
+        "2": ["#045275", "#f7feae"],
+        "3": ["#045275", "#46aea0", "#f7feae"],
+        "4": ["#045275", "#089099", "#7ccba2", "#f7feae"],
+        "5": ["#045275", "#058092", "#46aea0", "#9bd8a4", "#f7feae"],
+        "6": ["#045275", "#02778e", "#2a9c9c", "#68bfa1", "#ace1a4", "#f7feae"],
+        "7": ["#045275", "#00718b", "#089099", "#46aea0", "#7ccba2", "#b7e6a5", "#f7feae"],
+        "tags": ["quantitative"]
+    },
+"Bold": {
+        "2": ["#7F3C8D", "#11A579"],
+        "3": ["#7F3C8D", "#11A579", "#3969AC"],
+        "4": ["#7F3C8D", "#11A579", "#3969AC", "#F2B701"],
+        "5": ["#7F3C8D", "#11A579", "#3969AC", "#F2B701", "#E73F74"],
+        "6": ["#7F3C8D", "#11A579", "#3969AC", "#F2B701", "#E73F74", "#80BA5A"],
+        "7": ["#7F3C8D", "#11A579", "#3969AC", "#F2B701", "#E73F74", "#80BA5A", "#E68310"],
+        "8": ["#7F3C8D", "#11A579", "#3969AC", "#F2B701", "#E73F74", "#80BA5A", "#E68310", "#008695"],
+        "9": ["#7F3C8D", "#11A579", "#3969AC", "#F2B701", "#E73F74", "#80BA5A", "#E68310", "#008695", "#CF1C90"],
+        "10": ["#7F3C8D", "#11A579", "#3969AC", "#F2B701", "#E73F74", "#80BA5A", "#E68310", "#008695", "#CF1C90", "#f97b72"],
+        "11": ["#7F3C8D", "#11A579", "#3969AC", "#F2B701", "#E73F74", "#80BA5A", "#E68310", "#008695", "#CF1C90", "#f97b72", "#A5AA99"],
+        "tags": ["qualitative"]
+    },
+"BrwnYl": {
+        "2": ["#541f3f", "#ede5cf"],
+        "3": ["#541f3f", "#c1766f", "#ede5cf"],
+        "4": ["#541f3f", "#a65461", "#d39c83", "#ede5cf"],
+        "5": ["#541f3f", "#95455a", "#c1766f", "#daaf91", "#ede5cf"],
+        "6": ["#541f3f", "#8a3c56", "#b26166", "#cd8c7a", "#ddba9b", "#ede5cf"],
+        "7": ["#541f3f", "#813753", "#a65461", "#c1766f", "#d39c83", "#e0c2a2", "#ede5cf"],
+        "tags": ["quantitative"]
+    },
+"Burg": {
+        "2": ["#672044", "#ffc6c4"],
+        "3": ["#672044", "#cc607d", "#ffc6c4"],
+        "4": ["#672044", "#ad466c", "#e38191", "#ffc6c4"],
+        "5": ["#672044", "#9e3963", "#cc607d", "#ee919b", "#ffc6c4"],
+        "6": ["#672044", "#93345d", "#b95073", "#da7489", "#f29ca3", "#ffc6c4"],
+        "7": ["#672044", "#8b3058", "#ad466c", "#cc607d", "#e38191", "#f4a3a8", "#ffc6c4"],
+        "tags": ["quantitative"]
+    },
+"BurgYl": {
+        "2": ["#70284a", "#fbe6c5"],
+        "3": ["#70284a", "#dc7176", "#fbe6c5"],
+        "4": ["#70284a", "#c8586c", "#ee8a82", "#fbe6c5"],
+        "5": ["#70284a", "#b24b65", "#dc7176", "#f2a28a", "#fbe6c5"],
+        "6": ["#70284a", "#a44360", "#d06270", "#e7807d", "#f4b191", "#fbe6c5"],
+        "7": ["#70284a", "#9c3f5d", "#c8586c", "#dc7176", "#ee8a82", "#f5ba98", "#fbe6c5"],
+        "tags": ["quantitative"]
+    },
+"DarkMint": {
+        "2": ["#123f5a", "#d2fbd4"],
+        "3": ["#123f5a", "#559c9e", "#d2fbd4"],
+        "4": ["#123f5a", "#3a7c89", "#7bbcb0", "#d2fbd4"],
+        "5": ["#123f5a", "#2b6c7f", "#559c9e", "#8eccb9", "#d2fbd4"],
+        "6": ["#123f5a", "#266377", "#458892", "#6cafa9", "#9cd5be", "#d2fbd4"],
+        "7": ["#123f5a", "#235d72", "#3a7c89", "#559c9e", "#7bbcb0", "#a5dbc2", "#d2fbd4"],
+        "tags": ["quantitative"]
+    },
+"Earth": {
+        "2": ["#A16928", "#2887a1"],
+        "3": ["#A16928", "#edeac2", "#2887a1"],
+        "4": ["#A16928", "#d6bd8d", "#b5c8b8", "#2887a1"],
+        "5": ["#A16928", "#caa873", "#edeac2", "#98b7b2", "#2887a1"],
+        "6": ["#A16928", "#c29b64", "#e0cfa2", "#cbd5bc", "#85adaf", "#2887a1"],
+        "7": ["#A16928", "#bd925a", "#d6bd8d", "#edeac2", "#b5c8b8", "#79a7ac", "#2887a1"],
+        "tags": ["diverging"]
+    },
+"Emrld": {
+        "2": ["#074050", "#d3f2a3"],
+        "3": ["#074050", "#4c9b82", "#d3f2a3"],
+        "4": ["#074050", "#217a79", "#6cc08b", "#d3f2a3"],
+        "5": ["#074050", "#19696f", "#4c9b82", "#82d091", "#d3f2a3"],
+        "6": ["#074050", "#145f69", "#35877d", "#60b187", "#8fda94", "#d3f2a3"],
+        "7": ["#074050", "#105965", "#217a79", "#4c9b82", "#6cc08b", "#97e196", "#d3f2a3"],
+        "tags": ["quantitative"]
+    },
+"Fall": {
+        "2": ["#3d5941", "#ca562c"],
+        "3": ["#3d5941", "#f6edbd", "#ca562c"],
+        "4": ["#3d5941", "#b5b991", "#edbb8a", "#ca562c"],
+        "5": ["#3d5941", "#96a07c", "#f6edbd", "#e6a272", "#ca562c"],
+        "6": ["#3d5941", "#839170", "#cecea2", "#f1cf9e", "#e19464", "#ca562c"],
+        "7": ["#3d5941", "#778868", "#b5b991", "#f6edbd", "#edbb8a", "#de8a5a", "#ca562c"],
+        "tags": ["diverging"]
+    },
+"Geyser": {
+        "2": ["#008080", "#ca562c"],
+        "3": ["#008080", "#f6edbd", "#ca562c"],
+        "4": ["#008080", "#b4c8a8", "#edbb8a", "#ca562c"],
+        "5": ["#008080", "#92b69e", "#f6edbd", "#e6a272", "#ca562c"],
+        "6": ["#008080", "#7eab98", "#ced7b1", "#f1cf9e", "#e19464", "#ca562c"],
+        "7": ["#008080", "#70a494", "#b4c8a8", "#f6edbd", "#edbb8a", "#de8a5a", "#ca562c"],
+        "tags": ["diverging"]
+    },
+"Magenta": {
+        "2": ["#6c2167", "#f3cbd3"],
+        "3": ["#6c2167", "#ca699d", "#f3cbd3"],
+        "4": ["#6c2167", "#b14d8e", "#dd88ac", "#f3cbd3"],
+        "5": ["#6c2167", "#a24186", "#ca699d", "#e498b4", "#f3cbd3"],
+        "6": ["#6c2167", "#983a81", "#bc5894", "#d67ba5", "#e7a2b9", "#f3cbd3"],
+        "7": ["#6c2167", "#91357d", "#b14d8e", "#ca699d", "#dd88ac", "#eaa9bd", "#f3cbd3"],
+        "tags": ["quantitative"]
+    },
+"Mint": {
+        "2": ["#0d585f", "#e4f1e1"],
+        "3": ["#0d585f", "#63a6a0", "#e4f1e1"],
+        "4": ["#0d585f", "#448c8a", "#89c0b6", "#e4f1e1"],
+        "5": ["#0D585F", "#337F7F", "#63A6A0", "#9CCDC1", "#E4F1E1"],
+        "6": ["#0d585f", "#2c7778", "#509693", "#7ab5ad", "#abd4c7", "#e4f1e1"],
+        "7": ["#0d585f", "#287274", "#448c8a", "#63a6a0", "#89c0b6", "#b4d9cc", "#e4f1e1"],
+        "tags": ["quantitative"]
+    },
+"OrYel": {
+        "2": ["#ee4d5a", "#ecda9a"],
+        "3": ["#ee4d5a", "#f7945d", "#ecda9a"],
+        "4": ["#ee4d5a", "#f97b57", "#f3ad6a", "#ecda9a"],
+        "5": ["#ee4d5a", "#f86f56", "#f7945d", "#f1b973", "#ecda9a"],
+        "6": ["#ee4d5a", "#f76856", "#f98558", "#f5a363", "#f0c079", "#ecda9a"],
+        "7": ["#ee4d5a", "#f66356", "#f97b57", "#f7945d", "#f3ad6a", "#efc47e", "#ecda9a"],
+        "tags": ["quantitative"]
+    },
+"Pastel": {
+        "2": ["#78BDC8", "#F4C34C"],
+        "3": ["#78BDC8", "#F4C34C", "#DCB0F2"],
+        "4": ["#78BDC8", "#F4C34C", "#DCB0F2", "#87C55F"],
+        "5": ["#78BDC8", "#F4C34C", "#DCB0F2", "#87C55F", "#9EB9F3"],
+        "6": ["#78BDC8", "#F4C34C", "#DCB0F2", "#87C55F", "#9EB9F3", "#F89C74"],
+        "7": ["#78BDC8", "#F4C34C", "#DCB0F2", "#87C55F", "#9EB9F3", "#F89C74", "#FE88B1"],
+        "8": ["#78BDC8", "#F4C34C", "#DCB0F2", "#87C55F", "#9EB9F3", "#F89C74", "#FE88B1", "#48C1C0"],
+        "9": ["#78BDC8", "#F4C34C", "#DCB0F2", "#87C55F", "#9EB9F3", "#F89C74", "#FE88B1", "#48C1C0", "#C9DB74"],
+        "10": ["#78BDC8", "#F4C34C", "#DCB0F2", "#87C55F", "#9EB9F3", "#F89C74", "#FE88B1", "#48C1C0", "#C9DB74", "#8BE0A4"],
+        "11": ["#78BDC8", "#F4C34C", "#DCB0F2", "#87C55F", "#9EB9F3", "#F89C74", "#FE88B1", "#48C1C0", "#C9DB74", "#8BE0A4", "#9DB8C1"],
+        "tags": ["qualitative"]
+    },
+"Peach": {
+        "3": ["#eb4a40", "#f59e72", "#fde0c5"],
+        "4": ["#eb4a40", "#f2855d", "#f8b58b", "#fde0c5"],
+        "5": ["#eb4a40", "#f17854", "#f59e72", "#f9c098", "#fde0c5"],
+        "6": ["#eb4a40", "#f0704f", "#f38f65", "#f7ac80", "#fac7a1", "#fde0c5"],
+        "7": ["#eb4a40", "#ef6a4c", "#f2855d", "#f59e72", "#f8b58b", "#facba6", "#fde0c5"],
+        "tags": ["quantitative"]
+    },
+"PinkYl": {
+        "2": ["#e15383", "#fef6b5"],
+        "3": ["#e15383", "#ffa679", "#fef6b5"],
+        "4": ["#e15383", "#fa8a76", "#ffc285", "#fef6b5"],
+        "5": ["#e15383", "#f67b77", "#ffa679", "#ffd08e", "#fef6b5"],
+        "6": ["#e15383", "#f37378", "#fd9576", "#ffb77f", "#ffd795", "#fef6b5"],
+        "7": ["#e15383", "#f16d7a", "#fa8a76", "#ffa679", "#ffc285", "#ffdd9a", "#fef6b5"],
+        "tags": ["quantitative"]
+    },
+"Prism": {
+        "2": ["#5B3F95","#1D6996"],
+        "3": ["#5B3F95","#1D6996","#129C63","#73AF48"],
+        "4": ["#5B3F95","#1D6996","#129C63","#73AF48","#EDAD08"],
+        "5": ["#5B3F95","#1D6996","#129C63","#73AF48","#EDAD08","#E17C05"],
+        "6": ["#5B3F95","#1D6996","#129C63","#73AF48","#EDAD08","#E17C05","#C94034"],
+        "7": ["#5B3F95","#1D6996","#129C63","#73AF48","#EDAD08","#E17C05","#C94034","#BA0040"],
+        "8": ["#5B3F95","#1D6996","#129C63","#73AF48","#EDAD08","#E17C05","#C94034","#BA0040","#8E1966"],
+        "9": ["#5B3F95","#1D6996","#129C63","#73AF48","#EDAD08","#E17C05","#C94034","#BA0040","#8E1966","#6F3072"],
+        "10":["#5B3F95","#1D6996","#129C63","#73AF48","#EDAD08","#E17C05","#C94034","#BA0040","#8E1966","#6F3072","#DC1721"],
+        "11":["#5B3F95","#1D6996","#129C63","#73AF48","#EDAD08","#E17C05","#C94034","#BA0040","#8E1966","#6F3072","#DC1721","#555"],
+        "tags": ["qualitative"]
+    },
+"Purp": {
+        "2": ["#63589f", "#f3e0f7"],
+        "3": ["#63589f", "#b998dd", "#f3e0f7"],
+        "4": ["#63589f", "#9f82ce", "#d1afe8", "#f3e0f7"],
+        "5": ["#63589f", "#9178c4", "#b998dd", "#dbbaed", "#f3e0f7"],
+        "6": ["#63589f", "#8871be", "#aa8bd4", "#c8a5e4", "#e0c2ef", "#f3e0f7"],
+        "7": ["#63589f", "#826dba", "#9f82ce", "#b998dd", "#d1afe8", "#e4c7f1", "#f3e0f7"],
+        "tags": ["quantitative"]
+    },
+"PurpOr": {
+        "3": ["#573b88", "#ce78b3", "#f9ddda"],
+        "4": ["#573b88", "#ad5fad", "#e597b9", "#f9ddda"],
+        "5": ["#573b88", "#9955a8", "#ce78b3", "#eda8bd", "#f9ddda"],
+        "6": ["#573b88", "#8c4fa4", "#bb69b0", "#dd8ab6", "#f0b2c1", "#f9ddda"],
+        "7": ["#573b88", "#834ba0", "#ad5fad", "#ce78b3", "#e597b9", "#f2b9c4", "#f9ddda"],
+        "tags": ["quantitative"]
+    },
+"RedOr": {
+        "2": ["#b13f64", "#f6d2a9"],
+        "3": ["#b13f64", "#ea8171", "#f6d2a9"],
+        "4": ["#b13f64", "#dd686c", "#f19c7c", "#f6d2a9"],
+        "5": ["#b13f64", "#d55d6a", "#ea8171", "#f3aa84", "#f6d2a9"],
+        "6": ["#b13f64", "#cf5669", "#e3726d", "#ef9177", "#f4b28a", "#f6d2a9"],
+        "7": ["#b13f64", "#ca5268", "#dd686c", "#ea8171", "#f19c7c", "#f5b78e", "#f6d2a9"],
+        "tags": ["quantitative"]
+    },
+"Safe": {
+        "2": ["#88CCEE", "#CC6677"],
+        "3": ["#88CCEE", "#CC6677", "#DDCC77"],
+        "4": ["#88CCEE", "#CC6677", "#DDCC77", "#117733"],
+        "5": ["#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288"],
+        "6": ["#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499"],
+        "7": ["#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", "#44AA99"],
+        "8": ["#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", "#44AA99", "#999933"],
+        "9": ["#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", "#44AA99", "#999933", "#882255"],
+        "10": ["#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", "#44AA99", "#999933", "#882255", "#661100"],
+        "11": ["#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", "#44AA99", "#999933", "#882255", "#661100", "#888888"],
+        "tags": ["qualitative", "colorblind"]
+    },
+"Sunset": {
+        "2": ["#5c53a5", "#f3e79b"],
+        "3": ["#5c53a5", "#eb7f86", "#f3e79b"],
+        "4": ["#5c53a5", "#ce6693", "#f8a07e", "#f3e79b"],
+        "5": ["#5c53a5", "#b95e9a", "#eb7f86", "#fab27f", "#f3e79b"],
+        "6": ["#5c53a5", "#ab5b9e", "#dc6f8e", "#f59280", "#fabc82", "#f3e79b"],
+        "7": ["#5c53a5", "#a059a0", "#ce6693", "#eb7f86", "#f8a07e", "#fac484", "#f3e79b"],
+        "tags": ["quantitative"]
+    },
+"SunsetDark": {
+        "2": ["#7c1d6f", "#fcde9c"],
+        "3": ["#7c1d6f", "#e34f6f", "#fcde9c"],
+        "4": ["#7c1d6f", "#dc3977", "#f0746e", "#fcde9c"],
+        "5": ["#7c1d6f", "#d72d7c", "#e34f6f", "#f58670", "#fcde9c"],
+        "6": ["#7c1d6f", "#c5287b", "#df4273", "#ec666d", "#f89872", "#fcde9c"],
+        "7": ["#7c1d6f", "#b9257a", "#dc3977", "#e34f6f", "#f0746e", "#faa476", "#fcde9c"],
+        "tags": ["quantitative"]
+    },
+"Teal": {
+        "2": ["#2a5674", "#d1eeea"],
+        "3": ["#2a5674", "#68abb8", "#d1eeea"],
+        "4": ["#2a5674", "#4f90a6", "#85c4c9", "#d1eeea"],
+        "5": ["#2a5674", "#45829b", "#68abb8", "#96d0d1", "#d1eeea"],
+        "6": ["#2a5674", "#3f7994", "#599bae", "#79bbc3", "#a1d7d6", "#d1eeea"],
+        "7": ["#2a5674", "#3b738f", "#4f90a6", "#68abb8", "#85c4c9", "#a8dbd9", "#d1eeea"],
+        "tags": ["quantitative"]
+    },
+"TealGrn": {
+        "2": ["#257d98", "#b0f2bc"],
+        "3": ["#257d98", "#4cc8a3", "#b0f2bc"],
+        "4": ["#257d98", "#38b2a3", "#67dba5", "#b0f2bc"],
+        "5": ["#257d98", "#31a6a2", "#4cc8a3", "#77e2a8", "#b0f2bc"],
+        "6": ["#257d98", "#2e9ea1", "#3fbba3", "#5bd4a4", "#82e6aa", "#b0f2bc"],
+        "7": ["#257d98", "#2c98a0", "#38b2a3", "#4cc8a3", "#67dba5", "#89e8ac", "#b0f2bc"],
+        "tags": ["quantitative"]
+    },
+"TealRose": {
+        "2": ["#009392", "#cf597e"],
+        "3": ["#009392", "#e9e29c", "#cf597e"],
+        "4": ["#009392", "#9ccb86", "#eeb479", "#cf597e"],
+        "5": ["#009392", "#71be83", "#e9e29c", "#ed9c72", "#cf597e"],
+        "6": ["#009392", "#52b684", "#bcd48c", "#edc783", "#eb8d71", "#cf597e"],
+        "7": ["#009392", "#39b185", "#9ccb86", "#e9e29c", "#eeb479", "#e88471", "#cf597e"],
+        "tags": ["diverging"]
+    },
+"Tropic": {
+        "2": ["#C75DAB", "#009B9E"],
+        "3": ["#C75DAB", "#F1F1F1", "#009B9E"],
+        "4": ["#C75DAB", "#E4C1D9", "#A7D3D4", "#009B9E"],
+        "5": ["#C75DAB", "#DDA9CD", "#F1F1F1", "#7CC5C6", "#009B9E"],
+        "6": ["#C75DAB", "#D99BC6", "#E9D4E2", "#C6DFDF", "#5DBCBE", "#009B9E"],
+        "7": ["#C75DAB", "#D691C1", "#E4C1D9", "#F1F1F1", "#A7D3D4", "#42B7B9", "#009B9E"],
+        "tags": ["diverging"]
+    },
+"Vivid": {
+        "2": ["#E58606", "#5D69B1"],
+        "3": ["#E58606", "#5D69B1", "#52BCA3"],
+        "4": ["#E58606", "#5D69B1", "#52BCA3", "#99C945"],
+        "5": ["#E58606", "#5D69B1", "#52BCA3", "#99C945", "#2F8AC4"],
+        "6": ["#E58606", "#5D69B1", "#52BCA3", "#99C945", "#2F8AC4", "#24796C"],
+        "7": ["#E58606", "#5D69B1", "#52BCA3", "#99C945", "#2F8AC4", "#24796C", "#cc2d7f"],
+        "8": ["#E58606", "#5D69B1", "#52BCA3", "#99C945", "#2F8AC4", "#24796C", "#cc2d7f", "#764e9f"],
+        "9": ["#E58606", "#5D69B1", "#52BCA3", "#99C945", "#2F8AC4", "#24796C", "#cc2d7f", "#764e9f", "#ed645a"],
+        "10": ["#E58606", "#5D69B1", "#52BCA3", "#99C945", "#2F8AC4", "#24796C", "#cc2d7f", "#764e9f", "#ed645a", "#CC61B0"],
+        "11": ["#E58606", "#5D69B1", "#52BCA3", "#99C945", "#2F8AC4", "#24796C", "#cc2d7f", "#764e9f", "#ed645a", "#CC61B0", "#A5AA99"],
+        "tags": ["qualitative"]
+    },
+"ag_GrnYl": {
+        "2": ["#245668", "#EDEF5D"],
+        "3": ["#245668", "#39AB7E", "#EDEF5D"],
+        "4": ["#245668", "#0D8F81", "#6EC574", "#EDEF5D"],
+        "5": ["#245668", "#39AB7E", "#39AB7E", "#8BD16D", "#EDEF5D"],
+        "6": ["#245668", "#09787C", "#1D9A81", "#58BB79", "#9DD869", "#EDEF5D"],
+        "7": ["#245668", "#0F7279", "#0D8F81", "#39AB7E", "#6EC574", "#A9DC67", "#EDEF5D"],
+        "tags": ["aggregation"]
+    },
+"ag_Sunset": {
+        "2": ["#4b2991", "#edd9a3"],
+        "3": ["#4b2991", "#ea4f88", "#edd9a3"],
+        "4": ["#4b2991", "#c0369d", "#fa7876", "#edd9a3"],
+        "5": ["#4b2991", "#a52fa2", "#ea4f88", "#fa9074", "#edd9a3"],
+        "6": ["#4b2991", "#932da3", "#d43f96", "#f7667c", "#f89f77", "#edd9a3"],
+        "7": ["#4b2991", "#872ca2", "#c0369d", "#ea4f88", "#fa7876", "#f6a97a", "#edd9a3"],
+        "tags": ["aggregation"]
+    },
+};
+
+
+var colorbrewer_tags = {
+  "Blues": { "tags": ["quantitative"] },
+  "BrBG": { "tags": ["diverging"] },
+  "Greys": { "tags": ["quantitative"] },
+  "PiYG": { "tags": ["diverging"] },
+  "PRGn": { "tags": ["diverging"] },
+  "Purples": { "tags": ["quantitative"] },
+  "RdYlGn": { "tags": ["diverging"] },
+  "Spectral": { "tags": ["diverging"] },
+  "YlOrBr": { "tags": ["quantitative"] },
+  "YlGn": { "tags": ["quantitative"] },
+  "YlGnBu": { "tags": ["quantitative"] },
+  "YlOrRd": { "tags": ["quantitative"] }
+}
+
+var colorbrewer = require('colorbrewer');
+
+// augment colorbrewer with tags
+for (var r in colorbrewer) {
+  var ramps = colorbrewer[r];
+  var reversedRamps = {};
+  for (var i in ramps) {
+    reversedRamps[i] = [].concat(ramps[i]).reverse();
+  }
+
+  if (r in colorbrewer_tags) {
+    reversedRamps.tags = colorbrewer_tags[r].tags;
+  }
+
+  cartocolor['cb_' + r] = reversedRamps;
+}
 
 if (typeof define === "function" && define.amd) {
     define(cartocolor);
@@ -21761,10 +20517,10 @@ if (typeof define === "function" && define.amd) {
 
 }();
 
-},{}],54:[function(require,module,exports){
+},{"colorbrewer":55}],53:[function(require,module,exports){
 module.exports = require('./cartocolor');
 
-},{"./cartocolor":53}],55:[function(require,module,exports){
+},{"./cartocolor":52}],54:[function(require,module,exports){
 // This product includes color specifications and designs developed by Cynthia Brewer (http://colorbrewer.org/).
 // JavaScript specs as packaged in the D3 library (d3js.org). Please see license at http://colorbrewer.org/export/LICENSE.txt
 !function() {
@@ -22081,10 +20837,10 @@ if (typeof define === "function" && define.amd) {
 
 }();
 
-},{}],56:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 module.exports = require('./colorbrewer.js');
 
-},{"./colorbrewer.js":55}],57:[function(require,module,exports){
+},{"./colorbrewer.js":54}],56:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -22254,7 +21010,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":58}],58:[function(require,module,exports){
+},{"./debug":57}],57:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -22453,7 +21209,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":59}],59:[function(require,module,exports){
+},{"ms":58}],58:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -22580,7 +21336,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],60:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 (function (process,global){
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
@@ -23538,7 +22294,7 @@ function plural(ms, n, name) {
 
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":9}],61:[function(require,module,exports){
+},{"_process":9}],60:[function(require,module,exports){
 var parse = require('./parse');
 var walk = require('./walk');
 var stringify = require('./stringify');
@@ -23568,7 +22324,7 @@ ValueParser.stringify = stringify;
 
 module.exports = ValueParser;
 
-},{"./parse":62,"./stringify":63,"./unit":64,"./walk":65}],62:[function(require,module,exports){
+},{"./parse":61,"./stringify":62,"./unit":63,"./walk":64}],61:[function(require,module,exports){
 var openParentheses = '('.charCodeAt(0);
 var closeParentheses = ')'.charCodeAt(0);
 var singleQuote = '\''.charCodeAt(0);
@@ -23812,7 +22568,7 @@ module.exports = function (input) {
     return stack[0].nodes;
 };
 
-},{}],63:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 function stringifyNode(node, custom) {
     var type = node.type;
     var value = node.value;
@@ -23855,7 +22611,7 @@ function stringify(nodes, custom) {
 
 module.exports = stringify;
 
-},{}],64:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 var minus = '-'.charCodeAt(0);
 var plus  = '+'.charCodeAt(0);
 var dot   = '.'.charCodeAt(0);
@@ -23898,7 +22654,7 @@ module.exports = function (value) {
     } : false;
 };
 
-},{}],65:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 module.exports = function walk(nodes, cb, bubble) {
     var i, max, node, result;
 
@@ -23918,7 +22674,7 @@ module.exports = function walk(nodes, cb, bubble) {
     }
 };
 
-},{}],66:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -24016,7 +22772,7 @@ var AtRule = function (_Container) {
 
 exports.default = AtRule;
 module.exports = exports['default'];
-},{"./container":68,"./warn-once":88}],67:[function(require,module,exports){
+},{"./container":67,"./warn-once":87}],66:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -24090,7 +22846,7 @@ var Comment = function (_Node) {
 
 exports.default = Comment;
 module.exports = exports['default'];
-},{"./node":75,"./warn-once":88}],68:[function(require,module,exports){
+},{"./node":74,"./warn-once":87}],67:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -24662,7 +23418,7 @@ var Container = function (_Node) {
 
 exports.default = Container;
 module.exports = exports['default'];
-},{"./at-rule":66,"./comment":67,"./declaration":70,"./node":75,"./parse":76,"./root":82,"./rule":83,"./warn-once":88}],69:[function(require,module,exports){
+},{"./at-rule":65,"./comment":66,"./declaration":69,"./node":74,"./parse":75,"./root":81,"./rule":82,"./warn-once":87}],68:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -24758,7 +23514,7 @@ var CssSyntaxError = function () {
 
 exports.default = CssSyntaxError;
 module.exports = exports['default'];
-},{"./warn-once":88,"supports-color":102}],70:[function(require,module,exports){
+},{"./warn-once":87,"supports-color":101}],69:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -24832,7 +23588,7 @@ var Declaration = function (_Node) {
 
 exports.default = Declaration;
 module.exports = exports['default'];
-},{"./node":75,"./warn-once":88}],71:[function(require,module,exports){
+},{"./node":74,"./warn-once":87}],70:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -24937,7 +23693,7 @@ var Input = function () {
 
 exports.default = Input;
 module.exports = exports['default'];
-},{"./css-syntax-error":69,"./previous-map":79,"path":8}],72:[function(require,module,exports){
+},{"./css-syntax-error":68,"./previous-map":78,"path":8}],71:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -25212,7 +23968,7 @@ var LazyResult = function () {
 
 exports.default = LazyResult;
 module.exports = exports['default'];
-},{"./map-generator":74,"./parse":76,"./result":81,"./stringify":85,"./warn-once":88}],73:[function(require,module,exports){
+},{"./map-generator":73,"./parse":75,"./result":80,"./stringify":84,"./warn-once":87}],72:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -25271,7 +24027,7 @@ var list = {
 
 exports.default = list;
 module.exports = exports['default'];
-},{}],74:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -25561,7 +24317,7 @@ var _class = function () {
 
 exports.default = _class;
 module.exports = exports['default'];
-},{"js-base64":90,"path":8,"source-map":101}],75:[function(require,module,exports){
+},{"js-base64":89,"path":8,"source-map":100}],74:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -25893,7 +24649,7 @@ var Node = function () {
 
 exports.default = Node;
 module.exports = exports['default'];
-},{"./css-syntax-error":69,"./stringifier":84,"./stringify":85,"./warn-once":88}],76:[function(require,module,exports){
+},{"./css-syntax-error":68,"./stringifier":83,"./stringify":84,"./warn-once":87}],75:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -25924,7 +24680,7 @@ function parse(css, opts) {
     return parser.root;
 }
 module.exports = exports['default'];
-},{"./input":71,"./parser":77}],77:[function(require,module,exports){
+},{"./input":70,"./parser":76}],76:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -26427,7 +25183,7 @@ var Parser = function () {
 
 exports.default = Parser;
 module.exports = exports['default'];
-},{"./at-rule":66,"./comment":67,"./declaration":70,"./root":82,"./rule":83,"./tokenize":86}],78:[function(require,module,exports){
+},{"./at-rule":65,"./comment":66,"./declaration":69,"./root":81,"./rule":82,"./tokenize":85}],77:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -26523,7 +25279,7 @@ postcss.root = function (defaults) {
 
 exports.default = postcss;
 module.exports = exports['default'];
-},{"./at-rule":66,"./comment":67,"./declaration":70,"./list":73,"./parse":76,"./processor":80,"./root":82,"./rule":83,"./stringify":85,"./vendor":87}],79:[function(require,module,exports){
+},{"./at-rule":65,"./comment":66,"./declaration":69,"./list":72,"./parse":75,"./processor":79,"./root":81,"./rule":82,"./stringify":84,"./vendor":86}],78:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -26638,7 +25394,7 @@ var PreviousMap = function () {
 
 exports.default = PreviousMap;
 module.exports = exports['default'];
-},{"fs":1,"js-base64":90,"path":8,"source-map":101}],80:[function(require,module,exports){
+},{"fs":1,"js-base64":89,"path":8,"source-map":100}],79:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -26709,7 +25465,7 @@ var Processor = function () {
 
 exports.default = Processor;
 module.exports = exports['default'];
-},{"./lazy-result":72}],81:[function(require,module,exports){
+},{"./lazy-result":71}],80:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -26770,7 +25526,7 @@ var Result = function () {
 
 exports.default = Result;
 module.exports = exports['default'];
-},{"./warning":89}],82:[function(require,module,exports){
+},{"./warning":88}],81:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -26879,7 +25635,7 @@ var Root = function (_Container) {
 
 exports.default = Root;
 module.exports = exports['default'];
-},{"./container":68,"./lazy-result":72,"./processor":80,"./warn-once":88}],83:[function(require,module,exports){
+},{"./container":67,"./lazy-result":71,"./processor":79,"./warn-once":87}],82:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -26951,7 +25707,7 @@ var Rule = function (_Container) {
 
 exports.default = Rule;
 module.exports = exports['default'];
-},{"./container":68,"./list":73,"./warn-once":88}],84:[function(require,module,exports){
+},{"./container":67,"./list":72,"./warn-once":87}],83:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -27286,7 +26042,7 @@ var Stringifier = function () {
 
 exports.default = Stringifier;
 module.exports = exports['default'];
-},{}],85:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -27303,7 +26059,7 @@ function stringify(node, builder) {
     str.stringify(node);
 }
 module.exports = exports['default'];
-},{"./stringifier":84}],86:[function(require,module,exports){
+},{"./stringifier":83}],85:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -27542,7 +26298,7 @@ function tokenize(input) {
     return tokens;
 }
 module.exports = exports['default'];
-},{}],87:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -27565,7 +26321,7 @@ exports.default = {
     }
 };
 module.exports = exports['default'];
-},{}],88:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -27581,7 +26337,7 @@ function warnOnce(message) {
     if (typeof console !== 'undefined' && console.warn) console.warn(message);
 }
 module.exports = exports['default'];
-},{}],89:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -27628,7 +26384,7 @@ var Warning = function () {
 
 exports.default = Warning;
 module.exports = exports['default'];
-},{}],90:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 /*
  * $Id: base64.js,v 2.15 2014/04/05 12:58:57 dankogai Exp dankogai $
  *
@@ -27824,7 +26580,7 @@ module.exports = exports['default'];
     }
 })(this);
 
-},{"buffer":3}],91:[function(require,module,exports){
+},{"buffer":3}],90:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -27930,7 +26686,7 @@ ArraySet.prototype.toArray = function ArraySet_toArray() {
 
 exports.ArraySet = ArraySet;
 
-},{"./util":100}],92:[function(require,module,exports){
+},{"./util":99}],91:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -28072,7 +26828,7 @@ exports.decode = function base64VLQ_decode(aStr, aIndex, aOutParam) {
   aOutParam.rest = aIndex;
 };
 
-},{"./base64":93}],93:[function(require,module,exports){
+},{"./base64":92}],92:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -28141,7 +26897,7 @@ exports.decode = function (charCode) {
   return -1;
 };
 
-},{}],94:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -28254,7 +27010,7 @@ exports.search = function search(aNeedle, aHaystack, aCompare, aBias) {
   return index;
 };
 
-},{}],95:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2014 Mozilla Foundation and contributors
@@ -28335,7 +27091,7 @@ MappingList.prototype.toArray = function MappingList_toArray() {
 
 exports.MappingList = MappingList;
 
-},{"./util":100}],96:[function(require,module,exports){
+},{"./util":99}],95:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -28451,7 +27207,7 @@ exports.quickSort = function (ary, comparator) {
   doQuickSort(ary, comparator, 0, ary.length - 1);
 };
 
-},{}],97:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -29535,7 +28291,7 @@ IndexedSourceMapConsumer.prototype._parseMappings =
 
 exports.IndexedSourceMapConsumer = IndexedSourceMapConsumer;
 
-},{"./array-set":91,"./base64-vlq":92,"./binary-search":94,"./quick-sort":96,"./util":100}],98:[function(require,module,exports){
+},{"./array-set":90,"./base64-vlq":91,"./binary-search":93,"./quick-sort":95,"./util":99}],97:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -29941,7 +28697,7 @@ SourceMapGenerator.prototype.toString =
 
 exports.SourceMapGenerator = SourceMapGenerator;
 
-},{"./array-set":91,"./base64-vlq":92,"./mapping-list":95,"./util":100}],99:[function(require,module,exports){
+},{"./array-set":90,"./base64-vlq":91,"./mapping-list":94,"./util":99}],98:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -30350,7 +29106,7 @@ SourceNode.prototype.toStringWithSourceMap = function SourceNode_toStringWithSou
 
 exports.SourceNode = SourceNode;
 
-},{"./source-map-generator":98,"./util":100}],100:[function(require,module,exports){
+},{"./source-map-generator":97,"./util":99}],99:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -30769,7 +29525,7 @@ function compareByGeneratedPositionsInflated(mappingA, mappingB) {
 }
 exports.compareByGeneratedPositionsInflated = compareByGeneratedPositionsInflated;
 
-},{}],101:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 /*
  * Copyright 2009-2011 Mozilla Foundation and contributors
  * Licensed under the New BSD license. See LICENSE.txt or:
@@ -30779,95 +29535,107 @@ exports.SourceMapGenerator = require('./lib/source-map-generator').SourceMapGene
 exports.SourceMapConsumer = require('./lib/source-map-consumer').SourceMapConsumer;
 exports.SourceNode = require('./lib/source-node').SourceNode;
 
-},{"./lib/source-map-consumer":97,"./lib/source-map-generator":98,"./lib/source-node":99}],102:[function(require,module,exports){
+},{"./lib/source-map-consumer":96,"./lib/source-map-generator":97,"./lib/source-node":98}],101:[function(require,module,exports){
 'use strict';
 module.exports = false;
+
+},{}],102:[function(require,module,exports){
+module.exports={
+  "name": "turbo-carto",
+  "version": "0.15.0",
+  "description": "CartoCSS preprocessor",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "make test-all"
+  },
+  "author": {
+    "name": "CartoDB",
+    "email": "wadus@cartodb.com",
+    "url": "http://cartodb.com/"
+  },
+  "contributors": [
+    {
+      "name": "Raul Ochoa",
+      "email": "rochoa@cartodb.com"
+    }
+  ],
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/CartoDB/turbo-carto.git"
+  },
+  "dependencies": {
+    "colorbrewer": "1.0.0",
+    "cartocolor": "2.0.2",
+    "debug": "2.2.0",
+    "es6-promise": "3.1.2",
+    "postcss": "5.0.19",
+    "postcss-value-parser": "3.3.0"
+  },
+  "devDependencies": {
+    "browser-request": "^0.3.3",
+    "browserify": "^12.0.1",
+    "istanbul": "^0.4.1",
+    "jshint": "^2.9.1-rc2",
+    "mocha": "^2.3.4",
+    "querystring": "^0.2.0",
+    "request": "^2.67.0",
+    "semistandard": "^7.0.4",
+    "semistandard-format": "^2.1.0",
+    "yargs": "^3.31.0"
+  },
+  "semistandard": {
+    "globals": [
+      "describe",
+      "it"
+    ],
+    "ignore": [
+      "examples/app.js"
+    ]
+  },
+  "gitHead": "77e1dedbc1021d0a61df8c7c4c7c77b03f9f2462",
+  "bugs": {
+    "url": "https://github.com/CartoDB/turbo-carto/issues"
+  },
+  "homepage": "https://github.com/CartoDB/turbo-carto#readme",
+  "_id": "turbo-carto@0.15.0",
+  "_shasum": "a755be6cf73fa566fc494f1633e077120b2073cf",
+  "_from": "turbo-carto@0.15.0",
+  "_npmVersion": "2.15.4",
+  "_nodeVersion": "0.10.40",
+  "_npmUser": {
+    "name": "cartodb",
+    "email": "npm@cartodb.com"
+  },
+  "maintainers": [
+    {
+      "name": "cartodb",
+      "email": "npm@cartodb.com"
+    },
+    {
+      "name": "dgaubert",
+      "email": "danielgarciaaubert@gmail.com"
+    }
+  ],
+  "dist": {
+    "shasum": "a755be6cf73fa566fc494f1633e077120b2073cf",
+    "tarball": "https://registry.npmjs.org/turbo-carto/-/turbo-carto-0.15.0.tgz"
+  },
+  "_npmOperationalInternal": {
+    "host": "packages-12-west.internal.npmjs.com",
+    "tmp": "tmp/turbo-carto-0.15.0.tgz_1468948839389_0.595600273925811"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/turbo-carto/-/turbo-carto-0.15.0.tgz",
+  "readme": "ERROR: No README data found!"
+}
 
 },{}],103:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
 
-var debug = require('../helper/debug')('fn-factory');
-
-module.exports = function () {
-  return function fn$anonymousTuple () {
-    debug('fn$anonymousTuple(%j)', arguments);
-    var args = arguments;
-    return new Promise(function (resolve) {
-      var tupleValues = Object.keys(args).map(function (k) { return args[k]; });
-      resolve(tupleValues);
-    });
-  };
-};
-
-module.exports.fnName = 'anonymousTuple';
-
-},{"../helper/debug":114,"es6-promise":60}],104:[function(require,module,exports){
-'use strict';
-
-require('es6-promise').polyfill();
-
-var columnName = require('../helper/column-name');
-var debug = require('../helper/debug')('fn-factory');
-var postcss = require('postcss');
-
-module.exports = function (datasource, decl) {
-  return function fn$buckets (column, scheme) {
-    debug('fn$buckets(%j)', arguments);
-
-    return getRamp(datasource, column)
-      .then(function (ramp) {
-        var i;
-        var rampResult = [];
-
-        rampResult.push(scheme[0]);
-
-        for (i = 0; i < 5; i++) {
-          rampResult.push(ramp[i]);
-          rampResult.push(scheme[i]);
-        }
-
-        var parent = decl.parent;
-        var start = rampResult.shift();
-
-        column = columnName(column);
-        rampResult = rampResult.reverse();
-
-        parent.append(postcss.decl({ prop: decl.prop, value: start }));
-
-        for (i = 0; i < rampResult.length; i += 2) {
-          var rule = postcss.rule({
-            selector: '[ ' + column + ' < ' + rampResult[i + 1] + ' ]'
-          });
-          rule.append(postcss.decl({prop: decl.prop, value: rampResult[i]}));
-          parent.append(rule);
-        }
-
-        decl.remove();
-      });
-  };
-};
-
-function getRamp (datasource, column, method) {
-  return new Promise(function (resolve, reject) {
-    datasource.getRamp(columnName(column), method || 'quantiles', function (err, ramp) {
-      if (err) {
-        return reject(err);
-      }
-      resolve(ramp);
-    });
-  });
-}
-
-module.exports.fnName = 'buckets';
-
-},{"../helper/column-name":113,"../helper/debug":114,"es6-promise":60,"postcss":78}],105:[function(require,module,exports){
-'use strict';
-
-require('es6-promise').polyfill();
-
-var FnExecutor = require('./fn-executor');
+var FnExecutor = require('./executor');
 
 function FnBuilder (datasource) {
   this.datasource = datasource;
@@ -30886,6 +29654,12 @@ function createFnExecutor (fnNode, datasource, decl) {
     fnArgs = fnNode.nodes.reduce(function (args, nestedFnNode) {
       switch (nestedFnNode.type) {
         case 'word':
+          if (Number.isFinite(+nestedFnNode.value)) {
+            args.push(+nestedFnNode.value);
+          } else {
+            args.push(nestedFnNode.value);
+          }
+          break;
         case 'string':
           args.push(nestedFnNode.value);
           break;
@@ -30909,70 +29683,13 @@ FnBuilder.prototype.exec = function () {
   return Promise.all(executorsExec);
 };
 
-},{"./fn-executor":109,"es6-promise":60}],106:[function(require,module,exports){
-'use strict';
-
-require('es6-promise').polyfill();
-
-var cartocolor = require('cartocolor');
-var debug = require('../helper/debug')('fn-factory');
-
-module.exports = function () {
-  return function fn$cartocolor (scheme, numberDataClasses) {
-    debug('fn$cartocolor(%j)', arguments);
-    numberDataClasses = Math.min(7, Math.max(3, numberDataClasses || 5));
-    return new Promise(function (resolve) {
-      var result = cartocolor.BluPurp1[numberDataClasses];
-      var def = cartocolor[scheme];
-      if (def) {
-        result = def[numberDataClasses];
-      }
-      resolve(result);
-    });
-  };
-};
-
-module.exports.fnName = 'cartocolor';
-
-},{"../helper/debug":114,"cartocolor":54,"es6-promise":60}],107:[function(require,module,exports){
-'use strict';
-
-require('es6-promise').polyfill();
-
-var colorbrewer = require('colorbrewer');
-var debug = require('../helper/debug')('fn-factory');
-
-module.exports = function () {
-  return function fn$colorbrewer (scheme, numberDataClasses) {
-    debug('fn$colorbrewer(%j)', arguments);
-    scheme = scheme || 'PuBu';
-    numberDataClasses = Math.min(7, Math.max(3, numberDataClasses || 5));
-    return new Promise(function (resolve) {
-      var result = colorbrewer.PuBu[numberDataClasses];
-      var def = colorbrewer[scheme];
-      if (def) {
-        result = def[numberDataClasses];
-      }
-      resolve(result);
-    });
-  };
-};
-
-module.exports.fnName = 'colorbrewer';
-
-},{"../helper/debug":114,"colorbrewer":56,"es6-promise":60}],108:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./fn-anonymous-tuple');
-module.exports.fnName = 'colors';
-
-},{"./fn-anonymous-tuple":103}],109:[function(require,module,exports){
+},{"./executor":104,"es6-promise":59}],104:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
 
 var debug = require('../helper/debug')('fn-executor');
-var FnFactory = require('./fn-factory');
+var FnFactory = require('./factory');
 
 function FnExecutor (datasource, fnName, fnArgs, decl) {
   this.datasource = datasource;
@@ -31026,15 +29743,20 @@ FnExecutor.prototype.execFn = function (nestedFnIndex) {
     });
 };
 
-},{"../helper/debug":114,"./fn-factory":110,"es6-promise":60}],110:[function(require,module,exports){
+},{"../helper/debug":119,"./factory":105,"es6-promise":59}],105:[function(require,module,exports){
 'use strict';
 
 var fns = [
-  require('./fn-ramp'),
-  require('./fn-colorbrew'),
-  require('./fn-cartocolor'),
   require('./fn-buckets'),
-  require('./fn-colors')
+  require('./fn-buckets-category'),
+  require('./fn-buckets-equal'),
+  require('./fn-buckets-headtails'),
+  require('./fn-buckets-jenks'),
+  require('./fn-buckets-quantiles'),
+  require('./fn-cartocolor'),
+  require('./fn-colorbrewer'),
+  require('./fn-ramp'),
+  require('./fn-range')
 ];
 var fnMap = fns.reduce(function (fnMap, fn) {
   fnMap[fn.fnName] = fn;
@@ -31060,12 +29782,266 @@ var FnFactory = {
 
 module.exports = FnFactory;
 
-},{"./fn-anonymous-tuple":103,"./fn-buckets":104,"./fn-cartocolor":106,"./fn-colorbrew":107,"./fn-colors":108,"./fn-identity":111,"./fn-ramp":112}],111:[function(require,module,exports){
+},{"./fn-anonymous-tuple":106,"./fn-buckets":112,"./fn-buckets-category":107,"./fn-buckets-equal":108,"./fn-buckets-headtails":109,"./fn-buckets-jenks":110,"./fn-buckets-quantiles":111,"./fn-cartocolor":113,"./fn-colorbrewer":114,"./fn-identity":115,"./fn-ramp":116,"./fn-range":117}],106:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
 
-var debug = require('../helper/debug')('fn-factory');
+var debug = require('../helper/debug')('fn-anonymous-tuple');
+var ValuesResult = require('../model/values-result');
+
+module.exports = function () {
+  return function fn$anonymousTuple () {
+    debug('fn$anonymousTuple(%j)', arguments);
+    var args = arguments;
+    return new Promise(function (resolve) {
+      var tupleValues = Object.keys(args).map(function (k) { return args[k]; });
+      resolve(new ValuesResult(tupleValues));
+    });
+  };
+};
+
+module.exports.fnName = 'anonymousTuple';
+
+},{"../helper/debug":119,"../model/values-result":128,"es6-promise":59}],107:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var debug = require('../helper/debug')('fn-category');
+var LazyFiltersResult = require('../model/lazy-filters-result');
+var fnBuckets = require('./fn-buckets');
+
+module.exports = function (datasource) {
+  return function fn$category (numBuckets) {
+    debug('fn$category(%j)', arguments);
+    debug('Using "%s" datasource to calculate categories', datasource.getName());
+    return new Promise(function (resolve) {
+      return resolve(new LazyFiltersResult(function (column) {
+        return fnBuckets(datasource)(column, 'category', numBuckets).then(function (filters) {
+          filters.strategy = '==';
+          return new Promise(function (resolve) {
+            return resolve(filters);
+          });
+        });
+      }));
+    });
+  };
+};
+
+module.exports.fnName = 'category';
+
+},{"../helper/debug":119,"../model/lazy-filters-result":126,"./fn-buckets":112,"es6-promise":59}],108:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var debug = require('../helper/debug')('fn-equal');
+var LazyFiltersResult = require('../model/lazy-filters-result');
+var fnBuckets = require('./fn-buckets');
+
+module.exports = function (datasource) {
+  return function fn$equal (numBuckets) {
+    debug('fn$equal(%j)', arguments);
+    debug('Using "%s" datasource to calculate categories', datasource.getName());
+    return new Promise(function (resolve) {
+      return resolve(new LazyFiltersResult(function (column, strategy) {
+        return fnBuckets(datasource)(column, 'equal', numBuckets).then(function (filters) {
+          filters.strategy = strategy || '>';
+          return new Promise(function (resolve) {
+            return resolve(filters);
+          });
+        });
+      }));
+    });
+  };
+};
+
+module.exports.fnName = 'equal';
+
+},{"../helper/debug":119,"../model/lazy-filters-result":126,"./fn-buckets":112,"es6-promise":59}],109:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var debug = require('../helper/debug')('fn-headtails');
+var LazyFiltersResult = require('../model/lazy-filters-result');
+var fnBuckets = require('./fn-buckets');
+
+module.exports = function (datasource) {
+  return function fn$headtails (numBuckets) {
+    debug('fn$headtails(%j)', arguments);
+    debug('Using "%s" datasource to calculate categories', datasource.getName());
+    return new Promise(function (resolve) {
+      return resolve(new LazyFiltersResult(function (column, strategy) {
+        return fnBuckets(datasource)(column, 'headtails', numBuckets).then(function (filters) {
+          filters.strategy = strategy || '<';
+          return new Promise(function (resolve) {
+            return resolve(filters);
+          });
+        });
+      }));
+    });
+  };
+};
+
+module.exports.fnName = 'headtails';
+
+},{"../helper/debug":119,"../model/lazy-filters-result":126,"./fn-buckets":112,"es6-promise":59}],110:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var debug = require('../helper/debug')('fn-jenks');
+var LazyFiltersResult = require('../model/lazy-filters-result');
+var fnBuckets = require('./fn-buckets');
+
+module.exports = function (datasource) {
+  return function fn$jenks (numBuckets) {
+    debug('fn$jenks(%j)', arguments);
+    debug('Using "%s" datasource to calculate categories', datasource.getName());
+    return new Promise(function (resolve) {
+      return resolve(new LazyFiltersResult(function (column, strategy) {
+        return fnBuckets(datasource)(column, 'jenks', numBuckets).then(function (filters) {
+          filters.strategy = strategy || '>';
+          return new Promise(function (resolve) {
+            return resolve(filters);
+          });
+        });
+      }));
+    });
+  };
+};
+
+module.exports.fnName = 'jenks';
+
+},{"../helper/debug":119,"../model/lazy-filters-result":126,"./fn-buckets":112,"es6-promise":59}],111:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var debug = require('../helper/debug')('fn-quantiles');
+var LazyFiltersResult = require('../model/lazy-filters-result');
+var fnBuckets = require('./fn-buckets');
+
+module.exports = function (datasource) {
+  return function fn$quantiles (numBuckets) {
+    debug('fn$quantiles(%j)', arguments);
+    debug('Using "%s" datasource to calculate quantiles', datasource.getName());
+    return new Promise(function (resolve) {
+      return resolve(new LazyFiltersResult(function (column, strategy) {
+        return fnBuckets(datasource)(column, 'quantiles', numBuckets).then(function (filters) {
+          filters.strategy = strategy || '>';
+          return new Promise(function (resolve) {
+            return resolve(filters);
+          });
+        });
+      }));
+    });
+  };
+};
+
+module.exports.fnName = 'quantiles';
+
+},{"../helper/debug":119,"../model/lazy-filters-result":126,"./fn-buckets":112,"es6-promise":59}],112:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var debug = require('../helper/debug')('fn-buckets');
+var columnName = require('../helper/column-name');
+var TurboCartoError = require('../helper/turbo-carto-error');
+var FiltersResult = require('../model/filters-result');
+
+module.exports = function (datasource) {
+  return function fn$buckets (column, quantificationMethod, numBuckets) {
+    debug('fn$buckets(%j)', arguments);
+    debug('Using "%s" datasource to calculate buckets', datasource.getName());
+
+    return new Promise(function (resolve, reject) {
+      if (!quantificationMethod) {
+        return reject(new TurboCartoError('Missing quantification method in buckets function'));
+      }
+      numBuckets = Number.isFinite(+numBuckets) ? +numBuckets : 5;
+      datasource.getRamp(columnName(column), numBuckets, quantificationMethod, function (err, filters) {
+        if (err) {
+          return reject(
+            new TurboCartoError('unable to compute ramp,', err)
+          );
+        }
+        var strategy = 'max';
+        if (!Array.isArray(filters)) {
+          strategy = filters.strategy || 'max';
+          filters = filters.ramp;
+        }
+        resolve(new FiltersResult(filters, strategy));
+      });
+    });
+  };
+};
+
+module.exports.fnName = 'buckets';
+
+},{"../helper/column-name":118,"../helper/debug":119,"../helper/turbo-carto-error":122,"../model/filters-result":124,"es6-promise":59}],113:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var cartocolor = require('cartocolor');
+var ValuesResult = require('../model/values-result');
+var minMaxKeys = require('../helper/min-max-keys');
+var debug = require('../helper/debug')('fn-cartocolor');
+
+module.exports = function () {
+  return function fn$cartocolor (scheme, numberDataClasses) {
+    debug('fn$cartocolor(%j)', arguments);
+    return new Promise(function (resolve, reject) {
+      if (!cartocolor.hasOwnProperty(scheme)) {
+        return reject(new Error('Invalid cartocolor scheme: "' + scheme + '"'));
+      }
+      var result = cartocolor[scheme];
+      var minMax = minMaxKeys(result);
+      numberDataClasses = Math.min(minMax.max, Math.max(minMax.min, numberDataClasses || 5));
+      resolve(new ValuesResult(result, numberDataClasses, null, minMax.max));
+    });
+  };
+};
+
+module.exports.fnName = 'cartocolor';
+
+},{"../helper/debug":119,"../helper/min-max-keys":121,"../model/values-result":128,"cartocolor":53,"es6-promise":59}],114:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var colorbrewer = require('colorbrewer');
+var ValuesResult = require('../model/values-result');
+var minMaxKeys = require('../helper/min-max-keys');
+var debug = require('../helper/debug')('fn-colorbrewer');
+
+module.exports = function () {
+  return function fn$colorbrewer (scheme, numberDataClasses) {
+    debug('fn$colorbrewer(%j)', arguments);
+    return new Promise(function (resolve, reject) {
+      if (!colorbrewer.hasOwnProperty(scheme)) {
+        return reject(new Error('Invalid colorbrewer scheme: "' + scheme + '"'));
+      }
+      var result = colorbrewer[scheme];
+      var minMax = minMaxKeys(result);
+      numberDataClasses = Math.min(minMax.max, Math.max(minMax.min, numberDataClasses || 5));
+      resolve(new ValuesResult(result, numberDataClasses, null, minMax.max));
+    });
+  };
+};
+
+module.exports.fnName = 'colorbrewer';
+
+},{"../helper/debug":119,"../helper/min-max-keys":121,"../model/values-result":128,"colorbrewer":55,"es6-promise":59}],115:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var debug = require('../helper/debug')('fn-identity');
 
 module.exports = function (fnName) {
   return function fn$identity () {
@@ -31087,15 +30063,20 @@ module.exports = function (fnName) {
 
 module.exports.fnName = 'pass';
 
-},{"../helper/debug":114,"es6-promise":60}],112:[function(require,module,exports){
+},{"../helper/debug":119,"es6-promise":59}],116:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
 
-var debug = require('../helper/debug')('fn-factory');
+var debug = require('../helper/debug')('fn-ramp');
 var columnName = require('../helper/column-name');
 var TurboCartoError = require('../helper/turbo-carto-error');
-var buckets = require('../helper/linear-buckets');
+var isResult = require('../model/is-result');
+var linearBuckets = require('../helper/linear-buckets');
+var ValuesResult = require('../model/values-result');
+var FiltersResult = require('../model/filters-result');
+var LazyFiltersResult = require('../model/lazy-filters-result');
+var RampResult = require('../model/ramp/ramp-result');
 var postcss = require('postcss');
 
 function createSplitStrategy (selector) {
@@ -31144,7 +30125,7 @@ var strategy = {
   }),
 
   exact: createSplitStrategy(function exactSelector (column, value) {
-    return '[ ' + column + ' = \'' + value + '\' ]';
+    return Number.isFinite(value) ? '[ ' + column + ' = ' + value + ' ]' : '[ ' + column + ' = "' + value + '" ]';
   })
 };
 
@@ -31157,6 +30138,9 @@ module.exports = function (datasource, decl) {
 
     return ramp(datasource, column, args)
       .then(function (rampResult) {
+        if (rampResult.constructor === RampResult) {
+          return rampResult.process(columnName(column), decl);
+        }
         var strategyFn = strategy.hasOwnProperty(rampResult.strategy) ? strategy[rampResult.strategy] : strategy.max;
         return strategyFn(columnName(column), rampResult.ramp, decl);
       })
@@ -31171,7 +30155,7 @@ module.exports = function (datasource, decl) {
             end: decl.source.end
           };
         }
-        throw new TurboCartoError('Unable to process "' + decl.prop + '"', err, context);
+        throw new TurboCartoError('Failed to process "' + decl.prop + '" property:', err, context);
       });
   };
 };
@@ -31208,101 +30192,233 @@ module.exports = function (datasource, decl) {
  *  <Number>minVal, <Number>maxValue, <Number>numBuckets, <String>method
  */
 function ramp (datasource, column, args) {
-  var method;
-
-  var tuple = [];
-
   if (args.length === 0) {
     return Promise.reject(
-      new TurboCartoError('Invalid number of arguments')
+      new TurboCartoError('invalid number of arguments')
     );
   }
 
-  if (Array.isArray(args[0])) {
-    tuple = args[0];
-    method = args[1];
-  } else {
-    if (args.length < 2) {
-      return Promise.reject(
-        new TurboCartoError('Invalid number of arguments')
-      );
-    }
-
-    var min = +args[0];
-    var max = +args[1];
-
-    var numBuckets = 5;
-    method = args[2];
-
-    if (Number.isFinite(+args[2])) {
-      numBuckets = +args[2];
-      method = args[3];
-    }
-
-    tuple = buckets(min, max, numBuckets);
+  /**
+   * Overload scenarios to support
+   * marker-width: ramp([price], 4, 100);
+   * marker-width: ramp([price], 4, 100, method);
+   * marker-width: ramp([price], 4, 100, 5, method);
+   * marker-width: ramp([price], 4, 100, 3, (100, 200, 1000));
+   * marker-width: ramp([price], 4, 100, (100, 150, 250, 200, 1000));
+   */
+  if (Number.isFinite(args[0])) {
+    return compatibilityNumericRamp(datasource, column, args);
   }
 
-  return tupleRamp(datasource, column, tuple, method);
+  /**
+   * Overload methods to support
+   * marker-fill: ramp([price], colorbrewer(Reds));
+   * marker-fill: ramp([price], colorbrewer(Reds), jenks);
+   */
+  if (!isResult(args[1])) {
+    return compatibilityValuesRamp(datasource, column, args);
+  }
+
+  /**
+   * Overload methods to support from here
+   * marker-fill: ramp([price], colorbrewer(Reds), (100, 200, 300, 400, 500));
+   * marker-fill: ramp([price], colorbrewer(Reds), (100, 200, 300, 400, 500), =);
+   * marker-fill: ramp([price], (...values), (...filters), [mapping]);
+   */
+  var values = args[0];
+  var filters = args[1];
+  var mapping = args[2];
+  var strategy = strategyFromMapping(mapping);
+  filters = filters.is(ValuesResult) ? new FiltersResult(filters.get(), strategy) : filters;
+  if (filters.is(LazyFiltersResult)) {
+    return filters.get(column, strategy).then(createRampFn(values));
+  } else {
+    return Promise.resolve(filters).then(createRampFn(values));
+  }
+}
+
+var oldMappings2Strategies = {
+  quantiles: 'max',
+  equal: 'max',
+  jenks: 'max',
+  headtails: 'split',
+  category: 'exact'
+};
+
+function strategyFromMapping (mapping) {
+  if (oldMappings2Strategies.hasOwnProperty(mapping)) {
+    return oldMappings2Strategies[mapping];
+  }
+  return mapping;
+}
+
+/**
+ * Overload methods to support
+ * marker-fill: ramp([price], colorbrewer(Reds));
+ * marker-fill: ramp([price], colorbrewer(Reds), jenks);
+ */
+function compatibilityValuesRamp (datasource, column, args) {
+  var values = args[0];
+  var method = (args[1] || 'quantiles').toLowerCase();
+  var numBuckets = values.getLength();
+  return getRamp(datasource, column, numBuckets, method).then(compatibilityCreateRampFn(values));
+}
+
+/**
+ * Overload scenarios to support
+ * marker-width: ramp([price], 4, 100);
+ * marker-width: ramp([price], 4, 100, method);
+ * marker-width: ramp([price], 4, 100, 5, method); √
+ * marker-width: ramp([price], 4, 100, 3, (100, 200, 1000)); √
+ * marker-width: ramp([price], 4, 100, (100, 150, 250, 200, 1000)); √
+ */
+function compatibilityNumericRamp (datasource, column, args) {
+  // jshint maxcomplexity:9
+  if (args.length < 2) {
+    return Promise.reject(
+      new TurboCartoError('invalid number of arguments')
+    );
+  }
+
+  var min = +args[0];
+  var max = +args[1];
+
+  var numBuckets;
+  var filters = null;
+  var method;
+
+  if (Number.isFinite(args[2])) {
+    numBuckets = args[2];
+
+    if (isResult(args[3])) {
+      filters = args[3];
+      method = null;
+      if (filters.getLength() !== numBuckets) {
+        return Promise.reject(
+          new TurboCartoError(
+              'invalid ramp length, got ' + filters.getLength() + ' values, expected ' + numBuckets
+          )
+        );
+      }
+    } else {
+      filters = null;
+      method = args[3];
+    }
+  } else if (isResult(args[2])) {
+    filters = args[2];
+    numBuckets = filters.getLength();
+    method = null;
+  } else {
+    filters = null;
+    numBuckets = 5;
+    method = args[2];
+  }
+
+  var values = new ValuesResult([min, max], numBuckets, linearBuckets, Number.POSITIVE_INFINITY);
+
+  if (filters === null) {
+    // normalize method
+    method = (method || 'quantiles').toLowerCase();
+    return getRamp(datasource, column, numBuckets, method).then(compatibilityCreateRampFn(values));
+  }
+
+  filters = filters.is(FiltersResult) ? filters : new FiltersResult(filters.get(), 'max');
+  return Promise.resolve(filters).then(compatibilityCreateRampFn(values));
 }
 
 function getRamp (datasource, column, buckets, method) {
   return new Promise(function (resolve, reject) {
-    datasource.getRamp(columnName(column), buckets, method, function (err, ramp) {
+    datasource.getRamp(columnName(column), buckets, method, function (err, filters) {
       if (err) {
         return reject(
-          new TurboCartoError('Unable to compute ramp', err)
+          new TurboCartoError('unable to compute ramp,', err)
         );
       }
-      resolve(ramp);
+      var strategy = 'max';
+      if (!Array.isArray(filters)) {
+        strategy = filters.strategy || 'max';
+        filters = filters.ramp;
+      }
+      resolve(new FiltersResult(filters, strategy));
     });
   });
 }
 
-function tupleRamp (datasource, column, tuple, method) {
-  if (Array.isArray(method)) {
-    var ramp = method;
-    if (tuple.length !== ramp.length) {
-      return Promise.reject(
-        new TurboCartoError('Invalid ramp length. Got ' + ramp.length + ' values, expected ' + tuple.length)
-      );
-    }
-    var strategy = ramp.map(function numberMapper (n) { return +n; }).every(Number.isFinite) ? 'split' : 'exact';
-    return Promise.resolve({ramp: ramp, strategy: strategy}).then(createRampFn(tuple));
-  }
-
-  // normalize method
-  if (method) {
-    method = method.toLowerCase();
-  }
-
-  return getRamp(datasource, column, tuple.length, method).then(createRampFn(tuple));
-}
-
-function createRampFn (tuple) {
-  return function prepareRamp (ramp) {
-    var strategy = 'max';
-    if (!Array.isArray(ramp)) {
-      strategy = ramp.strategy || 'max';
-      ramp = ramp.ramp;
-    }
-
-    var buckets = tuple.length;
+function compatibilityCreateRampFn (valuesResult) {
+  return function prepareRamp (filtersResult) {
+    var buckets = Math.min(valuesResult.getLength(), filtersResult.getLength());
 
     var i;
     var rampResult = [];
 
-    for (i = 0; i < buckets; i++) {
-      rampResult.push(ramp[i]);
-      rampResult.push(tuple[i]);
+    var filters = filtersResult.get();
+    var values = valuesResult.get();
+
+    if (buckets > 0) {
+      for (i = 0; i < buckets; i++) {
+        rampResult.push(filters[i]);
+        rampResult.push(values[i]);
+      }
+    } else {
+      rampResult.push(null, values[0]);
     }
 
-    return { ramp: rampResult, strategy: strategy };
+    return { ramp: rampResult, strategy: filtersResult.getStrategy() };
+  };
+}
+
+function createRampFn (valuesResult) {
+  return function prepareRamp (filtersResult) {
+    if (RampResult.supports(filtersResult.getStrategy())) {
+      return new RampResult(valuesResult, filtersResult, filtersResult.getStrategy());
+    }
+
+    var buckets = Math.min(valuesResult.getMaxSize(), filtersResult.getMaxSize());
+
+    var i;
+    var rampResult = [];
+
+    var filters = filtersResult.get();
+    var values = valuesResult.get(buckets);
+
+    if (buckets > 0) {
+      for (i = 0; i < buckets; i++) {
+        rampResult.push(filters[i]);
+        rampResult.push(values[i]);
+      }
+    } else {
+      rampResult.push(null, values[0]);
+    }
+
+    return { ramp: rampResult, strategy: filtersResult.getStrategy() };
   };
 }
 
 module.exports.fnName = 'ramp';
 
-},{"../helper/column-name":113,"../helper/debug":114,"../helper/linear-buckets":115,"../helper/turbo-carto-error":116,"es6-promise":60,"postcss":78}],113:[function(require,module,exports){
+},{"../helper/column-name":118,"../helper/debug":119,"../helper/linear-buckets":120,"../helper/turbo-carto-error":122,"../model/filters-result":124,"../model/is-result":125,"../model/lazy-filters-result":126,"../model/ramp/ramp-result":127,"../model/values-result":128,"es6-promise":59,"postcss":77}],117:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var ValuesResult = require('../model/values-result');
+var debug = require('../helper/debug')('fn-range');
+var linearBuckets = require('../helper/linear-buckets');
+
+module.exports = function () {
+  return function fn$range (min, max, numBuckets) {
+    debug('fn$range(%j)', arguments);
+    return new Promise(function (resolve) {
+      var result = [min, max];
+      numBuckets = Number.isFinite(numBuckets) ? numBuckets : 5;
+      resolve(new ValuesResult(result, numBuckets, linearBuckets, Number.POSITIVE_INFINITY));
+    });
+  };
+};
+
+module.exports.fnName = 'range';
+
+},{"../helper/debug":119,"../helper/linear-buckets":120,"../model/values-result":128,"es6-promise":59}],118:[function(require,module,exports){
 'use strict';
 
 function columnName (column) {
@@ -31311,7 +30427,7 @@ function columnName (column) {
 
 module.exports = columnName;
 
-},{}],114:[function(require,module,exports){
+},{}],119:[function(require,module,exports){
 'use strict';
 
 var debug = require('debug');
@@ -31319,20 +30435,49 @@ module.exports = function turboCartoDebug (ns) {
   return debug(['turbo-carto', ns].join(':'));
 };
 
-},{"debug":57}],115:[function(require,module,exports){
+},{"debug":56}],120:[function(require,module,exports){
 'use strict';
 
 module.exports = function (min, max, numBuckets) {
+  if (Array.isArray(min)) {
+    numBuckets = max;
+    max = min[1];
+    min = min[0];
+  }
   var buckets = [];
   var range = max - min;
   var width = range / (numBuckets - 1);
+  if (width === Number.POSITIVE_INFINITY || width === Number.NEGATIVE_INFINITY) {
+    width = 0;
+  }
   for (var i = 0; i < numBuckets; i++) {
     buckets.push(min + i * width);
   }
   return buckets;
 };
 
-},{}],116:[function(require,module,exports){
+},{}],121:[function(require,module,exports){
+'use strict';
+
+function minMaxNumericKey (obj) {
+  return Object.keys(obj).reduce(function (minMax, k) {
+    if (Number.isFinite(+k)) {
+      if (minMax.min === null) {
+        minMax.min = +k;
+      }
+      if (minMax.max === null) {
+        minMax.max = +k;
+      }
+      minMax.max = Math.max(minMax.max, +k);
+      minMax.min = Math.min(minMax.min, +k);
+    }
+    return minMax;
+  }, { min: null, max: null });
+}
+
+module.exports = minMaxNumericKey;
+
+},{}],122:[function(require,module,exports){
 'use strict';
 
 function TurboCartoError (message, originalErr, context) {
@@ -31340,21 +30485,19 @@ function TurboCartoError (message, originalErr, context) {
   this.name = this.constructor.name;
 
   if (originalErr) {
-    message += '. Reason: ' + originalErr.message;
-  }
-
-  if (context) {
-    message += '. Context: ' + JSON.stringify(context);
+    message += ' ' + originalErr.message;
   }
 
   this.message = message;
+  this.originalErr = originalErr;
+  this.context = context;
 }
 
 require('util').inherits(TurboCartoError, Error);
 
 module.exports = TurboCartoError;
 
-},{"util":11}],117:[function(require,module,exports){
+},{"util":11}],123:[function(require,module,exports){
 'use strict';
 
 var postcss = require('postcss');
@@ -31372,15 +30515,320 @@ function turbocarto (cartocss, datasource, callback) {
 }
 
 module.exports = turbocarto;
+module.exports.version = require('../package.json').version;
 
-},{"./postcss-turbo-carto":118,"postcss":78}],118:[function(require,module,exports){
+},{"../package.json":102,"./postcss-turbo-carto":129,"postcss":77}],124:[function(require,module,exports){
+'use strict';
+
+var util = require('util');
+var ValuesResult = require('./values-result');
+
+function FiltersResult (result, strategy) {
+  ValuesResult.call(this, result, result.length);
+  this.strategy = strategy;
+}
+
+util.inherits(FiltersResult, ValuesResult);
+
+module.exports = FiltersResult;
+
+FiltersResult.prototype.getStrategy = function () {
+  return this.strategy;
+};
+
+},{"./values-result":128,"util":11}],125:[function(require,module,exports){
+'use strict';
+
+var ValuesResult = require('./values-result');
+var FiltersResult = require('./filters-result');
+var LazyFiltersResult = require('./lazy-filters-result');
+
+function isResult (obj) {
+  return typeof obj === 'object' && obj !== null &&
+    (obj.constructor === ValuesResult || obj.constructor === FiltersResult || obj.constructor === LazyFiltersResult);
+}
+
+module.exports = isResult;
+
+},{"./filters-result":124,"./lazy-filters-result":126,"./values-result":128}],126:[function(require,module,exports){
+'use strict';
+
+require('es6-promise').polyfill();
+
+var util = require('util');
+var FiltersResult = require('./filters-result');
+
+function LazyFiltersResult (filterGenerator) {
+  this.filterGenerator = filterGenerator;
+}
+
+util.inherits(LazyFiltersResult, FiltersResult);
+
+module.exports = LazyFiltersResult;
+
+LazyFiltersResult.prototype.get = function (column, strategy) {
+  return this.filterGenerator(column, strategy);
+};
+
+
+},{"./filters-result":124,"es6-promise":59,"util":11}],127:[function(require,module,exports){
+'use strict';
+
+var TurboCartoError = require('../../helper/turbo-carto-error');
+var postcss = require('postcss');
+
+function RampResult (values, filters, mapping) {
+  this.values = values;
+  this.filters = filters;
+  this.mapping = mapping || '>';
+}
+
+module.exports = RampResult;
+
+var STRATEGIES_SUPPORTED = {
+  /**
+   * `equality` will get as many values - 1, and will filter `column` with those filters,
+   * last value will be used as default value.
+   * Example:
+   *  ```css
+   *  marker-fill: ramp([cat_column], (red, green, blue, black), (1, 2, 3), ==);
+   *  ```
+   *
+   * will generate:
+   *  ```css
+   *  marker-width: black;
+   *  [cat_column = 1] {
+   *    marker-width: red;
+   *  }
+   *  [cat_column = 2] {
+   *    marker-width: green;
+   *  }
+   *  [cat_column = 3] {
+   *    marker-width: blue;
+   *  }
+   *  ```
+   *
+   * This is useful for category ramps.
+   * This works for numeric and string filters.
+   */
+  '=': 'equality',
+  '==': 'equality',
+
+  /**
+   * `greater_than` and `greater_than_or_equal` will use first value as default value, and will break by first filter.
+   * Example:
+   *  ```css
+   *  marker-width: ramp([price], (4, 8, 16, 32), (100, 200, 500, 600), >);
+   *  ```
+   *
+   * Will generate:
+   *  ```css
+   *  marker-width: 4;
+   *  [price > 100] {
+   *    marker-width: 8;
+   *  }
+   *  [price > 200] {
+   *    marker-width: 16;
+   *  }
+   *  [price > 500] {
+   *    marker-width: 32;
+   *  }
+   *  ```
+   *
+   *
+   *
+   * This is useful for quantification methods like jenks, quantiles, and equal intervals.
+   * This only work for numeric filters, otherwise it will throw an error.
+   */
+  '>': 'greater_than_or_equal',
+  '>=': 'greater_than_or_equal',
+
+  /**
+   * Example:
+   *  ```css
+   *  marker-width: ramp([price], (4, 8, 16, 32), (50, 75.5, 88, 94.5), <);
+   *  ```
+   *
+   * Will generate:
+   *  ```css
+   *  marker-width: 32;
+   *  [price < 50] {
+   *    marker-width: 4;
+   *  }
+   *  [price < 75.5] {
+   *    marker-width: 8;
+   *  }
+   *  [price < 88] {
+   *    marker-width: 16;
+   *  }
+   *  ```
+   *
+   * This is useful for quantification methods like headtails.
+   * This only work for numeric filters, otherwise it will throw an error.
+   */
+  '<': 'less_than_or_equal',
+  '<=': 'less_than_or_equal'
+
+  /**
+   * Future mappings
+   * '!=': 'inequality',
+   * 'in': 'set_inclusion',
+   * '!in': 'set_exclusion',
+   */
+};
+
+RampResult.prototype.process = function (column, decl) {
+  var strategy = STRATEGIES_SUPPORTED[this.mapping];
+  if (strategy === STRATEGIES_SUPPORTED['<']) {
+    return this.processLessThanOrEqual(column, decl);
+  } else if (strategy === STRATEGIES_SUPPORTED['==']) {
+    return this.processEquality(column, decl);
+  } else {
+    return this.processGreaterThanOrEqual(column, decl);
+  }
+};
+
+RampResult.supports = function (strategy) {
+  return STRATEGIES_SUPPORTED.hasOwnProperty(strategy) || !strategy;
+};
+
+RampResult.prototype.processEquality = function (column, decl) {
+  if ((this.filters.getLength()) > this.values.getMaxSize()) {
+    throw new TurboCartoError('`' + this.mapping + '` requires more or same values than filters to work.');
+  }
+
+  var values = this.values.get(this.filters.getLength() + 1);
+  var filters = this.filters.get();
+
+  var initialDecl = decl;
+  if (values.length !== filters.length) {
+    var defaultValue = values[values.length - 1];
+    initialDecl = postcss.decl({ prop: decl.prop, value: defaultValue });
+    decl.replaceWith(initialDecl);
+  }
+
+  var previousNode = initialDecl;
+  filters.forEach(function (filter, index) {
+    var filterSelector = Number.isFinite(filter) ? filter : '"' + filter + '"';
+    var rule = postcss.rule({
+      selector: '[ ' + column + ' = ' + filterSelector + ' ]'
+    });
+    rule.append(postcss.decl({ prop: decl.prop, value: values[index] }));
+
+    rule.moveAfter(previousNode);
+    previousNode = rule;
+  });
+
+  if (values.length === filters.length) {
+    decl.remove();
+  }
+
+  return { values: values, filters: filters, mapping: this.mapping };
+};
+
+RampResult.prototype.processGreaterThanOrEqual = function (column, decl) {
+  var buckets = Math.min(this.values.getMaxSize(), this.filters.getMaxSize());
+
+  var values = this.values.get((buckets <= 1) ? buckets + 1 : buckets);
+  var filters = this.filters.get(buckets);
+
+  var defaultValue = values[0];
+  var initialDecl = postcss.decl({ prop: decl.prop, value: defaultValue });
+  decl.replaceWith(initialDecl);
+
+  var previousNode = initialDecl;
+  filters.slice(0, Math.max(filters.length - 1, 1)).forEach(function (filter, index) {
+    var rule = postcss.rule({
+      selector: '[ ' + column + ' ' + this.mapping + ' ' + filter + ' ]'
+    });
+    rule.append(postcss.decl({ prop: decl.prop, value: values[index + 1] }));
+
+    rule.moveAfter(previousNode);
+    previousNode = rule;
+  }.bind(this));
+
+  return { values: values, filters: filters, mapping: this.mapping };
+};
+
+RampResult.prototype.processLessThanOrEqual = function (column, decl) {
+  var values = this.values.get(this.filters.getLength() + 1);
+  var filters = this.filters.get();
+
+  var defaultValue = values[values.length - 1];
+
+  var initialDecl = postcss.decl({ prop: decl.prop, value: defaultValue });
+  decl.replaceWith(initialDecl);
+
+  var previousNode = initialDecl;
+  filters.slice(0, filters.length - 1).forEach(function (filter, index) {
+    var rule = postcss.rule({
+      selector: '[ ' + column + ' ' + this.mapping + ' ' + filter + ' ]'
+    });
+    rule.append(postcss.decl({ prop: decl.prop, value: values[index] }));
+
+    rule.moveAfter(previousNode);
+    previousNode = rule;
+  }.bind(this));
+
+  return { values: values, filters: filters, mapping: this.mapping };
+};
+
+},{"../../helper/turbo-carto-error":122,"postcss":77}],128:[function(require,module,exports){
+'use strict';
+
+function ValuesResult (result, defaultSize, getter, maxSize) {
+  this.result = result;
+  this.defaultSize = defaultSize || result.length;
+  this.getter = getter;
+  this.maxSize = maxSize || result.length;
+}
+
+module.exports = ValuesResult;
+
+ValuesResult.prototype.get = function (size) {
+  size = size || this.defaultSize;
+  if (this.getter) {
+    return this.getter(this.result, size);
+  }
+
+  if (Array.isArray(this.result)) {
+    if (size > 0) {
+      return this.result.slice(0, size);
+    }
+    return this.result;
+  }
+
+  return this.result.hasOwnProperty(size) ? this.result[size] : this.result[this.defaultSize];
+};
+
+ValuesResult.prototype.getLength = function (size) {
+  return this.get(size).length;
+};
+
+ValuesResult.prototype.getMaxSize = function () {
+  return this.maxSize;
+};
+
+ValuesResult.prototype.toString = function () {
+  return JSON.stringify({
+    result: this.result,
+    defaultSize: this.defaultSize,
+    getter: this.getter && this.getter.toString()
+  });
+};
+
+ValuesResult.prototype.is = function (constructor) {
+  return this.constructor === constructor;
+};
+
+},{}],129:[function(require,module,exports){
 'use strict';
 
 require('es6-promise').polyfill();
 
 var valueParser = require('postcss-value-parser');
 var postcss = require('postcss');
-var FnBuilder = require('./fn/fn-builder');
+var FnBuilder = require('./fn/builder');
 
 function PostcssTurboCarto (datasource) {
   this.datasource = datasource;
@@ -31409,7 +30857,7 @@ PostcssTurboCarto.prototype.getPlugin = function () {
   });
 };
 
-},{"./fn/fn-builder":105,"es6-promise":60,"postcss":78,"postcss-value-parser":61}],119:[function(require,module,exports){
+},{"./fn/builder":103,"es6-promise":59,"postcss":77,"postcss-value-parser":60}],130:[function(require,module,exports){
 var ss = require('simple-statistics');
 
 /**
@@ -31491,7 +30939,7 @@ module.exports = function(fc, field, num){
   return breaks;
 };
 
-},{"simple-statistics":120}],120:[function(require,module,exports){
+},{"simple-statistics":131}],131:[function(require,module,exports){
 'use strict';
 // # simple-statistics
 //
@@ -33067,7 +32515,7 @@ module.exports = function(fc, field, num){
 
 })(this);
 
-},{}],121:[function(require,module,exports){
+},{}],132:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -34617,7 +34065,7 @@ module.exports = function(fc, field, num){
   }
 }.call(this));
 
-},{}],122:[function(require,module,exports){
+},{}],133:[function(require,module,exports){
 (function (global){
 var Event = {}
 Event.on = function (evt, callback) {
@@ -34712,7 +34160,7 @@ module.exports = {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],123:[function(require,module,exports){
+},{}],134:[function(require,module,exports){
 var d3 = require('d3')
 var jenks = require('turf-jenks')
 
@@ -34768,7 +34216,7 @@ CSSDataSource.prototype.getRamp = function (column, bins, method, callback) {
   callback(error, ramp)
 }
 
-},{"d3":52,"turf-jenks":119}],124:[function(require,module,exports){
+},{"d3":51,"turf-jenks":130}],135:[function(require,module,exports){
 var Crossfilter = require('crossfilter')
 var cartodb = require('./')
 var geo = require('./geo')
@@ -34977,7 +34425,7 @@ Filter.reject = function (terms) {
 
 module.exports = Filter
 
-},{"./":126,"./geo":125,"crossfilter":51}],125:[function(require,module,exports){
+},{"./":137,"./geo":136,"crossfilter":50}],136:[function(require,module,exports){
 module.exports = {
   tile2lon: function (x, z) {
     return (x / Math.pow(2, z) * 360 - 180)
@@ -35065,7 +34513,7 @@ module.exports = {
   }
 }
 
-},{}],126:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 module.exports.d3 = require('./core')
 require('./leaflet_d3.js')
 var elements = {
@@ -35080,7 +34528,7 @@ for (var key in elements) {
   module.exports.d3[key] = elements[key]
 }
 
-},{"./core":122,"./filter.js":124,"./geo.js":125,"./leaflet_d3.js":127,"./net.js":128,"./providers":129,"./renderer.js":133,"./util.js":135}],127:[function(require,module,exports){
+},{"./core":133,"./filter.js":135,"./geo.js":136,"./leaflet_d3.js":138,"./net.js":139,"./providers":140,"./renderer.js":144,"./util.js":146}],138:[function(require,module,exports){
 var Renderer = require('./renderer')
 var providers = require('./providers')
 var TileLoader = require('./tileloader')
@@ -35402,7 +34850,7 @@ L.CartoDBd3Layer = L.TileLayer.extend({
   }
 })
 
-},{"./geo":125,"./providers":129,"./renderer":133,"./tileloader":134}],128:[function(require,module,exports){
+},{"./geo":136,"./providers":140,"./renderer":144,"./tileloader":145}],139:[function(require,module,exports){
 (function (global){
 var d3 = require('d3')
 
@@ -35476,14 +34924,14 @@ module.exports.get = function get (url, callback, options) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"d3":52}],129:[function(require,module,exports){
+},{"d3":51}],140:[function(require,module,exports){
 module.exports = {
   SQLProvider: require('./sql.js'),
   XYZProvider: require('./xyz.js'),
   WindshaftProvider: require('./windshaft.js')
 }
 
-},{"./sql.js":130,"./windshaft.js":131,"./xyz.js":132}],130:[function(require,module,exports){
+},{"./sql.js":141,"./windshaft.js":142,"./xyz.js":143}],141:[function(require,module,exports){
 var d3 = require('d3')
 var geo = require('../geo')
 
@@ -35571,7 +35019,7 @@ SQLProvider.prototype = {
 
 module.exports = SQLProvider
 
-},{"../geo":125,"d3":52}],131:[function(require,module,exports){
+},{"../geo":136,"d3":51}],142:[function(require,module,exports){
 var cartodb = require('../')
 var XYZProvider = require('./xyz.js')
 
@@ -35636,7 +35084,7 @@ cartodb.d3.extend(WindshaftProvider.prototype, cartodb.d3.Event, {
 
 module.exports = WindshaftProvider
 
-},{"../":126,"./xyz.js":132}],132:[function(require,module,exports){
+},{"../":137,"./xyz.js":143}],143:[function(require,module,exports){
 var d3 = require('d3')
 var cartodb = require('../')
 
@@ -35722,7 +35170,7 @@ cartodb.d3.extend(XYZProvider.prototype, cartodb.d3.Event, {
 
 module.exports = XYZProvider
 
-},{"../":126,"d3":52}],133:[function(require,module,exports){
+},{"../":137,"d3":51}],144:[function(require,module,exports){
 (function (global){
 /** global L **/
 var d3 = global.d3 || require('d3')
@@ -36271,7 +35719,7 @@ function transformForSymbolizer (symbolizer) {
 module.exports = Renderer
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./datasource":123,"./filter":124,"./geo":125,"carto":13,"d3":52,"turbo-carto":117,"underscore":121}],134:[function(require,module,exports){
+},{"./datasource":134,"./filter":135,"./geo":136,"carto":13,"d3":51,"turbo-carto":123,"underscore":132}],145:[function(require,module,exports){
 var L = window.L
 
 module.exports = L.Class.extend({
@@ -36423,7 +35871,7 @@ module.exports = L.Class.extend({
   }
 })
 
-},{}],135:[function(require,module,exports){
+},{}],146:[function(require,module,exports){
 var L = window.L
 var cartodb = require('../')
 
@@ -36467,5 +35915,5 @@ module.exports = {
   }
 }
 
-},{"../":126}]},{},[126])(126)
+},{"../":137}]},{},[137])(137)
 });
