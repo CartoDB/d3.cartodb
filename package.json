@@ -1,6 +1,6 @@
 {
   "name": "d3.cartodb",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "d3.cartodb is an experiment to render cartodb visualizations using d3.",
   "main": "src/index.js",
   "scripts": {
@@ -27,7 +27,7 @@
   "dependencies": {
     "carto": "cartodb/carto#master",
     "crossfilter": "^1.3.12",
-    "d3": "^3.5.6",
+    "d3": "3.5.17",
     "turbo-carto": "0.16.0",
     "turf-jenks": "^1.0.1",
     "underscore": "^1.8.3"
