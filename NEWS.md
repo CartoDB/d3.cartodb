@@ -1,3 +1,6 @@
+### 1.2.0
+* Updated Turbo-Carto to 0.19.0.
+
 ### 1.1.1
 * Now Polygons are correctly filtered by bounding box
 * Fixed an issue with the layer title cleaner function
